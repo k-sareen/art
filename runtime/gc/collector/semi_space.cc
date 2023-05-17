@@ -40,7 +40,6 @@
 #include "indirect_reference_table.h"
 #include "intern_table.h"
 #include "jni/jni_internal.h"
-#include "mark_sweep-inl.h"
 #include "mirror/object-inl.h"
 #include "mirror/object-refvisitor-inl.h"
 #include "mirror/reference-inl.h"
@@ -175,11 +174,14 @@ void SemiSpace::MarkingPhase() {
   // Assume the cleared space is already empty.
   BindBitmaps();
   // Process dirty cards and add dirty cards to mod-union tables.
-  heap_->ProcessCards(GetTimings(), /*use_rem_sets=*/false, false, true);
-  // Clear the whole card table since we cannot get any additional dirty cards during the
-  // paused GC. This saves memory but only works for pause the world collectors.
-  t.NewTiming("ClearCardTable");
-  heap_->GetCardTable()->ClearCardTable();
+  if (gUseWriteBarrier) {
+    heap_->ProcessCards(GetTimings(), /*use_rem_sets=*/false, false, true);
+
+    // Clear the whole card table since we cannot get any additional dirty cards during the
+    // paused GC. This saves memory but only works for pause the world collectors.
+    t.NewTiming("ClearCardTable");
+    heap_->GetCardTable()->ClearCardTable();
+  }
   // Need to do this before the checkpoint since we don't want any threads to add references to
   // the live stack during the recursive mark.
   if (kUseThreadLocalAllocationStack) {
@@ -288,7 +290,7 @@ void SemiSpace::MarkReachableObjects() {
   for (auto& space : heap_->GetContinuousSpaces()) {
     // If the space is immune then we need to mark the references to other spaces.
     accounting::ModUnionTable* table = heap_->FindModUnionTableFromSpace(space);
-    if (table != nullptr) {
+    if (gUseWriteBarrier && table != nullptr) {
       // TODO: Improve naming.
       TimingLogger::ScopedTiming t2(
           space->IsZygoteSpace() ? "UpdateAndMarkZygoteModUnionTable" :
@@ -302,14 +304,14 @@ void SemiSpace::MarkReachableObjects() {
       // bitmap or dirty cards as roots (including the objects on the live stack which have just
       // marked in the live bitmap above in MarkAllocStackAsLive().)
       accounting::RememberedSet* rem_set = GetHeap()->FindRememberedSetFromSpace(space);
-      if (!space->IsImageSpace()) {
+      if (gUseWriteBarrier && !space->IsImageSpace()) {
         DCHECK(space == heap_->GetNonMovingSpace() || space == heap_->GetPrimaryFreeListSpace())
             << "Space " << space->GetName();
         // App images currently do not have remembered sets.
       } else {
         DCHECK(rem_set == nullptr);
       }
-      if (rem_set != nullptr) {
+      if (gUseWriteBarrier && rem_set != nullptr) {
         TimingLogger::ScopedTiming t2("UpdateAndMarkRememberedSet", GetTimings());
         rem_set->UpdateAndMarkReferences(from_space_, this);
       } else {
@@ -509,6 +511,9 @@ bool SemiSpace::ShouldSweepSpace(space::ContinuousSpace* space) const {
   return space != from_space_ && space != to_space_;
 }
 
+// kunals: The "MarkSweep" behaviour of SemiSpace is only for spaces which are
+// not the to-space and the from-space. That is to say, it will sweep all spaces
+// (such as zygote space) except the to- and from-spaces.
 void SemiSpace::Sweep(bool swap_bitmaps) {
   TimingLogger::ScopedTiming t(__FUNCTION__, GetTimings());
   DCHECK(mark_stack_->IsEmpty());

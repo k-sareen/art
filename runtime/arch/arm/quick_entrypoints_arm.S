@@ -727,9 +727,11 @@ ENTRY art_quick_aput_obj
     add r3, r0, #MIRROR_OBJECT_ARRAY_DATA_OFFSET
     POISON_HEAP_REF r2
     str r2, [r3, r1, lsl #2]
+#ifdef USE_WRITE_BARRIER
     ldr r3, [rSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr r0, r0, #CARD_TABLE_CARD_SHIFT
     strb r3, [r3, r0]
+#endif  // USE_WRITE_BARRIER
     blx lr
 
 .Laput_obj_null:
@@ -752,9 +754,11 @@ ENTRY art_quick_aput_obj
     add r3, r0, #MIRROR_OBJECT_ARRAY_DATA_OFFSET
     POISON_HEAP_REF r2
     str r2, [r3, r1, lsl #2]
+#ifdef USE_WRITE_BARRIER
     ldr r3, [rSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr r0, r0, #CARD_TABLE_CARD_SHIFT
     strb r3, [r3, r0]
+#endif  // USE_WRITE_BARRIER
     blx lr
 
 .Lthrow_array_store_exception:

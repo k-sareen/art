@@ -2020,7 +2020,7 @@ static void GenUnsafePut(LocationSummary* locations,
     codegen->MemoryFence();
   }
 
-  if (type == DataType::Type::kReference) {
+  if (type == DataType::Type::kReference && gUseWriteBarrier) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(locations->GetTemp(0).AsRegister<Register>(),
                         locations->GetTemp(1).AsRegister<Register>(),
@@ -2354,11 +2354,13 @@ static void GenReferenceCAS(HInvoke* invoke,
   }
 
   // Mark card for object if the new value is stored.
-  bool value_can_be_null = true;  // TODO: Worth finding out this information?
-  NearLabel skip_mark_gc_card;
-  __ j(kNotZero, &skip_mark_gc_card);
-  codegen->MarkGCCard(temp, temp2, base, value, value_can_be_null);
-  __ Bind(&skip_mark_gc_card);
+  if (gUseWriteBarrier) {
+    bool value_can_be_null = true;  // TODO: Worth finding out this information?
+    NearLabel skip_mark_gc_card;
+    __ j(kNotZero, &skip_mark_gc_card);
+    codegen->MarkGCCard(temp, temp2, base, value, value_can_be_null);
+    __ Bind(&skip_mark_gc_card);
+  }
 
   // If heap poisoning is enabled, we need to unpoison the values
   // that were poisoned earlier.
@@ -3258,7 +3260,9 @@ void IntrinsicCodeGeneratorX86::VisitSystemArrayCopy(HInvoke* invoke) {
   }
 
   // We only need one card marking on the destination array.
-  codegen_->MarkGCCard(temp1, temp2, dest, Register(kNoRegister), /* emit_null_check= */ false);
+  if (gUseWriteBarrier) {
+    codegen_->MarkGCCard(temp1, temp2, dest, Register(kNoRegister), /* emit_null_check= */ false);
+  }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());
 }
@@ -4209,8 +4213,10 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke, CodeGeneratorX86* codege
             /* always_update_field= */ true,
             &temp2);
       }
-      codegen->MarkGCCard(
-          temp, temp2, reference, value.AsRegister<Register>(), /* emit_null_check= */ false);
+      if (gUseWriteBarrier) {
+        codegen->MarkGCCard(
+            temp, temp2, reference, value.AsRegister<Register>(), /* emit_null_check= */ false);
+      }
       if (kPoisonHeapReferences) {
         __ movl(temp, value.AsRegister<Register>());
         __ PoisonHeapReference(temp);

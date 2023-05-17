@@ -28,6 +28,7 @@
 #include "immune_spaces.h"
 #include "mirror/object_reference.h"
 #include "offsets.h"
+#include "write_barrier_config.h"
 
 namespace art {
 
@@ -57,7 +58,7 @@ namespace collector {
 class SemiSpace : public GarbageCollector {
  public:
   // If true, use remembered sets in the generational mode.
-  static constexpr bool kUseRememberedSet = true;
+  static const bool kUseRememberedSet = gUseWriteBarrier;
 
   explicit SemiSpace(Heap* heap, const std::string& name_prefix = "");
 
@@ -186,10 +187,6 @@ class SemiSpace : public GarbageCollector {
 
   // Push an object onto the mark stack.
   void MarkStackPush(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_);
-
-  void UpdateAndMarkModUnion()
-      REQUIRES(Locks::heap_bitmap_lock_)
-      REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Recursively blackens objects on the mark stack.
   void ProcessMarkStack() override

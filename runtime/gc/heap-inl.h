@@ -191,6 +191,7 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       no_suspend_pre_fence_visitor(obj, usable_size);
       QuasiAtomic::ThreadFenceForConstructor();
     }
+    // TODO: kunals NoGC check allocation and writes; compare write-barrier performance
     if (bytes_tl_bulk_allocated > 0) {
       starting_gc_num = GetCurrentGcNum();
       size_t num_bytes_allocated_before =

@@ -24,6 +24,7 @@
 #include "mirror/object-readbarrier-inl.h"
 #include "runtime.h"
 #include "thread-current-inl.h"
+#include "write_barrier_config.h"
 
 namespace art {
 namespace gc {
@@ -121,7 +122,10 @@ void ZygoteSpace::SweepCallback(size_t num_ptrs, mirror::Object** ptrs, void* ar
   DCHECK(context->space->IsZygoteSpace());
   ZygoteSpace* zygote_space = context->space->AsZygoteSpace();
   Locks::heap_bitmap_lock_->AssertExclusiveHeld(context->self);
-  accounting::CardTable* card_table = Runtime::Current()->GetHeap()->GetCardTable();
+  accounting::CardTable* card_table = nullptr;
+  if (gUseWriteBarrier) {
+    card_table = Runtime::Current()->GetHeap()->GetCardTable();
+  }
   // If the bitmaps aren't swapped we need to clear the bits since the GC isn't going to re-swap
   // the bitmaps as an optimization.
   if (!context->swap_bitmaps) {
@@ -131,9 +135,11 @@ void ZygoteSpace::SweepCallback(size_t num_ptrs, mirror::Object** ptrs, void* ar
     }
   }
   // We don't free any actual memory to avoid dirtying the shared zygote pages.
-  for (size_t i = 0; i < num_ptrs; ++i) {
-    // Need to mark the card since this will update the mod-union table next GC cycle.
-    card_table->MarkCard(ptrs[i]);
+  if (gUseWriteBarrier) {
+    for (size_t i = 0; i < num_ptrs; ++i) {
+      // Need to mark the card since this will update the mod-union table next GC cycle.
+      card_table->MarkCard(ptrs[i]);
+    }
   }
   zygote_space->objects_allocated_.fetch_sub(num_ptrs);
 }

@@ -1990,9 +1990,11 @@ NterpPutObjectInstanceField:
    movl %ecx, (rINSTq,%rax,1)
    testl %ecx, %ecx
    je 4f
+#ifdef USE_WRITE_BARRIER
    movq rSELF:THREAD_CARD_TABLE_OFFSET, %rax
    shrq $$CARD_TABLE_CARD_SHIFT, rINSTq
    movb %al, (%rax, rINSTq, 1)
+#endif  // USE_WRITE_BARRIER
 4:
    ADVANCE_PC_FETCH_AND_GOTO_NEXT 2
 2:
@@ -2013,9 +2015,11 @@ NterpPutObjectInstanceField:
    movl %ecx, (rINSTq,%rax,1)
    testl %ecx, %ecx
    je 5f
+#ifdef USE_WRITE_BARRIER
    movq rSELF:THREAD_CARD_TABLE_OFFSET, %rax
    shrq $$CARD_TABLE_CARD_SHIFT, rINSTq
    movb %al, (%rax, rINSTq, 1)
+#endif  // USE_WRITE_BARRIER
 5:
    lock addl $$0, (%rsp)
    ADVANCE_PC_FETCH_AND_GOTO_NEXT 2
@@ -2067,9 +2071,11 @@ NterpPutObjectStaticField:
    movl %ebp, (%eax, %edx, 1)
    testl %ebp, %ebp
    je 4f
+#ifdef USE_WRITE_BARRIER
    movq rSELF:THREAD_CARD_TABLE_OFFSET, %rcx
    shrq $$CARD_TABLE_CARD_SHIFT, %rax
    movb %cl, (%rax, %rcx, 1)
+#endif  // USE_WRITE_BARRIER
 4:
    ADVANCE_PC_FETCH_AND_GOTO_NEXT 2
 2:
@@ -2092,9 +2098,11 @@ NterpPutObjectStaticField:
    movl %ebp, (%eax, %edx, 1)
    testl %ebp, %ebp
    je 8f
+#ifdef USE_WRITE_BARRIER
    movq rSELF:THREAD_CARD_TABLE_OFFSET, %rcx
    shrq $$CARD_TABLE_CARD_SHIFT, %rax
    movb %cl, (%rax, %rcx, 1)
+#endif  // USE_WRITE_BARRIER
 8:
    lock addl $$0, (%rsp)
    ADVANCE_PC_FETCH_AND_GOTO_NEXT 2

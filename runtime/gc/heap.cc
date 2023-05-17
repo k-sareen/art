@@ -713,14 +713,16 @@ Heap::Heap(size_t initial_size,
   // Start at 4 KB, we can be sure there are no spaces mapped this low since the address range is
   // reserved by the kernel.
   static constexpr size_t kMinHeapAddress = 4 * KB;
-  card_table_.reset(accounting::CardTable::Create(reinterpret_cast<uint8_t*>(kMinHeapAddress),
-                                                  4 * GB - kMinHeapAddress));
-  CHECK(card_table_.get() != nullptr) << "Failed to create card table";
+  if (gUseWriteBarrier) {
+    card_table_.reset(accounting::CardTable::Create(reinterpret_cast<uint8_t*>(kMinHeapAddress),
+                                                    4 * GB - kMinHeapAddress));
+    CHECK(card_table_.get() != nullptr) << "Failed to create card table";
+  }
   if (foreground_collector_type_ == kCollectorTypeCC && kUseTableLookupReadBarrier) {
     rb_table_.reset(new accounting::ReadBarrierTable());
     DCHECK(rb_table_->IsAllCleared());
   }
-  if (HasBootImageSpace()) {
+  if (gUseWriteBarrier && HasBootImageSpace()) {
     // Don't add the image mod union table if we are running without an image, this can crash if
     // we use the CardCache implementation.
     for (space::ImageSpace* image_space : GetBootImageSpaces()) {
@@ -2568,34 +2570,36 @@ void Heap::PreZygoteFork() {
   }
 
   // Create the zygote space mod union table.
-  accounting::ModUnionTable* mod_union_table =
-      new accounting::ModUnionTableCardCache("zygote space mod-union table", this, zygote_space_);
-  CHECK(mod_union_table != nullptr) << "Failed to create zygote space mod-union table";
+  if (gUseWriteBarrier) {
+    accounting::ModUnionTable* mod_union_table =
+        new accounting::ModUnionTableCardCache("zygote space mod-union table", this, zygote_space_);
+    CHECK(mod_union_table != nullptr) << "Failed to create zygote space mod-union table";
 
-  if (collector_type_ != kCollectorTypeCC && collector_type_ != kCollectorTypeCMC) {
-    // Set all the cards in the mod-union table since we don't know which objects contain references
-    // to large objects.
-    mod_union_table->SetCards();
-  } else {
-    // Make sure to clear the zygote space cards so that we don't dirty pages in the next GC. There
-    // may be dirty cards from the zygote compaction or reference processing. These cards are not
-    // necessary to have marked since the zygote space may not refer to any objects not in the
-    // zygote or image spaces at this point.
-    mod_union_table->ProcessCards();
-    mod_union_table->ClearTable();
+    if (collector_type_ != kCollectorTypeCC && collector_type_ != kCollectorTypeCMC) {
+      // Set all the cards in the mod-union table since we don't know which objects contain references
+      // to large objects.
+      mod_union_table->SetCards();
+    } else {
+      // Make sure to clear the zygote space cards so that we don't dirty pages in the next GC. There
+      // may be dirty cards from the zygote compaction or reference processing. These cards are not
+      // necessary to have marked since the zygote space may not refer to any objects not in the
+      // zygote or image spaces at this point.
+      mod_union_table->ProcessCards();
+      mod_union_table->ClearTable();
 
-    // For CC and CMC we never collect zygote large objects. This means we do not need to set the
-    // cards for the zygote mod-union table and we can also clear all of the existing image
-    // mod-union tables. The existing mod-union tables are only for image spaces and may only
-    // reference zygote and image objects.
-    for (auto& pair : mod_union_tables_) {
-      CHECK(pair.first->IsImageSpace());
-      CHECK(!pair.first->AsImageSpace()->GetImageHeader().IsAppImage());
-      accounting::ModUnionTable* table = pair.second;
-      table->ClearTable();
+      // For CC and CMC we never collect zygote large objects. This means we do not need to set the
+      // cards for the zygote mod-union table and we can also clear all of the existing image
+      // mod-union tables. The existing mod-union tables are only for image spaces and may only
+      // reference zygote and image objects.
+      for (auto& pair : mod_union_tables_) {
+        CHECK(pair.first->IsImageSpace());
+        CHECK(!pair.first->AsImageSpace()->GetImageHeader().IsAppImage());
+        accounting::ModUnionTable* table = pair.second;
+        table->ClearTable();
+      }
     }
+    AddModUnionTable(mod_union_table);
   }
-  AddModUnionTable(mod_union_table);
   large_object_space_->SetAllLargeObjectsAsZygoteObjects(self, set_mark_bit);
   if (collector::SemiSpace::kUseRememberedSet) {
     // Add a new remembered set for the post-zygote non-moving space.
@@ -3065,12 +3069,19 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
     }
     if (obj != nullptr) {
       // Only do this part for non roots.
-      accounting::CardTable* card_table = heap_->GetCardTable();
+      accounting::CardTable* card_table = nullptr;
+      uint8_t* card_addr = nullptr;
       accounting::ObjectStack* alloc_stack = heap_->allocation_stack_.get();
       accounting::ObjectStack* live_stack = heap_->live_stack_.get();
-      uint8_t* card_addr = card_table->CardFromAddr(obj);
-      LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
-                 << offset << "\n card value = " << static_cast<int>(*card_addr);
+      if (gUseWriteBarrier) {
+        card_table = heap_->GetCardTable();
+        card_addr = card_table->CardFromAddr(obj);
+        LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
+                   << offset << "\n card value = " << static_cast<int>(*card_addr);
+      } else {
+        LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
+                   << offset << "\n";
+      }
       if (heap_->IsValidObjectAddress(obj->GetClass())) {
         LOG(ERROR) << "Obj type " << obj->PrettyTypeOf();
       } else {
@@ -3098,12 +3109,14 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
                    << ") is not a valid heap address";
       }
 
-      card_table->CheckAddrIsInCardTable(reinterpret_cast<const uint8_t*>(obj));
-      void* cover_begin = card_table->AddrFromCard(card_addr);
-      void* cover_end = reinterpret_cast<void*>(reinterpret_cast<size_t>(cover_begin) +
-          accounting::CardTable::kCardSize);
-      LOG(ERROR) << "Card " << reinterpret_cast<void*>(card_addr) << " covers " << cover_begin
-          << "-" << cover_end;
+      if (gUseWriteBarrier) {
+        card_table->CheckAddrIsInCardTable(reinterpret_cast<const uint8_t*>(obj));
+        void* cover_begin = card_table->AddrFromCard(card_addr);
+        void* cover_end = reinterpret_cast<void*>(reinterpret_cast<size_t>(cover_begin) +
+            accounting::CardTable::kCardSize);
+        LOG(ERROR) << "Card " << reinterpret_cast<void*>(card_addr) << " covers " << cover_begin
+            << "-" << cover_end;
+      }
       accounting::ContinuousSpaceBitmap* bitmap =
           heap_->GetLiveBitmap()->GetContinuousSpaceBitmap(obj);
 
@@ -3130,10 +3143,12 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
           LOG(ERROR) << "Ref " << ref << " found in live stack";
         }
         // Attempt to see if the card table missed the reference.
-        ScanVisitor scan_visitor;
-        uint8_t* byte_cover_begin = reinterpret_cast<uint8_t*>(card_table->AddrFromCard(card_addr));
-        card_table->Scan<false>(bitmap, byte_cover_begin,
-                                byte_cover_begin + accounting::CardTable::kCardSize, scan_visitor);
+        if (gUseWriteBarrier) {
+          ScanVisitor scan_visitor;
+          uint8_t* byte_cover_begin = reinterpret_cast<uint8_t*>(card_table->AddrFromCard(card_addr));
+          card_table->Scan<false>(bitmap, byte_cover_begin,
+                                  byte_cover_begin + accounting::CardTable::kCardSize, scan_visitor);
+        }
       }
 
       // Search to see if any of the roots reference our object.
@@ -3250,14 +3265,16 @@ size_t Heap::VerifyHeapReferences(bool verify_referents) {
   visitor.VerifyRoots();
   if (visitor.GetFailureCount() > 0) {
     // Dump mod-union tables.
-    for (const auto& table_pair : mod_union_tables_) {
-      accounting::ModUnionTable* mod_union_table = table_pair.second;
-      mod_union_table->Dump(LOG_STREAM(ERROR) << mod_union_table->GetName() << ": ");
-    }
-    // Dump remembered sets.
-    for (const auto& table_pair : remembered_sets_) {
-      accounting::RememberedSet* remembered_set = table_pair.second;
-      remembered_set->Dump(LOG_STREAM(ERROR) << remembered_set->GetName() << ": ");
+    if (gUseWriteBarrier) {
+      for (const auto& table_pair : mod_union_tables_) {
+        accounting::ModUnionTable* mod_union_table = table_pair.second;
+        mod_union_table->Dump(LOG_STREAM(ERROR) << mod_union_table->GetName() << ": ");
+      }
+      // Dump remembered sets.
+      for (const auto& table_pair : remembered_sets_) {
+        accounting::RememberedSet* remembered_set = table_pair.second;
+        remembered_set->Dump(LOG_STREAM(ERROR) << remembered_set->GetName() << ": ");
+      }
     }
     DumpSpaces(LOG_STREAM(ERROR));
   }
@@ -3347,8 +3364,10 @@ class VerifyLiveStackReferences {
 
   void operator()(mirror::Object* obj) const
       REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
-    VerifyReferenceCardVisitor visitor(heap_, const_cast<bool*>(&failed_));
-    obj->VisitReferences(visitor, VoidFunctor());
+    if (gUseWriteBarrier) {
+      VerifyReferenceCardVisitor visitor(heap_, const_cast<bool*>(&failed_));
+      obj->VisitReferences(visitor, VoidFunctor());
+    }
   }
 
   bool Failed() const {
@@ -3495,24 +3514,26 @@ void Heap::PreGcVerificationPaused(collector::GarbageCollector* gc) {
           << " failures";
     }
   }
-  // Check that all objects which reference things in the live stack are on dirty cards.
-  if (verify_missing_card_marks_) {
-    TimingLogger::ScopedTiming t2("(Paused)PreGcVerifyMissingCardMarks", timings);
-    ReaderMutexLock mu(self, *Locks::heap_bitmap_lock_);
-    SwapStacks();
-    // Sort the live stack so that we can quickly binary search it later.
-    CHECK(VerifyMissingCardMarks()) << "Pre " << gc->GetName()
-                                    << " missing card mark verification failed\n" << DumpSpaces();
-    SwapStacks();
-  }
-  if (verify_mod_union_table_) {
-    TimingLogger::ScopedTiming t2("(Paused)PreGcVerifyModUnionTables", timings);
-    ReaderMutexLock reader_lock(self, *Locks::heap_bitmap_lock_);
-    for (const auto& table_pair : mod_union_tables_) {
-      accounting::ModUnionTable* mod_union_table = table_pair.second;
-      IdentityMarkHeapReferenceVisitor visitor;
-      mod_union_table->UpdateAndMarkReferences(&visitor);
-      mod_union_table->Verify();
+  if (gUseWriteBarrier) {
+    // Check that all objects which reference things in the live stack are on dirty cards.
+    if (verify_missing_card_marks_) {
+      TimingLogger::ScopedTiming t2("(Paused)PreGcVerifyMissingCardMarks", timings);
+      ReaderMutexLock mu(self, *Locks::heap_bitmap_lock_);
+      SwapStacks();
+      // Sort the live stack so that we can quickly binary search it later.
+      CHECK(VerifyMissingCardMarks()) << "Pre " << gc->GetName()
+                                      << " missing card mark verification failed\n" << DumpSpaces();
+      SwapStacks();
+    }
+    if (verify_mod_union_table_) {
+      TimingLogger::ScopedTiming t2("(Paused)PreGcVerifyModUnionTables", timings);
+      ReaderMutexLock reader_lock(self, *Locks::heap_bitmap_lock_);
+      for (const auto& table_pair : mod_union_tables_) {
+        accounting::ModUnionTable* mod_union_table = table_pair.second;
+        IdentityMarkHeapReferenceVisitor visitor;
+        mod_union_table->UpdateAndMarkReferences(&visitor);
+        mod_union_table->Verify();
+      }
     }
   }
 }

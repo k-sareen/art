@@ -1017,9 +1017,11 @@ ENTRY art_quick_aput_obj
     add x3, x0, #MIRROR_OBJECT_ARRAY_DATA_OFFSET
     POISON_HEAP_REF w2
     str w2, [x3, x1, lsl #2]                           // Heap reference = 32b.
+#ifdef USE_WRITE_BARRIER
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#endif  // USE_WRITE_BARRIER
     ret
 
 .Laput_obj_null:
@@ -1048,9 +1050,11 @@ ENTRY art_quick_aput_obj
     add x3, x0, #MIRROR_OBJECT_ARRAY_DATA_OFFSET
     POISON_HEAP_REF w2
     str w2, [x3, x1, lsl #2]                           // Heap reference = 32b.
+#ifdef USE_WRITE_BARRIER
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#endif  // USE_WRITE_BARRIER
     ret
 
 .Laput_obj_throw_array_store_exception:
