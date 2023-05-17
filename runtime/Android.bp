@@ -60,6 +60,7 @@ cc_library_headers {
         "art_libartbase_headers",
         "libjson_headers",
         "dlmalloc",
+        "libmmtk_art_headers",
     ],
     export_header_lib_headers: [
         "art_libartbase_headers",
@@ -226,6 +227,9 @@ cc_defaults {
         //   manifest-art.json.
         "libjavacore",
     ],
+    whole_static_libs: [
+        "libmmtk_art",
+    ]
 }
 
 // Common defaults for `libart-runtime_defaults` and `libartd-runtime_defaults`.
@@ -625,6 +629,7 @@ cc_defaults {
         "liblog",
         "liblz4",
         "liblzma", // libelffile dependency; must be repeated here since it's a static lib.
+        "libmmtk_art",
         "libnativebridge",
         "libodrstatslog",
         "libunwindstack",

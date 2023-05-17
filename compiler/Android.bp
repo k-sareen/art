@@ -51,7 +51,10 @@ art_cc_defaults {
         "libprofile",
         "libdexfile",
     ],
-    static_libs: ["libelffile"],
+    static_libs: [
+        "libelffile",
+        "libmmtk_art",
+    ],
     codegen: {
         arm: {
             // VIXL assembly support for ARM targets.
@@ -275,6 +278,7 @@ art_cc_defaults {
         "art_cmdlineparser_headers", // For compiler_options.
         "art_disassembler_headers",
         "libnativehelper_header_only",
+        // "libmmtk_art_headers",
     ],
 
     export_include_dirs: ["."],
@@ -284,6 +288,7 @@ cc_defaults {
     name: "libart-compiler_static_base_defaults",
     whole_static_libs: [
         "libbase",
+        "libmmtk_art",
     ],
 }
 
