@@ -76,7 +76,7 @@ func globalFlags(ctx android.LoadHookContext) ([]string, []string) {
 			cflags = append(cflags, "-DART_FORCE_USE_READ_BARRIER=1")
 		}
 		tlab = true
-	} else if gcType == "CMC" {
+	} else if gcType == "CMC" || gcType == "SS" {
 		tlab = true
 	}
 
