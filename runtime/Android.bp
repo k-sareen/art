@@ -156,6 +156,7 @@ cc_defaults {
         "gc/collector/immune_spaces.cc",
         "gc/collector/mark_compact.cc",
         "gc/collector/mark_sweep.cc",
+        "gc/collector/no_gc.cc",
         "gc/collector/partial_mark_sweep.cc",
         "gc/collector/semi_space.cc",
         "gc/collector/sticky_mark_sweep.cc",

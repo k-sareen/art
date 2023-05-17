@@ -59,6 +59,7 @@
 #include "gc/collector/concurrent_copying.h"
 #include "gc/collector/mark_compact.h"
 #include "gc/collector/mark_sweep.h"
+#include "gc/collector/no_gc.h"
 #include "gc/collector/partial_mark_sweep.h"
 #include "gc/collector/semi_space.h"
 #include "gc/collector/sticky_mark_sweep.h"
@@ -650,6 +651,11 @@ Heap::Heap(size_t initial_size,
       AddSpace(temp_space_);
     }
     CHECK(separate_non_moving_space);
+  } else if (collector_type_ == kCollectorTypeNoGC) {
+    bump_pointer_space_ = space::BumpPointerSpace::CreateFromMemMap("Bump pointer space 1",
+                                                                    std::move(main_mem_map_1));
+    CHECK(bump_pointer_space_ != nullptr) << "Failed to create bump pointer space";
+    AddSpace(bump_pointer_space_);
   } else {
     CreateMainMallocSpace(std::move(main_mem_map_1), initial_size, growth_limit_, capacity_);
     CHECK(main_space_ != nullptr);
@@ -766,6 +772,10 @@ Heap::Heap(size_t initial_size,
       garbage_collectors_.push_back(new collector::PartialMarkSweep(this, concurrent));
       garbage_collectors_.push_back(new collector::StickyMarkSweep(this, concurrent));
     }
+  }
+  if (MayUseCollector(kCollectorTypeNoGC)) {
+    no_gc_ = new collector::NoGC(this);
+    garbage_collectors_.push_back(no_gc_);
   }
   if (kMovingCollector) {
     if (MayUseCollector(kCollectorTypeSS) ||
@@ -2244,6 +2254,16 @@ void Heap::ChangeCollector(CollectorType collector_type) {
     collector_type_ = collector_type;
     gc_plan_.clear();
     switch (collector_type_) {
+      case kCollectorTypeNoGC: {
+        gc_plan_.push_back(collector::kGcTypeNoGC);
+        ChangeAllocator(kAllocatorTypeBumpPointer);
+        // if (use_tlab_) {
+        //   ChangeAllocator(kAllocatorTypeTLAB);
+        // } else {
+        //   ChangeAllocator(kAllocatorTypeBumpPointer);
+        // }
+        break;
+      }
       case kCollectorTypeCC: {
         if (use_generational_cc_) {
           gc_plan_.push_back(collector::kGcTypeSticky);
@@ -2808,6 +2828,8 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
   } else if (current_allocator_ == kAllocatorTypeRosAlloc ||
       current_allocator_ == kAllocatorTypeDlMalloc) {
     collector = FindCollectorByGcType(gc_type);
+  } else if (current_allocator_ == kAllocatorTypeBumpPointer) {
+    collector = no_gc_;
   } else {
     LOG(FATAL) << "Invalid current allocator " << current_allocator_;
   }

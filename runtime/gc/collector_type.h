@@ -26,6 +26,8 @@ namespace gc {
 enum CollectorType {
   // No collector selected.
   kCollectorTypeNone,
+  // A collector which never collects.
+  kCollectorTypeNoGC,
   // Non concurrent mark-sweep.
   kCollectorTypeMS,
   // Concurrent mark-sweep.
@@ -71,6 +73,8 @@ static constexpr CollectorType kCollectorTypeDefault =
     kCollectorTypeSS
 #elif ART_DEFAULT_GC_TYPE_IS_CMS
     kCollectorTypeCMS
+#elif ART_DEFAULT_GC_TYPE_IS_NoGC
+    kCollectorTypeNoGC
 #else
 #error "ART default GC type must be set"
 #endif

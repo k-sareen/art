@@ -90,6 +90,7 @@ class ConcurrentCopying;
 class GarbageCollector;
 class MarkSweep;
 class SemiSpace;
+class NoGC;
 }  // namespace collector
 
 namespace allocator {
@@ -1599,6 +1600,7 @@ class Heap {
   size_t disable_moving_gc_count_ GUARDED_BY(gc_complete_lock_);
 
   std::vector<collector::GarbageCollector*> garbage_collectors_;
+  collector::NoGC* no_gc_;
   collector::SemiSpace* semi_space_collector_;
   collector::MarkCompact* mark_compact_;
   Atomic<collector::ConcurrentCopying*> active_concurrent_copying_collector_;
