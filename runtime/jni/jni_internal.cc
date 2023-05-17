@@ -2174,7 +2174,8 @@ class JNI {
       if (heap->IsMovableObject(s)) {
         StackHandleScope<1> hs(soa.Self());
         HandleWrapperObjPtr<mirror::String> h(hs.NewHandleWrapper(&s));
-        if (!gUseReadBarrier && !gUseUserfaultfd) {
+        if ((!gUseReadBarrier && !gUseUserfaultfd) ||
+            heap->CurrentCollectorType() == gc::CollectorType::kCollectorTypeSS) {
           heap->IncrementDisableMovingGC(soa.Self());
         } else {
           // For the CC and CMC collector, we only need to wait for the thread flip rather
@@ -2200,7 +2201,8 @@ class JNI {
     gc::Heap* heap = Runtime::Current()->GetHeap();
     ObjPtr<mirror::String> s = soa.Decode<mirror::String>(java_string);
     if (!s->IsCompressed() && heap->IsMovableObject(s)) {
-      if (!gUseReadBarrier && !gUseUserfaultfd) {
+      if ((!gUseReadBarrier && !gUseUserfaultfd) ||
+          heap->CurrentCollectorType() == gc::CollectorType::kCollectorTypeSS) {
         heap->DecrementDisableMovingGC(soa.Self());
       } else {
         heap->DecrementDisableThreadFlip(soa.Self());
@@ -2367,7 +2369,8 @@ class JNI {
     }
     gc::Heap* heap = Runtime::Current()->GetHeap();
     if (heap->IsMovableObject(array)) {
-      if (!gUseReadBarrier && !gUseUserfaultfd) {
+      if ((!gUseReadBarrier && !gUseUserfaultfd) ||
+          heap->CurrentCollectorType() == gc::CollectorType::kCollectorTypeSS) {
         heap->IncrementDisableMovingGC(soa.Self());
       } else {
         // For the CC and CMC collector, we only need to wait for the thread flip rather
@@ -2977,7 +2980,8 @@ class JNI {
         delete[] reinterpret_cast<uint64_t*>(elements);
       } else if (heap->IsMovableObject(array)) {
         // Non copy to a movable object must means that we had disabled the moving GC.
-        if (!gUseReadBarrier && !gUseUserfaultfd) {
+        if ((!gUseReadBarrier && !gUseUserfaultfd) ||
+            heap->CurrentCollectorType() == gc::CollectorType::kCollectorTypeSS) {
           heap->DecrementDisableMovingGC(soa.Self());
         } else {
           heap->DecrementDisableThreadFlip(soa.Self());
