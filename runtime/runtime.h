@@ -308,6 +308,7 @@ class Runtime {
   void DumpDeoptimizations(std::ostream& os);
   void DumpForSigQuit(std::ostream& os);
   void DumpLockHolders(std::ostream& os);
+  void DumpGcPerformanceInfo();
 
   ~Runtime();
 

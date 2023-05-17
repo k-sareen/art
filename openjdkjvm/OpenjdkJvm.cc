@@ -342,6 +342,7 @@ JNIEXPORT void JVM_GC(void) {
 
 JNIEXPORT __attribute__((noreturn)) void JVM_Exit(jint status) {
   LOG(INFO) << "System.exit called, status: " << status;
+  art::Runtime::Current()->DumpGcPerformanceInfo();
   art::Runtime::Current()->CallExitHook(status);
   // Unsafe to call exit() while threads may still be running. They would race
   // with static destructors.

@@ -364,39 +364,7 @@ Runtime::~Runtime() {
     LOG(WARNING) << "Current thread not detached in Runtime shutdown";
   }
 
-  if (dump_gc_performance_on_shutdown_) {
-    heap_->CalculatePreGcWeightedAllocatedBytes();
-    uint64_t process_cpu_end_time = ProcessCpuNanoTime();
-    ScopedLogSeverity sls(LogSeverity::INFO);
-    // This can't be called from the Heap destructor below because it
-    // could call RosAlloc::InspectAll() which needs the thread_list
-    // to be still alive.
-    heap_->DumpGcPerformanceInfo(LOG_STREAM(INFO));
-
-    uint64_t process_cpu_time = process_cpu_end_time - heap_->GetProcessCpuStartTime();
-    uint64_t gc_cpu_time = heap_->GetTotalGcCpuTime();
-    float ratio = static_cast<float>(gc_cpu_time) / process_cpu_time;
-    LOG_STREAM(INFO) << "GC CPU time " << PrettyDuration(gc_cpu_time)
-        << " out of process CPU time " << PrettyDuration(process_cpu_time)
-        << " (" << ratio << ")"
-        << "\n";
-    double pre_gc_weighted_allocated_bytes =
-        heap_->GetPreGcWeightedAllocatedBytes() / process_cpu_time;
-    // Here we don't use process_cpu_time for normalization, because VM shutdown is not a real
-    // GC. Both numerator and denominator take into account until the end of the last GC,
-    // instead of the whole process life time like pre_gc_weighted_allocated_bytes.
-    double post_gc_weighted_allocated_bytes =
-        heap_->GetPostGcWeightedAllocatedBytes() /
-          (heap_->GetPostGCLastProcessCpuTime() - heap_->GetProcessCpuStartTime());
-
-    LOG_STREAM(INFO) << "Average bytes allocated at GC start, weighted by CPU time between GCs: "
-        << static_cast<uint64_t>(pre_gc_weighted_allocated_bytes)
-        << " (" <<  PrettySize(pre_gc_weighted_allocated_bytes)  << ")";
-    LOG_STREAM(INFO) << "Average bytes allocated at GC end, weighted by CPU time between GCs: "
-        << static_cast<uint64_t>(post_gc_weighted_allocated_bytes)
-        << " (" <<  PrettySize(post_gc_weighted_allocated_bytes)  << ")"
-        << "\n";
-  }
+  DumpGcPerformanceInfo();
 
   // Wait for the workers of thread pools to be created since there can't be any
   // threads attaching during shutdown.
@@ -643,6 +611,42 @@ struct AbortState {
     }
   }
 };
+
+void Runtime::DumpGcPerformanceInfo() {
+  if (dump_gc_performance_on_shutdown_) {
+    heap_->CalculatePreGcWeightedAllocatedBytes();
+    uint64_t process_cpu_end_time = ProcessCpuNanoTime();
+    ScopedLogSeverity sls(LogSeverity::INFO);
+    // This can't be called from the Heap destructor below because it
+    // could call RosAlloc::InspectAll() which needs the thread_list
+    // to be still alive.
+    heap_->DumpGcPerformanceInfo(LOG_STREAM(INFO));
+
+    uint64_t process_cpu_time = process_cpu_end_time - heap_->GetProcessCpuStartTime();
+    uint64_t gc_cpu_time = heap_->GetTotalGcCpuTime();
+    float ratio = static_cast<float>(gc_cpu_time) / process_cpu_time;
+    LOG_STREAM(INFO) << "GC CPU time " << PrettyDuration(gc_cpu_time)
+        << " out of process CPU time " << PrettyDuration(process_cpu_time)
+        << " (" << ratio << ")"
+        << "\n";
+    double pre_gc_weighted_allocated_bytes =
+        heap_->GetPreGcWeightedAllocatedBytes() / process_cpu_time;
+    // Here we don't use process_cpu_time for normalization, because VM shutdown is not a real
+    // GC. Both numerator and denominator take into account until the end of the last GC,
+    // instead of the whole process life time like pre_gc_weighted_allocated_bytes.
+    double post_gc_weighted_allocated_bytes =
+        heap_->GetPostGcWeightedAllocatedBytes() /
+          (heap_->GetPostGCLastProcessCpuTime() - heap_->GetProcessCpuStartTime());
+
+    LOG_STREAM(INFO) << "Average bytes allocated at GC start, weighted by CPU time between GCs: "
+        << static_cast<uint64_t>(pre_gc_weighted_allocated_bytes)
+        << " (" <<  PrettySize(pre_gc_weighted_allocated_bytes)  << ")";
+    LOG_STREAM(INFO) << "Average bytes allocated at GC end, weighted by CPU time between GCs: "
+        << static_cast<uint64_t>(post_gc_weighted_allocated_bytes)
+        << " (" <<  PrettySize(post_gc_weighted_allocated_bytes)  << ")"
+        << "\n";
+  }
+}
 
 void Runtime::Abort(const char* msg) {
   auto old_value = gAborting.fetch_add(1);  // set before taking any locks
