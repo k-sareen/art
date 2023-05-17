@@ -170,11 +170,13 @@ art_cc_defaults {
     shared_libs: [
         "libbase",
         "liblzma", // libelffile(d) dependency; must be repeated here since it's a static lib.
+        // "libmmtk_art",
     ],
     header_libs: [
         "art_cmdlineparser_headers", // For compiler_options.
         "art_disassembler_headers",
         "libnativehelper_header_only",
+        // "libmmtk_art_headers",
     ],
 
     export_include_dirs: ["."],
@@ -186,6 +188,7 @@ cc_defaults {
     name: "libart-compiler_static_base_defaults",
     whole_static_libs: [
         "libbase",
+        "libmmtk_art",
     ],
 }
 
@@ -232,7 +235,10 @@ art_cc_library {
         "libprofile",
         "libdexfile",
     ],
-    static_libs: ["libelffile"],
+    static_libs: [
+        "libelffile",
+        "libmmtk_art"
+    ],
     runtime_libs: [
         // `art::HGraphVisualizerDisassembler::HGraphVisualizerDisassembler` may dynamically load
         // `libart-disassembler.so`.
@@ -301,7 +307,10 @@ art_cc_library {
         "libprofiled",
         "libdexfiled",
     ],
-    static_libs: ["libelffiled"],
+    static_libs: [
+        "libelffiled",
+        "libmmtk_art"
+    ],
     runtime_libs: [
         // `art::HGraphVisualizerDisassembler::HGraphVisualizerDisassembler` may dynamically load
         // `libartd-disassembler.so`.

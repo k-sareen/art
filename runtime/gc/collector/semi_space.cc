@@ -94,6 +94,7 @@ SemiSpace::SemiSpace(Heap* heap, const std::string& name_prefix)
 }
 
 void SemiSpace::RunPhases() {
+  // LOG(WARNING) << "Running SS Phases";
   Thread* self = Thread::Current();
   InitializePhase();
   // Semi-space collector is special since it is sometimes called with the mutators suspended

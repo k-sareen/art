@@ -634,6 +634,7 @@ class MarkCompact::FlipCallback : public Closure {
 };
 
 void MarkCompact::RunPhases() {
+  // LOG(WARNING) << "Running MC Phases";
   Thread* self = Thread::Current();
   thread_running_gc_ = self;
   Runtime* runtime = Runtime::Current();

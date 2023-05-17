@@ -160,6 +160,7 @@ uint64_t GarbageCollector::ExtractRssFromMincore(
 }
 
 void GarbageCollector::Run(GcCause gc_cause, bool clear_soft_references) {
+  // LOG(WARNING) << "Running GC: " << PrettyCause(gc_cause) << " clear_soft_references " << clear_soft_references;
   ScopedTrace trace(android::base::StringPrintf("%s %s GC", PrettyCause(gc_cause), GetName()));
   Thread* self = Thread::Current();
   Runtime* runtime = Runtime::Current();

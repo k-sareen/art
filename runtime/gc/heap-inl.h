@@ -37,6 +37,7 @@
 #include "thread-inl.h"
 #include "verify_object.h"
 #include "write_barrier-inl.h"
+#include "mmtk.h"
 
 namespace art {
 namespace gc {
@@ -304,6 +305,7 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                            size_t* bytes_allocated,
                                            size_t* usable_size,
                                            size_t* bytes_tl_bulk_allocated) {
+  mmtk_alloc(alloc_size);
   if (allocator_type != kAllocatorTypeRegionTLAB &&
       allocator_type != kAllocatorTypeTLAB &&
       allocator_type != kAllocatorTypeRosAlloc &&

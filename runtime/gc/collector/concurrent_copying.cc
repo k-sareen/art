@@ -219,6 +219,7 @@ ConcurrentCopying::~ConcurrentCopying() {
 }
 
 void ConcurrentCopying::RunPhases() {
+  // LOG(WARNING) << "Running CC Phases";
   CHECK(kUseBakerReadBarrier || kUseTableLookupReadBarrier);
   CHECK(!is_active_);
   is_active_ = true;

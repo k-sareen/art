@@ -99,9 +99,14 @@ cc_defaults {
         "art_cmdlineparser_headers",
         "libnativehelper_header_only",
         "libopenjdkjvmti_headers",
+        // "libmmtk_art_headers",
     ],
     shared_libs: [
         "libbase",
+        // "libmmtk_art",
+    ],
+    static_libs: [
+        "libmmtk_art",
     ],
 }
 

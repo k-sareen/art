@@ -83,6 +83,7 @@ art_module_sdk {
                 "libnativehelper",
                 "libnativeloader",
                 "libsigchain",
+                // "libmmtk_art",
             ],
 
             native_static_libs: [
@@ -90,6 +91,10 @@ art_module_sdk {
                 "libdexfile_static",
                 "libnativehelper_lazy",
             ],
+
+            // native_libs: [
+            //     "libmmtk_art",
+            // ],
         },
 
         android: {
@@ -190,6 +195,7 @@ art_module_exports {
                 // dependencies in module_export snapshots and clean this up.
                 "libartpalette",
                 "libartbase",
+                // "libmmtk_art",
             ],
         },
 

@@ -68,6 +68,7 @@ art_runtime_base_native_shared_libs_minus_libart = [
     // TODO(chriswailes): Make libarttools a dependency for another target
     // when such a target exists
     "libarttools",
+    // "libmmtk_art",
 ]
 // Actual version of ART runtime base libs, used in non-test ART APEXes.
 art_runtime_base_native_shared_libs = ["libart"] +

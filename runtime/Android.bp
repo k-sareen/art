@@ -496,6 +496,7 @@ cc_defaults {
         "jni_platform_headers",
         "libart_headers",
         "libnativehelper_header_only",
+        // "libmmtk_art_headers",
     ],
     export_header_lib_headers: [
         "dlmalloc",
@@ -510,12 +511,16 @@ cc_defaults {
         "liblog",
         "liblz4",
         "liblzma", // libelffile(d) dependency; must be repeated here since it's a static lib.
+        // "libmmtk_art",
         "libnativebridge",
         "libnativeloader",
         "libsigchain",
         "libunwindstack",
     ],
-    static_libs: ["libodrstatslog"],
+    static_libs: [
+        "libodrstatslog",
+        "libmmtk_art",
+    ],
 
     runtime_libs: [
         // Libraries loaded at runtime. Exceptions:
@@ -539,6 +544,7 @@ cc_defaults {
         "liblog",
         "liblz4",
         "liblzma", // libelffile dependency; must be repeated here since it's a static lib.
+        "libmmtk_art",
         "libnativebridge",
         "libnativeloader",
         "libodrstatslog",
@@ -642,6 +648,7 @@ art_cc_defaults {
         "art_hugepage_defaults",
     ],
     whole_static_libs: [
+        "libmmtk_art",
     ],
     static_libs: [
         "libelffile",
@@ -705,9 +712,11 @@ art_cc_library {
         "libart_defaults",
     ],
     whole_static_libs: [
+        // "libmmtk_art",
     ],
     static_libs: [
         "libelffiled",
+        "libmmtk_art",
     ],
     shared_libs: [
         "libartbased",

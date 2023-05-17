@@ -81,6 +81,8 @@ art_cc_binary {
         },
     },
 
+    ldflags: ["-Wl,--allow-multiple-definition"],
+
     apex_available: [
         "com.android.art",
         "com.android.art.debug",
@@ -138,6 +140,8 @@ art_cc_binary {
             stl: "c++_static",
         },
     },
+
+    ldflags: ["-Wl,--allow-multiple-definition"],
 
     apex_available: [
         "com.android.art.debug",

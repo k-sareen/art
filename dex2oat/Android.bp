@@ -69,11 +69,15 @@ art_cc_defaults {
     },
 
     generated_sources: ["art_dex2oat_operator_srcs"],
+    // header_libs: [
+    //     "libmmtk_art_headers",
+    // ],
     shared_libs: [
         "libbase",
         "libcrypto", // For SHA-1 checksumming of build ID
         "liblog",
         "liblz4",
+        // "libmmtk_art",
         "libz",
     ],
     export_include_dirs: ["."],
@@ -86,6 +90,7 @@ cc_defaults {
         "libcrypto",
         "liblog",
         "liblz4",
+        "libmmtk_art",
         "libz",
     ],
 }
@@ -112,6 +117,7 @@ art_cc_library_static {
     ],
     static_libs: [
         "libelffile",
+        "libmmtk_art",
     ],
     apex_available: [
         "com.android.art",
@@ -166,6 +172,7 @@ art_cc_library_static {
     ],
     static_libs: [
         "libelffiled",
+        "libmmtk_art",
     ],
     apex_available: [
         "com.android.art.debug",
@@ -213,6 +220,7 @@ cc_defaults {
     ],
     header_libs: [
         "art_cmdlineparser_headers",
+        // "libmmtk_art_headers",
     ],
 
     target: {
@@ -313,6 +321,7 @@ art_cc_binary {
             static_libs: [
                 "libart-dex2oat",
                 "libelffile",
+                "libmmtk_art",
             ],
             lto: {
                 thin: true,
@@ -321,7 +330,10 @@ art_cc_binary {
         host: {
             // Make the host binary static, except for system libraries. This
             // avoids having to bundle host dynamic libs in prebuilts.
-            static_libs: ["libdex2oat_static"],
+            static_libs: [
+                "libdex2oat_static",
+                // "libmmtk_art",
+            ],
             stl: "c++_static",
             // Override the prefer32 added by art_cc_binary when
             // HOST_PREFER_32_BIT is in use. Necessary because the logic in
@@ -333,6 +345,8 @@ art_cc_binary {
             compile_multilib: "64",
         },
     },
+
+    ldflags: ["-Wl,--allow-multiple-definition"],
 
     apex_available: [
         "com.android.art",
@@ -374,12 +388,16 @@ art_cc_binary {
             static_libs: [
                 "libartd-dex2oat",
                 "libelffiled",
+                "libmmtk_art",
             ],
         },
         host: {
             // Make the host binary static, except for system libraries. This
             // avoids having to bundle host dynamic libs in prebuilts.
-            static_libs: ["libdex2oatd_static"],
+            static_libs: [
+                "libdex2oatd_static",
+                // "libmmtk_art",
+            ],
             stl: "c++_static",
             // Override the prefer32 added by art_cc_binary when
             // HOST_PREFER_32_BIT is in use. Necessary because the logic in
@@ -391,6 +409,8 @@ art_cc_binary {
             compile_multilib: "64",
         },
     },
+
+    ldflags: ["-Wl,--allow-multiple-definition"],
 
     apex_available: [
         "com.android.art.debug",

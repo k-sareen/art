@@ -145,6 +145,7 @@ void MarkSweep::InitializePhase() {
 }
 
 void MarkSweep::RunPhases() {
+  // LOG(WARNING) << "Running MS Phases";
   Thread* self = Thread::Current();
   InitializePhase();
   Locks::mutator_lock_->AssertNotHeld(self);

@@ -574,8 +574,12 @@ art_cc_test_library {
     shared_libs: [
         "libart",
         "libdexfile",
+        // "libmmtk_art",
         "libprofile",
         "libartbase",
+    ],
+    static_libs: [
+        "libmmtk_art",
     ],
 }
 
@@ -588,8 +592,12 @@ art_cc_test_library {
     shared_libs: [
         "libartd",
         "libdexfiled",
+        // "libmmtk_art",
         "libprofiled",
         "libartbased",
+    ],
+    static_libs: [
+        "libmmtk_art",
     ],
 }
 
@@ -1001,6 +1009,9 @@ cc_defaults {
         "libnativehelper",
         "libunwindstack",
     ],
+    // header_libs: [
+    //     "libmmtk_art_headers",
+    // ],
 }
 
 java_library {
