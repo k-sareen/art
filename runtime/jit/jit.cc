@@ -401,6 +401,7 @@ bool Jit::CanInvokeCompiledCode(ArtMethod* method) {
 Jit::~Jit() {
   DCHECK_IMPLIES(options_->GetSaveProfilingInfo(), !ProfileSaver::IsStarted());
   if (options_->DumpJitInfoOnShutdown()) {
+    ScopedLogSeverity sls(LogSeverity::INFO);
     DumpInfo(LOG_STREAM(INFO));
     Runtime::Current()->DumpDeoptimizations(LOG_STREAM(INFO));
   }
