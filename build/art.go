@@ -94,6 +94,18 @@ func globalFlags(ctx android.LoadHookContext) ([]string, []string) {
 		cflags = append(cflags, "-DART_USE_TLAB=1")
 	}
 
+	if ctx.Config().IsEnvTrue("ART_USE_MMTK") {
+		cflags = append(cflags,
+			"-DART_USE_MMTK=1")
+		asflags = append(asflags,
+			"-DART_USE_MMTK=1")
+	} else {
+		cflags = append(cflags,
+			"-DART_USE_MMTK=0")
+		asflags = append(asflags,
+			"-DART_USE_MMTK=0")
+	}
+
 	// We need larger stack overflow guards for ASAN, as the compiled code will have
 	// larger frame sizes. For simplicity, just use global not-target-specific cflags.
 	// Note: We increase this for both debug and non-debug, as the overflow gap will
