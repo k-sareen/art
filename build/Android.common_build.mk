@@ -50,6 +50,8 @@ endif
 ART_USE_READ_BARRIER ?= true
 # Enable the write barrier by default.
 ART_USE_WRITE_BARRIER ?= true
+# Use of MMTk by default
+ART_USE_MMTK ?= true
 
 # Default compact dex level to none.
 ifeq ($(ART_DEFAULT_COMPACT_DEX_LEVEL),)

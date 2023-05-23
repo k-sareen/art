@@ -96,6 +96,18 @@ func globalFlags(ctx android.LoadHookContext) ([]string, []string) {
 		cflags = append(cflags, "-DART_USE_TLAB=1")
 	}
 
+	if ctx.Config().IsEnvTrue("ART_USE_MMTK") {
+		cflags = append(cflags,
+			"-DART_USE_MMTK=1")
+		asflags = append(asflags,
+			"-DART_USE_MMTK=1")
+	} else {
+		cflags = append(cflags,
+			"-DART_USE_MMTK=0")
+		asflags = append(asflags,
+			"-DART_USE_MMTK=0")
+	}
+
 	cdexLevel := ctx.Config().GetenvWithDefault("ART_DEFAULT_COMPACT_DEX_LEVEL", "fast")
 	cflags = append(cflags, "-DART_DEFAULT_COMPACT_DEX_LEVEL="+cdexLevel)
 

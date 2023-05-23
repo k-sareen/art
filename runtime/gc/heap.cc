@@ -95,6 +95,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/reference-inl.h"
 #include "mirror/var_handle.h"
+#include "mmtk.h"
 #include "nativehelper/scoped_local_ref.h"
 #include "obj_ptr-inl.h"
 #ifdef ART_TARGET_ANDROID
@@ -420,6 +421,11 @@ Heap::Heap(size_t initial_size,
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
+
+#if ART_USE_MMTK
+  LOG(WARNING) << "Initializing MMTk";
+  mmtk_init();
+#endif
 
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (!gUseUserfaultfd) {
