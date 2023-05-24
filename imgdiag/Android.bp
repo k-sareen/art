@@ -48,6 +48,7 @@ cc_defaults {
     },
     header_libs: [
         "art_cmdlineparser_headers",
+        "libmmtk_art_headers",
     ],
     multilib: {
         lib32: {

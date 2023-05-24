@@ -40,6 +40,10 @@ cc_defaults {
     shared_libs: [
         "libbase",
     ],
+
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
 }
 
 cc_library_headers {

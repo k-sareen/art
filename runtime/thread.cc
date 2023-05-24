@@ -83,6 +83,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/stack_frame_info.h"
 #include "mirror/stack_trace_element.h"
+#include "mmtk.h"
 #include "monitor.h"
 #include "monitor_objects_stack_visitor.h"
 #include "native_stack_dump.h"
@@ -958,6 +959,7 @@ void Thread::CreateNativeThread(JNIEnv* env, jobject java_peer, size_t stack_siz
   }
 }
 
+// TODO: kunals bind thread to MmtkMutator here
 bool Thread::Init(ThreadList* thread_list, JavaVMExt* java_vm, JNIEnvExt* jni_env_ext) {
   // This function does all the initialization that must be run by the native thread it applies to.
   // (When we create a new thread from managed code, we allocate the Thread* in Thread::Create so
@@ -1007,6 +1009,12 @@ bool Thread::Init(ThreadList* thread_list, JavaVMExt* java_vm, JNIEnvExt* jni_en
 
   ScopedTrace trace3("ThreadList::Register");
   thread_list->Register(this);
+
+#if ART_USE_MMTK
+  LOG(WARNING) << "Calling mmtk_bind_mutator with " << this;
+  tlsPtr_.mmtk_mutator = mmtk_bind_mutator(this);
+#endif  // ART_USE_MMTK
+
   return true;
 }
 

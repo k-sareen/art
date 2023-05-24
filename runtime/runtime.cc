@@ -1427,6 +1427,7 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
     android::base::SetLogger(android::base::StderrLogger);
   }
 
+  // TODO: kunals conditional compile this when using MMTk
   MemMap::Init();
 
   verifier_missing_kthrow_fatal_ = runtime_options.GetOrDefault(Opt::VerifierMissingKThrowFatal);
@@ -1628,6 +1629,7 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
                       : (gUseUserfaultfd ? BackgroundGcOption(xgc_option.collector_type_)
                                          : runtime_options.GetOrDefault(Opt::BackgroundGc));
 
+  // TODO: kunals refactor heap instantiation when using MMTk
   heap_ = new gc::Heap(runtime_options.GetOrDefault(Opt::MemoryInitialSize),
                        runtime_options.GetOrDefault(Opt::HeapGrowthLimit),
                        runtime_options.GetOrDefault(Opt::HeapMinFree),
@@ -1813,6 +1815,7 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
   // ClassLinker needs an attached thread, but we can't fully attach a thread without creating
   // objects. We can't supply a thread group yet; it will be fixed later. Since we are the main
   // thread, we do not get a java peer.
+  // TODO: kunals bind mutator in Thread::Attach
   Thread* self = Thread::Attach("main", false, nullptr, false, /* should_run_callbacks= */ true);
   CHECK_EQ(self->GetThreadId(), ThreadList::kMainThreadId);
   CHECK(self != nullptr);

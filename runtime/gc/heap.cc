@@ -423,7 +423,6 @@ Heap::Heap(size_t initial_size,
   }
 
 #if ART_USE_MMTK
-  LOG(WARNING) << "Initializing MMTk";
   mmtk_init();
 #endif
 

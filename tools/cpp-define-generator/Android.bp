@@ -34,6 +34,7 @@ cc_object {
         "jni_headers",
         "libart_headers",
         "libdexfile_all_headers", // For dex/modifiers.h
+        "libmmtk_art_headers",
     ],
     // Produce text file rather than binary.
     cflags: ["-S"],

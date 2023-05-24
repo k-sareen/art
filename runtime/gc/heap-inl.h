@@ -304,6 +304,16 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                            size_t* bytes_allocated,
                                            size_t* usable_size,
                                            size_t* bytes_tl_bulk_allocated) {
+#if ART_USE_MMTK
+  UNUSED(allocator_type);
+  uint8_t* ret = (uint8_t *) mmtk_alloc(self->GetMmtkMutator(), alloc_size, kObjectAlignment, 0 /* offset */, 0 /* default allocation semantics */);
+  if (LIKELY(ret != nullptr)) {
+    *bytes_allocated = alloc_size;
+    *usable_size = alloc_size;
+    *bytes_tl_bulk_allocated = alloc_size;
+  }
+  return reinterpret_cast<mirror::Object*>(ret);
+#else
   if (allocator_type != kAllocatorTypeRegionTLAB &&
       allocator_type != kAllocatorTypeTLAB &&
       allocator_type != kAllocatorTypeRosAlloc &&
@@ -432,6 +442,7 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
     }
   }
   return ret;
+#endif  // ART_USE_MMTK
 }
 
 inline bool Heap::ShouldAllocLargeObject(ObjPtr<mirror::Class> c, size_t byte_count) const {
