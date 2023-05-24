@@ -53,6 +53,7 @@ cc_defaults {
     ],
     header_libs: [
         "libnativehelper_header_only",
+        "libmmtk_art_headers",
     ],
 }
 

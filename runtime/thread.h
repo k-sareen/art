@@ -42,6 +42,7 @@
 #include "javaheapprof/javaheapsampler.h"
 #include "jvalue.h"
 #include "managed_stack.h"
+#include "mmtk.h"
 #include "offsets.h"
 #include "read_barrier_config.h"
 #include "reflective_handle_scope.h"
@@ -1387,6 +1388,12 @@ class EXPORT Thread {
     tls32_.state_and_flags.fetch_and(~enum_cast<uint32_t>(flag), order);
   }
 
+#if ART_USE_MMTK
+  MmtkMutator GetMmtkMutator() const {
+    return tlsPtr_.mmtk_mutator;
+  }
+#endif  // ART_USE_MMTK
+
   void ResetQuickAllocEntryPointsForThread();
 
   // Returns the remaining space in the TLAB.
@@ -2119,6 +2126,9 @@ class EXPORT Thread {
                                checkpoint_function(nullptr),
                                thread_local_alloc_stack_top(nullptr),
                                thread_local_alloc_stack_end(nullptr),
+#if ART_USE_MMTK
+                               mmtk_mutator(nullptr),
+#endif  // ART_USE_MMTK
                                mutator_lock(nullptr),
                                flip_function(nullptr),
                                thread_local_mark_stack(nullptr),
@@ -2269,6 +2279,10 @@ class EXPORT Thread {
     // Thread-local allocation stack data/routines.
     StackReference<mirror::Object>* thread_local_alloc_stack_top;
     StackReference<mirror::Object>* thread_local_alloc_stack_end;
+
+#if ART_USE_MMTK
+    MmtkMutator mmtk_mutator;
+#endif  // ART_USE_MMTK
 
     // Pointer to the mutator lock.
     // This is the same as `Locks::mutator_lock_` but cached for faster state transitions.
