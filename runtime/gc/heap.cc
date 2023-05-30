@@ -1706,7 +1706,11 @@ bool Heap::IsValidObjectAddress(const void* addr) const {
   if (addr == nullptr) {
     return true;
   }
+#if ART_USE_MMTK
+  return IsAligned<kObjectAlignment>(addr) && mmtk_is_in_any_space(addr);
+#else
   return IsAligned<kObjectAlignment>(addr) && FindSpaceFromAddress(addr) != nullptr;
+#endif  // ART_USE_MMTK
 }
 
 bool Heap::IsNonDiscontinuousSpaceHeapAddress(const void* addr) const {
