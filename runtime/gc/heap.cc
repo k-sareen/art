@@ -2149,9 +2149,14 @@ void Heap::CountInstances(const std::vector<Handle<mirror::Class>>& classes,
 }
 
 void Heap::CollectGarbage(bool clear_soft_references, GcCause cause) {
+#if ART_USE_MMTK
+  UNUSED(clear_soft_references);
+  UNUSED(cause);
+#else
   // Even if we waited for a GC we still need to do another GC since weaks allocated during the
   // last GC will not have necessarily been cleared.
   CollectGarbageInternal(gc_plan_.back(), cause, clear_soft_references, GC_NUM_ANY);
+#endif  // ART_USE_MMTK
 }
 
 bool Heap::SupportHomogeneousSpaceCompactAndCollectorTransitions() const {

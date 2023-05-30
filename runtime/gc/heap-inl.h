@@ -306,7 +306,14 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                            size_t* bytes_tl_bulk_allocated) {
 #if ART_USE_MMTK
   UNUSED(allocator_type);
-  uint8_t* ret = (uint8_t *) mmtk_alloc(self->GetMmtkMutator(), alloc_size, kObjectAlignment, 0 /* offset */, 0 /* default allocation semantics */);
+  uint8_t* ret = (uint8_t *) mmtk_alloc(
+    self->GetMmtkMutator(),
+    alloc_size,
+    kObjectAlignment,
+    0 /* offset */,
+    0 /* default allocation semantics */
+  );
+  mmtk_post_alloc(self->GetMmtkMutator(), ret, alloc_size, 0 /* default allocation semantics */);
   if (LIKELY(ret != nullptr)) {
     *bytes_allocated = alloc_size;
     *usable_size = alloc_size;

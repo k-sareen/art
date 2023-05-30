@@ -630,6 +630,9 @@ art_cc_test_library {
 cc_defaults {
     name: "libartagent-defaults",
     defaults: ["art_test_internal_library_defaults"],
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
     shared_libs: [
         "libbase",
         "liblog",
