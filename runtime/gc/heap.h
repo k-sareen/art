@@ -923,11 +923,13 @@ class Heap {
   EXPORT std::string GetForegroundCollectorName();
 
   bool IsGcConcurrentAndMoving() const {
+  #if !ART_USE_MMTK
     if (IsGcConcurrent() && IsMovingGc(collector_type_)) {
       // Assume no transition when a concurrent moving collector is used.
       DCHECK_EQ(collector_type_, foreground_collector_type_);
       return true;
     }
+  #endif  // !ART_USE_MMTK
     return false;
   }
 

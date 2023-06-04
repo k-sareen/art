@@ -344,6 +344,7 @@ cc_defaults {
         "mirror/string.cc",
         "mirror/throwable.cc",
         "mirror/var_handle.cc",
+        "mmtk-art/mmtk_upcalls.cc",
         "monitor.cc",
         "monitor_objects_stack_visitor.cc",
         "native/dalvik_system_BaseDexClassLoader.cc",

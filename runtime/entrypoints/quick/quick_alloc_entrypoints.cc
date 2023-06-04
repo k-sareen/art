@@ -40,6 +40,9 @@ static ALWAYS_INLINE inline mirror::Object* artAllocObjectFromCode(
     Thread* self) REQUIRES_SHARED(Locks::mutator_lock_) {
   ScopedQuickEntrypointChecks sqec(self);
   DCHECK(klass != nullptr);
+  // XXX(kunals): Investigate how to inline MMTk's object allocation fastpath
+  // into the quick_entrypoints
+#if !ART_USE_MMTK
   if (kUseTlabFastPath &&
       !kWithChecks &&
       !kInstrumented &&
@@ -61,6 +64,9 @@ static ALWAYS_INLINE inline mirror::Object* artAllocObjectFromCode(
       return obj;
     }
   }
+#else
+  UNUSED(kUseTlabFastPath);
+#endif  // !ART_USE_MMTK
   if (kInitialized) {
     return AllocObjectFromCodeInitialized<kInstrumented>(klass, self, allocator_type).Ptr();
   } else if (!kWithChecks) {

@@ -204,6 +204,8 @@ class Verification::CollectRootVisitor : public SingleRootVisitor {
 };
 
 std::string Verification::FirstPathFromRootSet(ObjPtr<mirror::Object> target) const {
+#if !ART_USE_MMTK
+  // TODO(kunals): Investigate how to implement this in MMTk 
   Runtime* const runtime =  Runtime::Current();
   std::set<mirror::Object*> visited;
   std::deque<std::pair<mirror::Object*, std::string>> work;
@@ -226,6 +228,9 @@ std::string Verification::FirstPathFromRootSet(ObjPtr<mirror::Object> target) co
       work.emplace_back(obj, oss.str());
     }
   }
+#else
+  UNUSED(target);
+#endif  // !ART_USE_MMTK
   return "<no path found>";
 }
 

@@ -99,6 +99,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/reference-inl.h"
 #include "mirror/var_handle.h"
+#include "mmtk-art/mmtk_upcalls.h"
 #include "mmtk.h"
 #include "nativehelper/scoped_local_ref.h"
 #include "oat/image.h"
@@ -561,9 +562,14 @@ Heap::Heap(size_t initial_size,
   }
 
 #if ART_USE_MMTK
-  mmtk_init();
-#endif
-
+  UNUSED(measure_gc_performance);
+  UNUSED(large_object_space_type);
+  UNUSED(kMemMapSpaceName);
+  UNUSED(kZygoteSpaceName);
+  UNUSED(kRegionSpaceName);
+  mmtk_set_heap_size(initial_heap_size_, capacity);
+  mmtk_init(&art_upcalls);
+#else
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (gUseUserfaultfd) {
     CHECK_EQ(foreground_collector_type_, kCollectorTypeCMC);
@@ -586,6 +592,7 @@ Heap::Heap(size_t initial_size,
         << "Changing from " << foreground_collector_type_ << " to "
         << background_collector_type_ << " (or visa versa) is not supported.";
   }
+#endif  // ART_USE_MMTK
   verification_.reset(new Verification(this));
   CHECK_GE(large_object_threshold, kMinLargeObjectThreshold);
   ScopedTrace trace(__FUNCTION__);
@@ -696,6 +703,7 @@ Heap::Heap(size_t initial_size,
   MemMap main_mem_map_1;
   MemMap main_mem_map_2;
 
+#if !ART_USE_MMTK
   std::string error_str;
   MemMap non_moving_space_mem_map;
   if (separate_non_moving_space) {
@@ -885,6 +893,7 @@ Heap::Heap(size_t initial_size,
     CHECK(non_moving_space_rem_set != nullptr) << "Failed to create non-moving space remembered set";
     AddRememberedSet(non_moving_space_rem_set);
   }
+#endif  // !ART_USE_MMTK
   // TODO: Count objects in the image space here?
   num_bytes_allocated_.store(0, std::memory_order_relaxed);
   mark_stack_.reset(accounting::ObjectStack::Create("mark stack", kDefaultMarkStackSize,
@@ -912,6 +921,7 @@ Heap::Heap(size_t initial_size,
     concurrent_start_bytes_ = std::numeric_limits<size_t>::max();
   }
   CHECK_NE(target_footprint_.load(std::memory_order_relaxed), 0U);
+#if !ART_USE_MMTK
   // Create our garbage collectors.
   for (size_t i = 0; i < 2; ++i) {
     const bool concurrent = i != 0;
@@ -967,6 +977,7 @@ Heap::Heap(size_t initial_size,
       }
     }
   }
+#endif  // !ART_USE_MMTK
   if (!GetBootImageSpaces().empty() && non_moving_space_ != nullptr &&
       (is_zygote || separate_non_moving_space)) {
     // Check that there's no gap between the image space and the non moving space so that the
@@ -1015,6 +1026,10 @@ Heap::Heap(size_t initial_size,
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() exiting";
   }
+#if ART_USE_MMTK
+  // Allow MMTk to start collecting objects
+  mmtk_initialize_collection(nullptr);
+#endif  // ART_USE_MMTK
 }
 
 void Heap::PerfCounterCreate(std::string perf_event_name) {
@@ -1895,7 +1910,7 @@ bool Heap::IsValidObjectAddress(const void* addr) const {
     return true;
   }
 #if ART_USE_MMTK
-  return IsAligned<kObjectAlignment>(addr) && mmtk_is_in_any_space(addr);
+  return IsAligned<kObjectAlignment>(addr) && mmtk_is_object_in_heap_space(addr);
 #else
   return IsAligned<kObjectAlignment>(addr) && FindSpaceFromAddress(addr) != nullptr;
 #endif  // ART_USE_MMTK
@@ -2347,6 +2362,7 @@ void Heap::CollectGarbage(bool clear_soft_references, GcCause cause) {
 #if ART_USE_MMTK
   UNUSED(clear_soft_references);
   UNUSED(cause);
+  LOG(WARNING) << "Called Heap::CollectGarbage() for MMTk!";
 #else
   // Even if we waited for a GC we still need to do another GC since weaks allocated during the
   // last GC will not have necessarily been cleared.
