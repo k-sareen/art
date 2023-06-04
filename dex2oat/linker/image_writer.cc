@@ -1029,6 +1029,8 @@ dchecked_vector<ObjPtr<mirror::DexCache>> ImageWriter::FindDexCaches(Thread* sel
 }
 
 void ImageWriter::CheckNonImageClassesRemoved() {
+#if !ART_USE_MMTK
+  // TODO(kunals): This check requires garbage to be collected
   auto visitor = [&](Object* obj) REQUIRES_SHARED(Locks::mutator_lock_) {
     if (obj->IsClass() && !IsInBootImage(obj)) {
       ObjPtr<Class> klass = obj->AsClass();
@@ -1041,6 +1043,7 @@ void ImageWriter::CheckNonImageClassesRemoved() {
   };
   gc::Heap* heap = Runtime::Current()->GetHeap();
   heap->VisitObjects(visitor);
+#endif  // !ART_USE_MMTK
 }
 
 void ImageWriter::PromoteWeakInternsToStrong(Thread* self) {
@@ -2088,6 +2091,8 @@ void ImageWriter::LayoutHelper::VerifyImageBinSlotsAssigned() {
     }
   };
   Runtime::Current()->GetHeap()->VisitObjects(ensure_bin_slots_assigned);
+#if !ART_USE_MMTK
+  // TODO(kunals): This check requires garbage to be collected
   if (!missed_objects.empty()) {
     const gc::Verification* v = Runtime::Current()->GetHeap()->GetVerification();
     size_t num_missed_objects = missed_objects.size();
@@ -2101,6 +2106,7 @@ void ImageWriter::LayoutHelper::VerifyImageBinSlotsAssigned() {
     }
     LOG(FATAL) << "Found " << num_missed_objects << " objects without assigned bin slots.";
   }
+#endif  // !ART_USE_MMTK
 }
 
 void ImageWriter::LayoutHelper::FinalizeBinSlotOffsets() {

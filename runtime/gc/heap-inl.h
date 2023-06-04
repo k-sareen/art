@@ -83,10 +83,25 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
   size_t new_num_bytes_allocated = 0;
   bool need_gc = false;
   uint32_t starting_gc_num;  // o.w. GC number at which we observed need for GC.
+  // Bytes allocated that includes bulk thread-local buffer allocations in addition to direct
+  // non-TLAB object allocations. Only set for non-thread-local allocation,
+  size_t bytes_tl_bulk_allocated = 0u;
+#if ART_USE_MMTK
+  UNUSED(new_num_bytes_allocated);
+  UNUSED(need_gc);
+  UNUSED(starting_gc_num);
+  // Do pre-object allocation
+  // XXX(kunals): Is this required?
+  pre_object_allocated();
+
+  obj = TryToAllocate<kInstrumented, false>(self, allocator, byte_count, &bytes_allocated,
+                                                &usable_size, &bytes_tl_bulk_allocated);
+  obj->SetClass(klass);
+  // XXX(kunals): Is this required?
+  no_suspend_pre_fence_visitor(obj, usable_size);
+  QuasiAtomic::ThreadFenceForConstructor();
+#else
   {
-    // Bytes allocated that includes bulk thread-local buffer allocations in addition to direct
-    // non-TLAB object allocations. Only set for non-thread-local allocation,
-    size_t bytes_tl_bulk_allocated = 0u;
     // Do the initial pre-alloc
     // TODO: Consider what happens if the allocator is switched while suspended here.
     pre_object_allocated();
@@ -218,9 +233,11 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       GetMetrics()->TotalBytesAllocatedDelta()->Add(bytes_tl_bulk_allocated);
     }
   }
+#endif  // ART_USE_MMTK
   if (kIsDebugBuild && Runtime::Current()->IsStarted()) {
     CHECK_LE(obj->SizeOf(), usable_size);
   }
+#if !ART_USE_MMTK
   // TODO: Deprecate.
   if (kInstrumented) {
     if (Runtime::Current()->HasStatsEnabled()) {
@@ -264,6 +281,7 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     // Do this only once thread suspension is allowed again, and we're done with kInstrumented.
     RequestConcurrentGCAndSaveObject(self, /*force_full=*/ false, starting_gc_num, &obj);
   }
+#endif  // !ART_USE_MMTK
   VerifyObject(obj);
   self->VerifyStack();
   return obj.Ptr();
@@ -306,6 +324,9 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                            size_t* bytes_tl_bulk_allocated) {
 #if ART_USE_MMTK
   UNUSED(allocator_type);
+  // Have to round up allocation size in order to make sure that object starting
+  // addresses are aligned
+  alloc_size = RoundUp(alloc_size, kObjectAlignment);
   uint8_t* ret = (uint8_t *) mmtk_alloc(
     self->GetMmtkMutator(),
     alloc_size,

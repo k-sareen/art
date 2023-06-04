@@ -1011,7 +1011,7 @@ bool Thread::Init(ThreadList* thread_list, JavaVMExt* java_vm, JNIEnvExt* jni_en
   thread_list->Register(this);
 
 #if ART_USE_MMTK
-  LOG(WARNING) << "Calling mmtk_bind_mutator with " << this;
+  VLOG(gc) << "Calling mmtk_bind_mutator with " << this;
   tlsPtr_.mmtk_mutator = mmtk_bind_mutator(this);
 #endif  // ART_USE_MMTK
 

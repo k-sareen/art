@@ -24,6 +24,7 @@
 #include "gc/space/bump_pointer_space-walk-inl.h"
 #include "gc/space/region_space-inl.h"
 #include "mirror/object-inl.h"
+#include "mmtk.h"
 #include "obj_ptr-inl.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread-current-inl.h"
@@ -39,6 +40,24 @@ inline void Heap::VisitObjects(Visitor&& visitor) {
   Thread* self = Thread::Current();
   Locks::mutator_lock_->AssertSharedHeld(self);
   DCHECK(!Locks::mutator_lock_->IsExclusiveHeld(self)) << "Call VisitObjectsPaused() instead";
+#if ART_USE_MMTK
+  // TODO(kunals): Investigate performance of visiting objects like this
+  void *heap_start = mmtk_get_heap_start();
+  void *heap_end = mmtk_get_heap_end();
+
+  // Linear scan through all allocated objects (not just live ones) and call the
+  // visitor for each one
+  uint8_t *cursor = (uint8_t *) heap_start;
+  while (cursor < heap_end) {
+    if (IsAligned<kObjectAlignment>(cursor) && mmtk_is_valid_object(cursor)) {
+      mirror::Object *object = (mirror::Object *) cursor;
+      visitor(object);
+      cursor += RoundUp(object->SizeOf(), kObjectAlignment);
+    } else {
+      cursor += kObjectAlignment;
+    }
+  }
+#else
   if (IsGcConcurrentAndMoving()) {
     // Concurrent moving GC. Just suspending threads isn't sufficient
     // because a collection isn't one big pause and we could suspend
@@ -66,6 +85,7 @@ inline void Heap::VisitObjects(Visitor&& visitor) {
     VisitObjectsInternal(visitor);
     self->PoisonObjectPointers();
   }
+#endif  // ART_USE_MMTK
 }
 
 template <typename Visitor>
