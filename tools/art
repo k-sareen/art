@@ -174,6 +174,10 @@ function check_if_boot_image_file_exists() {
 # On a real device, it might only have a boot.art, so use that instead when core.art does not exist.
 function detect_boot_image_location() {
   local image_location_dir="$ANDROID_ROOT/framework"
+  ANDROID_ROOT_MINUS_PWD="${ANDROID_ROOT#$PWD/}"  # For example: out/host/linux-x86
+  if [[ "$ANDROID_ROOT_MINUS_PWD" == */host/* ]]; then
+    image_location_dir="$ANDROID_ROOT/apex/art_boot_images/javalib"
+  fi
   local image_location_name="core.art"
 
   # If there are no existing core.art, try to find boot.art.
