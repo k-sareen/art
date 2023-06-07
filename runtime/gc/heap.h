@@ -112,6 +112,10 @@ class Space;
 class ZygoteSpace;
 }  // namespace space
 
+namespace third_party_heap {
+class ThirdPartyHeap;
+}  // namespace third_party_heap
+
 enum HomogeneousSpaceCompactResult {
   // Success.
   kSuccess,
@@ -1538,6 +1542,10 @@ class Heap {
     }
   };
 
+#if ART_USE_MMTK
+  std::unique_ptr<third_party_heap::ThirdPartyHeap> tp_heap_;
+#endif  // ART_USE_MMTK
+
   // Parallel GC data structures.
   std::unique_ptr<ThreadPool> thread_pool_;
 
@@ -1733,6 +1741,7 @@ class Heap {
   friend class ReferenceQueue;
   friend class ScopedGCCriticalSection;
   friend class ScopedInterruptibleGCCriticalSection;
+  friend class third_party_heap::ThirdPartyHeap;
   friend class VerifyReferenceCardVisitor;
   friend class VerifyReferenceVisitor;
   friend class VerifyObjectVisitor;
