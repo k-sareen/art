@@ -872,9 +872,6 @@ Heap::Heap(size_t initial_size,
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() exiting";
   }
-#if ART_USE_MMTK
-  tp_heap_->EnableCollection(nullptr);
-#endif  // ART_USE_MMTK
 }
 
 MemMap Heap::MapAnonymousPreferredAddress(const char* name,

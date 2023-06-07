@@ -1827,6 +1827,12 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
   // Now we're attached, we can take the heap locks and validate the heap.
   GetHeap()->EnableObjectValidation();
 
+#if ART_USE_MMTK
+  // The main thread has been attached -- we can enable collection and spawn our
+  // GC threads now
+  GetHeap()->GetThirdPartyHeap()->EnableCollection(nullptr);
+#endif  // ART_USE_MMTK
+
 #if !ART_USE_MMTK
   CHECK_GE(GetHeap()->GetContinuousSpaces().size(), 1U);
 #endif  // !ART_USE_MMTK
