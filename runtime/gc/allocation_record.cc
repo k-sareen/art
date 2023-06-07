@@ -153,8 +153,6 @@ void AllocRecordObjectMap::BroadcastForNewAllocationRecords() {
   new_record_condition_.Broadcast(Thread::Current());
 }
 
-// TODO: kunals disable SetAllocTracking disabled
-// TODO: check write and new instructions
 void AllocRecordObjectMap::SetAllocTrackingEnabled(bool enable) {
   Thread* self = Thread::Current();
   Heap* heap = Runtime::Current()->GetHeap();

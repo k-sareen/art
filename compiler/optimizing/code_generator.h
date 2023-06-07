@@ -520,7 +520,6 @@ class CodeGenerator : public DeletableArenaObject<kArenaAllocCodeGenerator> {
         : LocationSummary::kCallOnSlowPath;
   }
 
-  // FIXME kunals turn off write barrier
   static bool StoreNeedsWriteBarrier(DataType::Type type, HInstruction* value) {
     if (gUseWriteBarrier) {
       // Check that null value is not represented as an integer constant.
