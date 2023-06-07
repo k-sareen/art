@@ -25,8 +25,8 @@ class Thread;
 }  // namespace art
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
-static size_t size_of(void *object) {
-  art::mirror::Object *obj = (art::mirror::Object *) object;
+static size_t size_of(void* object) {
+  art::mirror::Object* obj = (art::mirror::Object*) object;
   return obj->SizeOf();
 }
 
