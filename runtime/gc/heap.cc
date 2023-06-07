@@ -1054,6 +1054,12 @@ MemMap Heap::MapAnonymousPreferredAddress(const char* name,
   }
 }
 
+#if ART_USE_MMTK
+third_party_heap::ThirdPartyHeap* Heap::GetThirdPartyHeap() {
+  return tp_heap_.get();
+}
+#endif  // ART_USE_MMTK
+
 bool Heap::MayUseCollector(CollectorType type) const {
   return foreground_collector_type_ == type || background_collector_type_ == type;
 }

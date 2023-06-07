@@ -1107,6 +1107,10 @@ class Heap {
   EXPORT bool IsTargetApp(std::string package_name);
   EXPORT bool RequiresHeapSizeSpoofing(std::string package_name);
 
+#if ART_USE_MMTK
+  third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
+#endif  // ART_USE_MMTK
+
  private:
   class ConcurrentGCTask;
   class CollectorTransitionTask;
