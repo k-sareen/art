@@ -16,6 +16,7 @@
 
 #include "gc/gc_cause.h"
 #include "gc/third_party_heap.h"
+#include "mmtk_gc_thread.h"
 #include "mmtk_upcalls.h"
 #include "mirror/object-inl.h"
 #include "thread.h"
@@ -46,7 +47,26 @@ static void block_for_gc(void* tls) {
 #undef PERFORM_SUSPENDING_OPERATION
 }
 
+static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
+  UNUSED(tls);
+  switch (kind) {
+    case MmtkGcController: {
+      new art::MmtkControllerThread("MMTk Controller Context Thread", ctx);
+      break;
+    }
+    case MmtkGcWorker: {
+      new art::MmtkWorkerThread("MMTk Collector Thread", ctx);
+      break;
+    }
+    default: {
+      LOG(FATAL) << "Unexpected GC thread kind: " << kind;
+      UNREACHABLE();
+    }
+  }
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   block_for_gc,
+  spawn_gc_thread,
 };

@@ -4626,6 +4626,8 @@ void Thread::SetTlab(uint8_t* start, uint8_t* end, uint8_t* limit) {
 }
 
 void Thread::ResetTlab() {
+  // Only reset TLAB when not using MMTk. MMTk manages its own TLABs
+#if !ART_USE_MMTK
   gc::Heap* const heap = Runtime::Current()->GetHeap();
   if (heap->GetHeapSampler().IsEnabled()) {
     // Note: We always ResetTlab before SetTlab, therefore we can do the sample
@@ -4636,6 +4638,7 @@ void Thread::ResetTlab() {
                << (tlsPtr_.thread_local_pos - tlsPtr_.thread_local_start);
   }
   SetTlab(nullptr, nullptr, nullptr);
+#endif  // !ART_USE_MMTK
 }
 
 bool Thread::HasTlab() const {
