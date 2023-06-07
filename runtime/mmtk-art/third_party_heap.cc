@@ -63,6 +63,11 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   }
   return reinterpret_cast<mirror::Object*>(ret);
 #else
+  UNUSED(self);
+  UNUSED(alloc_size);
+  UNUSED(bytes_allocated);
+  UNUSED(usable_size);
+  UNUSED(bytes_tl_bulk_allocated);
   return nullptr;
 #endif  // ART_USE_MMTK
 }
