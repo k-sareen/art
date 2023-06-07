@@ -48,6 +48,11 @@ class ThirdPartyHeap {
   // initialization has ocurred.
   void EnableCollection(Thread* tls);
 
+  // Block and suspend mutator thread for GC
+  void BlockThreadForCollection(GcCause cause, Thread* self)
+    REQUIRES(!*Heap::gc_complete_lock_)
+    REQUIRES_SHARED(Locks::mutator_lock_);
+
   // Check if a given address has been allocated by the ThirdPartyHeap. Note
   // that this check does not use the valid-object bit.
   bool IsObjectInHeapSpace(const void* addr) const REQUIRES_SHARED(Locks::mutator_lock_);

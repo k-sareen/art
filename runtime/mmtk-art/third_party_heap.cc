@@ -17,7 +17,10 @@
 #include "gc/third_party_heap.h"
 #include "mmtk-art/mmtk_upcalls.h"
 #include "mmtk.h"
+#include "runtime.h"
 #include "runtime_globals.h"
+#include "scoped_thread_state_change-inl.h"
+#include "scoped_thread_state_change.h"
 #include "thread.h"
 
 namespace art {
@@ -33,6 +36,15 @@ ThirdPartyHeap::~ThirdPartyHeap() {}
 
 void ThirdPartyHeap::EnableCollection(Thread* tls) {
   mmtk_initialize_collection(tls);
+}
+
+void ThirdPartyHeap::BlockThreadForCollection(GcCause cause, Thread* self) {
+  UNUSED(cause);
+  art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+  Heap* heap = Runtime::Current()->GetHeap();
+  MutexLock mu(self, *heap->gc_complete_lock_);
+  heap->gc_complete_cond_->CheckSafeToWait(self);
+  heap->gc_complete_cond_->Wait(self);
 }
 
 bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {

@@ -1000,6 +1000,10 @@ class Heap {
 
   bool AddHeapTask(gc::HeapTask* task);
 
+#if ART_USE_MMTK
+  third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
+#endif  // ART_USE_MMTK
+
  private:
   class ConcurrentGCTask;
   class CollectorTransitionTask;
