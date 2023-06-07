@@ -1000,9 +1000,7 @@ class Heap {
 
   bool AddHeapTask(gc::HeapTask* task);
 
-#if ART_USE_MMTK
   third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
-#endif  // ART_USE_MMTK
 
  private:
   class ConcurrentGCTask;
@@ -1546,9 +1544,7 @@ class Heap {
     }
   };
 
-#if ART_USE_MMTK
   std::unique_ptr<third_party_heap::ThirdPartyHeap> tp_heap_;
-#endif  // ART_USE_MMTK
 
   // Parallel GC data structures.
   std::unique_ptr<ThreadPool> thread_pool_;

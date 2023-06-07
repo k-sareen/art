@@ -33,10 +33,6 @@ static size_t size_of(void *object) {
 REQUIRES(art::Roles::uninterruptible_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void block_for_gc(void* tls) {
-#if ART_USE_MMTK
-  // TODO(kunals): Use Heap::WaitForGcToComplete() instead. However
-  // Heap::WaitForGcToComplete() requires that the heap->collector_type_running_
-  // is set to any value except kCollectorTypeNone.
 #define PERFORM_SUSPENDING_OPERATION(op)                                                    \
   [&]() REQUIRES(art::Roles::uninterruptible_) REQUIRES_SHARED(art::Locks::mutator_lock_) { \
     art::ScopedAllowThreadSuspension ats;                                                   \
@@ -45,9 +41,9 @@ static void block_for_gc(void* tls) {
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+  // tp_heap->BlockThreadForCollection calls Heap::WaitForGcToComplete internally
   PERFORM_SUSPENDING_OPERATION(tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
 #undef PERFORM_SUSPENDING_OPERATION
-#endif  // ART_USE_MMTK
 }
 
 ArtUpcalls art_upcalls = {

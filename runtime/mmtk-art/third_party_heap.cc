@@ -39,12 +39,16 @@ void ThirdPartyHeap::EnableCollection(Thread* tls) {
 }
 
 void ThirdPartyHeap::BlockThreadForCollection(GcCause cause, Thread* self) {
-  UNUSED(cause);
   art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
   Heap* heap = Runtime::Current()->GetHeap();
-  MutexLock mu(self, *heap->gc_complete_lock_);
-  heap->gc_complete_cond_->CheckSafeToWait(self);
-  heap->gc_complete_cond_->Wait(self);
+  {
+    MutexLock mu(self, *(heap->gc_complete_lock_));
+    // Set the collector_type_running_ to kCollectorThirdPartyHeap so that
+    // Heap::WaitForGcToComplete will wait until GC has finished
+    heap->collector_type_running_ = kCollectorThirdPartyHeap;
+    heap->last_gc_cause_ = cause;
+  }
+  heap->WaitForGcToComplete(cause, self);
 }
 
 bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
