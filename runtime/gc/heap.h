@@ -1107,9 +1107,7 @@ class Heap {
   EXPORT bool IsTargetApp(std::string package_name);
   EXPORT bool RequiresHeapSizeSpoofing(std::string package_name);
 
-#if ART_USE_MMTK
   third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
-#endif  // ART_USE_MMTK
 
  private:
   class ConcurrentGCTask;
@@ -1659,9 +1657,7 @@ class Heap {
     }
   };
 
-#if ART_USE_MMTK
   std::unique_ptr<third_party_heap::ThirdPartyHeap> tp_heap_;
-#endif  // ART_USE_MMTK
 
   // Parallel GC data structures.
   std::unique_ptr<ThreadPool> thread_pool_;
