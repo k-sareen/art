@@ -25,15 +25,15 @@
 
 namespace art {
 
-class MmtkGcThread {
+class MmtkWorkerThread {
   static const size_t kDefaultStackSize = 1 * MB;
 
  public:
-  MmtkGcThread(const std::string& name);
+  MmtkWorkerThread(const std::string& name, void* context);
 
   [[noreturn]]
-  ~MmtkGcThread() {
-    LOG(FATAL) << "MmtkGcThread's destructor called";
+  ~MmtkWorkerThread() {
+    LOG(FATAL) << "MmtkWorkerThread's destructor called";
     UNREACHABLE();
   }
 
@@ -45,9 +45,10 @@ class MmtkGcThread {
   pthread_t pthread_;
   Thread* thread_;
   MemMap stack_;
+  void* context_;
 };
 
-class MmtkControllerThread : MmtkGcThread {
+class MmtkControllerThread : MmtkWorkerThread {
  public:
   MmtkControllerThread(const std::string& name, void* context);
 
@@ -55,22 +56,6 @@ class MmtkControllerThread : MmtkGcThread {
 
  protected:
   void Run() override;
-
- private:
-  void* context_;
-};
-
-class MmtkWorkerThread : MmtkGcThread {
- public:
-  MmtkWorkerThread(const std::string& name, void* context);
-
-  ~MmtkWorkerThread();
-
- protected:
-  void Run() override;
-
- private:
-  void* context_;
 };
 
 }  // namespace art

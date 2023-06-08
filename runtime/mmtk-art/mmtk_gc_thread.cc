@@ -30,8 +30,8 @@ static constexpr bool kUseCustomThreadPoolStack = false;
 static constexpr bool kUseCustomThreadPoolStack = true;
 #endif
 
-MmtkGcThread::MmtkGcThread(const std::string& name)
-    : name_(name) {
+MmtkWorkerThread::MmtkWorkerThread(const std::string& name, void* context)
+        : name_(name), context_(context) {
   std::string error_msg;
   size_t stack_size = kDefaultStackSize;
   // On Bionic, we know pthreads will give us a big-enough stack with
@@ -47,12 +47,12 @@ MmtkGcThread::MmtkGcThread(const std::string& name)
     CHECK(stack_.IsValid()) << error_msg;
     CHECK_ALIGNED(stack_.Begin(), kPageSize);
     CheckedCall(mprotect,
-                "mprotect bottom page of MmtkGcThread stack",
+                "mprotect bottom page of MmtkWorkerThread stack",
                 stack_.Begin(),
                 kPageSize,
                 PROT_NONE);
   }
-  const char* reason = "new MmtkGcThread";
+  const char* reason = "new MmtkWorkerThread";
   pthread_attr_t attr;
   CHECK_PTHREAD_CALL(pthread_attr_init, (&attr), reason);
   if (kUseCustomThreadPoolStack) {
@@ -64,8 +64,13 @@ MmtkGcThread::MmtkGcThread(const std::string& name)
   CHECK_PTHREAD_CALL(pthread_attr_destroy, (&attr), reason);
 }
 
-void* MmtkGcThread::Callback(void* arg) {
-  MmtkGcThread* worker = reinterpret_cast<MmtkGcThread*>(arg);
+void MmtkWorkerThread::Run() {
+  LOG(INFO) << "Starting MmtkWorkerThread " << thread_ << " with context " << context_;
+  mmtk_start_gc_worker_thread((void*) thread_, (void*) context_);
+}
+
+void* MmtkWorkerThread::Callback(void* arg) {
+  MmtkWorkerThread* worker = reinterpret_cast<MmtkWorkerThread*>(arg);
   Runtime* runtime = Runtime::Current();
   // Don't run callbacks for MmtkGcThreads. See comment in
   // ThreadPoolWorker::Callback() for more information
@@ -84,24 +89,13 @@ void* MmtkGcThread::Callback(void* arg) {
   return nullptr;
 }
 
-void MmtkGcThread::Run() {}
-
 MmtkControllerThread::MmtkControllerThread(const std::string& name,
-                                               void* context)
-                                        : MmtkGcThread(name),
-                                          context_(context) {}
+                                           void* context)
+                                    : MmtkWorkerThread(name, context) {}
 
 void MmtkControllerThread::Run() {
+  LOG(INFO) << "Starting MmtkControllerThread " << thread_ << " with context " << context_;
   mmtk_start_gc_controller_thread((void*) thread_, (void*) context_);
-}
-
-MmtkWorkerThread::MmtkWorkerThread(const std::string& name,
-                                       void* context)
-                                : MmtkGcThread(name),
-                                  context_(context) {}
-
-void MmtkWorkerThread::Run() {
-  mmtk_start_gc_worker_thread((void*) thread_, (void*) context_);
 }
 
 }  // namespace art
