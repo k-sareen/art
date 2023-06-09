@@ -298,7 +298,8 @@ class Runtime {
                            bool as_daemon,
                            jobject thread_group,
                            bool create_peer,
-                           bool should_run_callbacks = true);
+                           bool should_run_callbacks = true,
+                           bool add_to_thread_list = true);
 
   void CallExitHook(jint status);
 

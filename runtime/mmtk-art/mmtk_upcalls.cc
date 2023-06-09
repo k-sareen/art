@@ -20,6 +20,7 @@
 #include "mmtk_upcalls.h"
 #include "mirror/object-inl.h"
 #include "thread.h"
+#include "thread_list.h"
 
 namespace art {
 class Thread;
@@ -65,8 +66,22 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
   }
 }
 
+EXCLUSIVE_LOCK_FUNCTION(art::Locks::mutator_lock_)
+static void stop_all_mutators() {
+  art::Runtime* runtime = art::Runtime::Current();
+  runtime->GetThreadList()->SuspendAll(__FUNCTION__);
+}
+
+UNLOCK_FUNCTION(art::Locks::mutator_lock_)
+static void resume_mutators() {
+  art::Runtime* runtime = art::Runtime::Current();
+  runtime->GetThreadList()->ResumeAll();
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   block_for_gc,
   spawn_gc_thread,
+  stop_all_mutators,
+  resume_mutators,
 };

@@ -959,7 +959,10 @@ void Thread::CreateNativeThread(JNIEnv* env, jobject java_peer, size_t stack_siz
   }
 }
 
-bool Thread::Init(ThreadList* thread_list, JavaVMExt* java_vm, JNIEnvExt* jni_env_ext) {
+bool Thread::Init(ThreadList* thread_list,
+                  JavaVMExt* java_vm,
+                  JNIEnvExt* jni_env_ext,
+                  bool add_to_thread_list) {
   // This function does all the initialization that must be run by the native thread it applies to.
   // (When we create a new thread from managed code, we allocate the Thread* in Thread::Create so
   // we can handshake with the corresponding native thread when it's ready.) Check this native
@@ -1006,12 +1009,16 @@ bool Thread::Init(ThreadList* thread_list, JavaVMExt* java_vm, JNIEnvExt* jni_en
     }
   }
 
-  ScopedTrace trace3("ThreadList::Register");
-  thread_list->Register(this);
+  if (add_to_thread_list) {
+    ScopedTrace trace3("ThreadList::Register");
+    thread_list->Register(this);
+  }
 
 #if ART_USE_MMTK
-  VLOG(gc) << "Calling mmtk_bind_mutator with " << this;
-  tlsPtr_.mmtk_mutator = mmtk_bind_mutator(this);
+  if (add_to_thread_list) {
+    VLOG(threads) << "Calling mmtk_bind_mutator with " << this;
+    tlsPtr_.mmtk_mutator = mmtk_bind_mutator(this);
+  }
 #endif  // ART_USE_MMTK
 
   return true;
@@ -1021,7 +1028,8 @@ template <typename PeerAction>
 Thread* Thread::Attach(const char* thread_name,
                        bool as_daemon,
                        PeerAction peer_action,
-                       bool should_run_callbacks) {
+                       bool should_run_callbacks,
+                       bool add_to_thread_list) {
   Runtime* runtime = Runtime::Current();
   ScopedTrace trace("Thread::Attach");
   if (runtime == nullptr) {
@@ -1040,7 +1048,10 @@ Thread* Thread::Attach(const char* thread_name,
     } else {
       Runtime::Current()->StartThreadBirth();
       self = new Thread(as_daemon);
-      bool init_success = self->Init(runtime->GetThreadList(), runtime->GetJavaVM());
+      bool init_success = self->Init(runtime->GetThreadList(),
+                                     runtime->GetJavaVM(),
+                                     nullptr,
+                                     add_to_thread_list);
       Runtime::Current()->EndThreadBirth();
       if (!init_success) {
         delete self;
@@ -1083,7 +1094,8 @@ Thread* Thread::Attach(const char* thread_name,
                        bool as_daemon,
                        jobject thread_group,
                        bool create_peer,
-                       bool should_run_callbacks) {
+                       bool should_run_callbacks,
+                       bool add_to_thread_list) {
   auto create_peer_action = [&](Thread* self) {
     // If we're the main thread, ClassLinker won't be created until after we're attached,
     // so that thread needs a two-stage attach. Regular threads don't need this hack.
@@ -1116,7 +1128,7 @@ Thread* Thread::Attach(const char* thread_name,
     }
     return true;
   };
-  return Attach(thread_name, as_daemon, create_peer_action, should_run_callbacks);
+  return Attach(thread_name, as_daemon, create_peer_action, should_run_callbacks, add_to_thread_list);
 }
 
 Thread* Thread::Attach(const char* thread_name, bool as_daemon, jobject thread_peer) {
@@ -1129,7 +1141,9 @@ Thread* Thread::Attach(const char* thread_name, bool as_daemon, jobject thread_p
     SetNativePeer</*kSupportTransaction=*/ false>(peer, self);
     return true;
   };
-  return Attach(thread_name, as_daemon, set_peer_action, /* should_run_callbacks= */ true);
+  return Attach(thread_name, as_daemon, set_peer_action,
+                /* should_run_callbacks= */ true,
+                /* add_to_thread_list= */ true);
 }
 
 void Thread::CreatePeer(const char* name, bool as_daemon, jobject thread_group) {

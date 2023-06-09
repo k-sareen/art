@@ -1815,7 +1815,9 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
   // ClassLinker needs an attached thread, but we can't fully attach a thread without creating
   // objects. We can't supply a thread group yet; it will be fixed later. Since we are the main
   // thread, we do not get a java peer.
-  Thread* self = Thread::Attach("main", false, nullptr, false, /* should_run_callbacks= */ true);
+  Thread* self = Thread::Attach("main", false, nullptr, false,
+                                /* should_run_callbacks= */ true,
+                                /* add_to_thread_list= */ true);
   CHECK_EQ(self->GetThreadId(), ThreadList::kMainThreadId);
   CHECK(self != nullptr);
 
@@ -2439,13 +2441,15 @@ void Runtime::BlockSignals() {
 }
 
 bool Runtime::AttachCurrentThread(const char* thread_name, bool as_daemon, jobject thread_group,
-                                  bool create_peer, bool should_run_callbacks) {
+                                  bool create_peer, bool should_run_callbacks,
+                                  bool add_to_thread_list) {
   ScopedTrace trace(__FUNCTION__);
   Thread* self = Thread::Attach(thread_name,
                                 as_daemon,
                                 thread_group,
                                 create_peer,
-                                should_run_callbacks);
+                                should_run_callbacks,
+                                add_to_thread_list);
   // Run ThreadGroup.add to notify the group that this thread is now started.
   if (self != nullptr && create_peer && !IsAotCompiler()) {
     ScopedObjectAccess soa(self);

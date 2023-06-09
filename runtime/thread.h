@@ -237,7 +237,8 @@ class Thread {
                         bool as_daemon,
                         jobject thread_group,
                         bool create_peer,
-                        bool should_run_callbacks);
+                        bool should_run_callbacks,
+                        bool add_to_thread_list);
   // Attaches the calling native thread to the runtime, returning the new native peer.
   static Thread* Attach(const char* thread_name, bool as_daemon, jobject thread_peer);
 
@@ -1515,7 +1516,8 @@ class Thread {
   static Thread* Attach(const char* thread_name,
                         bool as_daemon,
                         PeerAction p,
-                        bool should_run_callbacks);
+                        bool should_run_callbacks,
+                        bool add_to_thread_list);
 
   void CreatePeer(const char* name, bool as_daemon, jobject thread_group);
 
@@ -1598,8 +1600,9 @@ class Thread {
   // Init succeeds, this means the thread takes ownership of it. If Init fails, it is the caller's
   // responsibility to destroy the given JNIEnvExt. If the parameter is null, Init will try to
   // create a JNIEnvExt on its own (and potentially fail at that stage, indicated by a return value
-  // of false).
-  bool Init(ThreadList*, JavaVMExt*, JNIEnvExt* jni_env_ext = nullptr)
+  // of false). The caller can specify whether to add the thread to the thread list as well. This is
+  // currently only used for worker threads spawned by ThirdPartyHeap implementations.
+  bool Init(ThreadList*, JavaVMExt*, JNIEnvExt* jni_env_ext = nullptr, bool add_to_thread_list = true)
       REQUIRES(Locks::runtime_shutdown_lock_);
   void InitCardTable();
   void InitCpu();
