@@ -79,7 +79,8 @@ void* MmtkWorkerThread::Callback(void* arg) {
       /* as_daemon= */ true,
       /* thread_group= */ nullptr,
       /* create_peer= */ false,
-      /* should_run_callbacks= */ false));
+      /* should_run_callbacks= */ false,
+      /* add_to_thread_list= */ false));
   worker->thread_ = Thread::Current();
   // Mark MMTk GC threads as runtime-threads.
   worker->thread_->SetIsRuntimeThread(true);
