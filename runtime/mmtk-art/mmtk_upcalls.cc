@@ -78,10 +78,64 @@ static void resume_mutators() {
   runtime->GetThreadList()->ResumeAll();
 }
 
+REQUIRES(!art::Locks::thread_list_lock_)
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static size_t number_of_mutators() {
+  size_t num = 0;
+  {
+    art::Runtime* runtime = art::Runtime::Current();
+    art::MutexLock mu(art::Thread::Current(), *art::Locks::thread_list_lock_);
+
+    runtime->GetThreadList()->ForEach([&num](art::Thread* thread) {
+      UNUSED(thread);
+      num++;
+    });
+  }
+
+  return num;
+}
+
+static bool is_mutator(void* tls) {
+#if ART_USE_MMTK
+  art::Thread* self = reinterpret_cast<art::Thread*>(tls);
+  return self->GetMmtkMutator() != nullptr;
+#else
+  return true;
+#endif  // ART_USE_MMTK
+}
+
+static MmtkMutator get_mmtk_mutator(void* tls) {
+#if ART_USE_MMTK
+  art::Thread* self = reinterpret_cast<art::Thread*>(tls);
+  return self->GetMmtkMutator();
+#else
+  return nullptr;
+#endif  // ART_USE_MMTK
+}
+
+REQUIRES(!art::Locks::thread_list_lock_)
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void for_all_mutators(MutatorClosure closure) {
+#if ART_USE_MMTK
+  {
+    art::Runtime* runtime = art::Runtime::Current();
+    art::MutexLock mu(art::Thread::Current(), *art::Locks::thread_list_lock_);
+
+    runtime->GetThreadList()->ForEach([&closure](art::Thread* thread) {
+      closure.invoke(thread->GetMmtkMutator());
+    });
+  }
+#endif  // ART_USE_MMTK
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   block_for_gc,
   spawn_gc_thread,
   stop_all_mutators,
   resume_mutators,
+  number_of_mutators,
+  is_mutator,
+  get_mmtk_mutator,
+  for_all_mutators,
 };
