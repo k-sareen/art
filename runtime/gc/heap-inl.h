@@ -88,20 +88,26 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
   // non-TLAB object allocations. Only set for non-thread-local allocation,
   size_t bytes_tl_bulk_allocated = 0u;
 #if ART_USE_MMTK
-  UNUSED(allocator);
-  UNUSED(new_num_bytes_allocated);
-  UNUSED(need_gc);
-  UNUSED(starting_gc_num);
-  // Do pre-object allocation
-  // XXX(kunals): Is this required?
-  pre_object_allocated();
+  {
+    UNUSED(allocator);
+    UNUSED(new_num_bytes_allocated);
+    UNUSED(need_gc);
+    UNUSED(starting_gc_num);
+    // Do pre-object allocation. We call the "ScopedAssertNoThreadSuspension" in
+    // order to make sure that we are not suspended until we start allocating.
+    // Note that `ThirdPartyHeap::BlockThreadForCollection` uses
+    // "ScopedAllowThreadSuspension" if we *do* need to be suspended for a GC to
+    // make sure that the thread suspend state is maintained accurately.
+    pre_object_allocated();
+    ScopedAssertNoThreadSuspension ants("Called PreObjectAllocated, no suspend until alloc");
 
-  obj = tp_heap_->TryToAllocate(self, byte_count, &bytes_allocated,
-                                  &usable_size, &bytes_tl_bulk_allocated);
-  obj->SetClass(klass);
-  // XXX(kunals): Is this required?
-  no_suspend_pre_fence_visitor(obj, usable_size);
-  QuasiAtomic::ThreadFenceForConstructor();
+    obj = tp_heap_->TryToAllocate(self, byte_count, &bytes_allocated,
+                                    &usable_size, &bytes_tl_bulk_allocated);
+    obj->SetClass(klass);
+    // XXX(kunals): Is this required?
+    no_suspend_pre_fence_visitor(obj, usable_size);
+    QuasiAtomic::ThreadFenceForConstructor();
+  }
 #else
   {
     // Do the initial pre-alloc

@@ -65,7 +65,9 @@ class ThirdPartyHeap {
                                 size_t* bytes_allocated,
                                 size_t* usable_size,
                                 size_t* bytes_tl_bulk_allocated)
-    REQUIRES(!Locks::thread_suspend_count_lock_, !*Heap::gc_complete_lock_, !*Heap::pending_task_lock_)
+    REQUIRES(!Locks::thread_suspend_count_lock_, !*Heap::gc_complete_lock_,
+             !*Heap::pending_task_lock_)
+    REQUIRES(Roles::uninterruptible_)
     REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Visit all allocated objects. Note that this function may potentially visit

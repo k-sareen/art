@@ -99,5 +99,5 @@ collector::GcType ThirdPartyHeap::CollectGarbage(GcCause cause,
 }
 
 }  // namespace third_party_heap
-}  // namespace gc {}
+}  // namespace gc
 }  // namespace art
