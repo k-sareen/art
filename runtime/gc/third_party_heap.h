@@ -22,7 +22,9 @@
 #include "gc/collector/gc_type.h"
 #include "gc/collector_type.h"
 #include "gc/gc_cause.h"
+#include "gc_root.h"
 #include "heap.h"
+#include "mirror/object_reference.h"
 
 namespace art {
 
@@ -81,6 +83,17 @@ class ThirdPartyHeap {
   collector::GcType CollectGarbage(GcCause gc_cause,
                                    bool clear_soft_references,
                                    uint32_t requested_gc_num);
+};
+
+class ThirdPartyHeapRootVisitor : public RootVisitor {
+ public:
+  void VisitRoots(mirror::Object*** roots, size_t count, const RootInfo& info) override
+      REQUIRES(Locks::mutator_lock_);
+
+  void VisitRoots(mirror::CompressedReference<mirror::Object>** roots,
+                  size_t count,
+                  const RootInfo& info) override
+      REQUIRES(Locks::mutator_lock_);
 };
 
 } // namespace third_party_heap
