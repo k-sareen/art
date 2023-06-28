@@ -17,6 +17,7 @@
 #include "gc/gc_cause.h"
 #include "gc/third_party_heap.h"
 #include "mmtk_gc_thread.h"
+#include "mmtk_root_visitor.h"
 #include "mmtk_upcalls.h"
 #include "mirror/object-inl.h"
 #include "thread.h"
@@ -129,6 +130,13 @@ static void for_all_mutators(MutatorClosure closure) {
 #endif  // ART_USE_MMTK
 }
 
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void scan_all_roots(EdgesClosure closure) {
+  art::Runtime* runtime = art::Runtime::Current();
+  art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
+  runtime->VisitRoots(&visitor);
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   block_for_gc,
@@ -139,4 +147,5 @@ ArtUpcalls art_upcalls = {
   is_mutator,
   get_mmtk_mutator,
   for_all_mutators,
+  scan_all_roots,
 };

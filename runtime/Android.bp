@@ -226,6 +226,7 @@ cc_defaults {
         "mirror/throwable.cc",
         "mirror/var_handle.cc",
         "mmtk-art/mmtk_gc_thread.cc",
+        "mmtk-art/mmtk_root_visitor.cc",
         "mmtk-art/mmtk_upcalls.cc",
         "mmtk-art/third_party_heap.cc",
         "monitor.cc",
