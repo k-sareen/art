@@ -77,7 +77,10 @@ class ThreadList {
   // Suspends all other threads and gets exclusive access to the mutator lock.
   // If long_suspend is true, then other threads who try to suspend will never timeout.
   // long_suspend is currenly used for hprof since large heaps take a long time.
-  void SuspendAll(const char* cause, bool long_suspend = false)
+  // XXX: Since MMTk doesn't register its GC threads in the thread list, we have
+  // to make sure that the `pending_threads` count in `SuspendAllInternal` is
+  // kept accurately. This is a hack to achieve the same.
+  void SuspendAll(const char* cause, bool long_suspend = false, bool is_self_registered = true)
       EXCLUSIVE_LOCK_FUNCTION(Locks::mutator_lock_)
       REQUIRES(!Locks::thread_list_lock_,
                !Locks::thread_suspend_count_lock_,
@@ -233,7 +236,9 @@ class ThreadList {
       REQUIRES(Locks::thread_list_lock_, Locks::thread_suspend_count_lock_)
           UNLOCK_FUNCTION(Locks::mutator_lock_);
 
-  void SuspendAllInternal(Thread* self, SuspendReason reason = SuspendReason::kInternal)
+  void SuspendAllInternal(Thread* self,
+                          SuspendReason reason = SuspendReason::kInternal,
+                          bool is_self_registered = true)
       REQUIRES(!Locks::thread_list_lock_,
                !Locks::thread_suspend_count_lock_,
                !Locks::mutator_lock_);

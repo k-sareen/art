@@ -786,7 +786,7 @@ std::optional<std::string> ThreadList::WaitForSuspendBarrier(AtomicInteger* barr
   return result + std::to_string(barrier->load(std::memory_order_acquire));
 }
 
-void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
+void ThreadList::SuspendAll(const char* cause, bool long_suspend, bool is_self_registered) {
   Thread* self = Thread::Current();
 
   if (self != nullptr) {
@@ -798,7 +798,7 @@ void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
     ScopedTrace trace("Suspending mutator threads");
     const uint64_t start_time = NanoTime();
 
-    SuspendAllInternal(self);
+    SuspendAllInternal(self, is_self_registered);
     // All threads are known to have suspended (but a thread may still own the mutator lock)
     // Make sure this thread grabs exclusive access to the mutator lock and its protected data.
 #if HAVE_TIMED_RWLOCK
@@ -847,7 +847,7 @@ void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
 }
 
 // Ensures all threads running Java suspend and that those not running Java don't start.
-void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason) {
+void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason, bool is_self_registered) {
   // self can be nullptr if this is an unregistered thread.
   const uint64_t start_time = NanoTime();
   Locks::mutator_lock_->AssertNotExclusiveHeld(self);
@@ -911,7 +911,7 @@ void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason) {
           }
         }
         self->AtomicSetFlag(ThreadFlag::kSuspensionImmune, std::memory_order_relaxed);
-        DCHECK(self == nullptr || found_myself);
+        DCHECK(self == nullptr || found_myself || !is_self_registered);
         break;
       }
     }

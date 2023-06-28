@@ -28,7 +28,7 @@ class Thread;
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static size_t size_of(void* object) {
-  art::mirror::Object* obj = (art::mirror::Object*) object;
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   return obj->SizeOf();
 }
 
@@ -69,7 +69,8 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
 EXCLUSIVE_LOCK_FUNCTION(art::Locks::mutator_lock_)
 static void stop_all_mutators() {
   art::Runtime* runtime = art::Runtime::Current();
-  runtime->GetThreadList()->SuspendAll(__FUNCTION__);
+  runtime->GetThreadList()->SuspendAll(__FUNCTION__, /* long_suspend= */ false,
+        /* is_self_registered= */ false);
 }
 
 UNLOCK_FUNCTION(art::Locks::mutator_lock_)
