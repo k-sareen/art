@@ -624,7 +624,7 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
   return runnable_thread_count + other_threads.size() + 1;  // +1 for self.
 }
 
-void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
+void ThreadList::SuspendAll(const char* cause, bool long_suspend, bool is_self_registered) {
   Thread* self = Thread::Current();
 
   if (self != nullptr) {
@@ -636,7 +636,7 @@ void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
     ScopedTrace trace("Suspending mutator threads");
     const uint64_t start_time = NanoTime();
 
-    SuspendAllInternal(self, self);
+    SuspendAllInternal(self, self, nullptr, SuspendReason::kInternal, is_self_registered);
     // All threads are known to have suspended (but a thread may still own the mutator lock)
     // Make sure this thread grabs exclusive access to the mutator lock and its protected data.
 #if HAVE_TIMED_RWLOCK
@@ -683,7 +683,8 @@ void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
 void ThreadList::SuspendAllInternal(Thread* self,
                                     Thread* ignore1,
                                     Thread* ignore2,
-                                    SuspendReason reason) {
+                                    SuspendReason reason,
+                                    bool is_self_registered) {
   Locks::mutator_lock_->AssertNotExclusiveHeld(self);
   Locks::thread_list_lock_->AssertNotHeld(self);
   Locks::thread_suspend_count_lock_->AssertNotHeld(self);
@@ -702,11 +703,15 @@ void ThreadList::SuspendAllInternal(Thread* self,
   // The atomic counter for number of threads that need to pass the barrier.
   AtomicInteger pending_threads;
   uint32_t num_ignored = 0;
-  if (ignore1 != nullptr) {
-    ++num_ignored;
-  }
-  if (ignore2 != nullptr && ignore1 != ignore2) {
-    ++num_ignored;
+  // XXX: Make sure that the pending_threads count is accurately kept when using
+  // MMTk since MMTk does not register its GC threads
+  if (is_self_registered) {
+    if (ignore1 != nullptr) {
+      ++num_ignored;
+    }
+    if (ignore2 != nullptr && ignore1 != ignore2) {
+      ++num_ignored;
+    }
   }
   {
     MutexLock mu(self, *Locks::thread_list_lock_);
