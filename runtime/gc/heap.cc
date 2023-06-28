@@ -1720,7 +1720,10 @@ bool Heap::IsValidObjectAddress(const void* addr) const {
     return true;
   }
 #if ART_USE_MMTK
-  return IsAligned<kObjectAlignment>(addr) && tp_heap_->IsObjectInHeapSpace(addr);
+  // Check if the address is aligned and if it either allocated by MMTk or it is
+  // allocated in the boot image.
+  // TODO(kunals): MMTk need to be aware of the boot image
+  return IsAligned<kObjectAlignment>(addr) && (tp_heap_->IsObjectInHeapSpace(addr) || IsBootImageAddress(addr));
 #else
   return IsAligned<kObjectAlignment>(addr) && FindSpaceFromAddress(addr) != nullptr;
 #endif  // ART_USE_MMTK
