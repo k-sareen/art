@@ -51,7 +51,14 @@ inline uint32_t Object::ClassSize(PointerSize pointer_size) {
 
 template<VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>
 inline Class* Object::GetClass() {
+#if !ART_USE_MMTK
   return GetFieldObject<Class, kVerifyFlags, kReadBarrierOption>(ClassOffset());
+#else
+  // XXX: We mask the two lowest-order bits when using MMTk as MMTk stores GC
+  // state (such as forwarding bits or mark bit) there
+  Class* klass = GetFieldObject<Class, kVerifyFlags, kReadBarrierOption>(ClassOffset());
+  return reinterpret_cast<Class*>(((size_t)klass) & ~(0b11));
+#endif  // !ART_USE_MMTK
 }
 
 template<VerifyObjectFlags kVerifyFlags>
