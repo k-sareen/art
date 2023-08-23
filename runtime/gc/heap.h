@@ -806,7 +806,8 @@ class Heap {
       REQUIRES(!*gc_complete_lock_);
   void ResetGcPerformanceInfo() REQUIRES(!*gc_complete_lock_);
 
-  void HarnessBegin() REQUIRES(!*gc_complete_lock_);
+  void HarnessBegin()
+      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
   void HarnessEnd() REQUIRES(!*gc_complete_lock_);
 
   bool HaveDumpedGcPerformanceInfo() {

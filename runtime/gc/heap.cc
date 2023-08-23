@@ -1459,6 +1459,15 @@ void Heap::ResetGcPerformanceInfo() {
 }
 
 void Heap::HarnessBegin() {
+  if (gc_plan_.back() != collector::kGcTypeNoGC) {
+    LOG(INFO) << "Performing a GC with " << gc_plan_.back()
+      << " before HarnessBegin\n";
+    CollectGarbage(/* clear_soft_references = */ false, kGcCauseExplicit);
+    LOG(INFO) << "Finished GC before HarnessBegin\n";
+  } else {
+    LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
+  }
+
   inside_harness_ = true;
   dumped_gc_performance_info_ = false;
   harness_begin_start_time_ns_ = NanoTime();
