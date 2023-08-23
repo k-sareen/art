@@ -1,0 +1,494 @@
+diff --git a/libartbase/base/mem_map.cc b/libartbase/base/mem_map.cc
+index 4c14af132c..04c11ede63 100644
+--- a/libartbase/base/mem_map.cc
++++ b/libartbase/base/mem_map.cc
+@@ -839,9 +839,20 @@ void MemMap::ReleaseReservedMemory(size_t byte_count) {
+   }
+ }
+
+-void MemMap::FillWithZero(bool release_eagerly) {
+-  if (base_begin_ != nullptr && base_size_ != 0) {
+-    ZeroMemory(base_begin_, base_size_, release_eagerly);
++void MemMap::MadviseDontNeedAndZero() {
++  if (base_begin_ != nullptr || base_size_ != 0) {
++    if (!kMadviseZeroes) {
++      memset(base_begin_, 0, base_size_);
++    }
++#ifdef _WIN32
++    // It is benign not to madvise away the pages here.
++    PLOG(WARNING) << "MemMap::MadviseDontNeedAndZero does not madvise on Windows.";
++#else
++    int result = madvise(base_begin_, base_size_, MADV_DONTNEED);
++    if (result == -1) {
++      PLOG(WARNING) << "madvise failed";
++    }
++#endif
+   }
+ }
+
+@@ -1235,30 +1246,7 @@ void MemMap::TryReadable() {
+   }
+ }
+
+-static void inline RawClearMemory(uint8_t* begin, uint8_t* end) {
+-  std::fill(begin, end, 0);
+-}
+-
+-#if defined(__linux__)
+-static inline void ClearMemory(uint8_t* page_begin, size_t size, bool resident) {
+-  DCHECK(IsAligned<kPageSize>(page_begin));
+-  DCHECK(IsAligned<kPageSize>(page_begin + size));
+-  if (resident) {
+-    RawClearMemory(page_begin, page_begin + size);
+-    // Note we check madvise return value against -1, as it seems old kernels
+-    // can return 1.
+-#ifdef MADV_FREE
+-    bool res = madvise(page_begin, size, MADV_FREE);
+-    CHECK_NE(res, -1) << "madvise failed";
+-#endif  // MADV_FREE
+-  } else {
+-    bool res = madvise(page_begin, size, MADV_DONTNEED);
+-    CHECK_NE(res, -1) << "madvise failed";
+-  }
+-}
+-#endif  // __linux__
+-
+-void ZeroMemory(void* address, size_t length, bool release_eagerly) {
++void ZeroAndReleasePages(void* address, size_t length) {
+   if (length == 0) {
+     return;
+   }
+@@ -1268,56 +1256,20 @@ void ZeroMemory(void* address, size_t length, bool release_eagerly) {
+   uint8_t* const page_end = AlignDown(mem_end, kPageSize);
+   if (!kMadviseZeroes || page_begin >= page_end) {
+     // No possible area to madvise.
+-    RawClearMemory(mem_begin, mem_end);
+-    return;
+-  }
+-  // Spans one or more pages.
+-  DCHECK_LE(mem_begin, page_begin);
+-  DCHECK_LE(page_begin, page_end);
+-  DCHECK_LE(page_end, mem_end);
++    std::fill(mem_begin, mem_end, 0);
++  } else {
++    // Spans one or more pages.
++    DCHECK_LE(mem_begin, page_begin);
++    DCHECK_LE(page_begin, page_end);
++    DCHECK_LE(page_end, mem_end);
++    std::fill(mem_begin, page_begin, 0);
+ #ifdef _WIN32
+-  UNUSED(release_eagerly);
+-  LOG(WARNING) << "ZeroMemory does not madvise on Windows.";
+-  RawClearMemory(mem_begin, mem_end);
++    LOG(WARNING) << "ZeroAndReleasePages does not madvise on Windows.";
+ #else
+-  RawClearMemory(mem_begin, page_begin);
+-  RawClearMemory(page_end, mem_end);
+-// mincore() is linux-specific syscall.
+-#if defined(__linux__)
+-  if (!release_eagerly) {
+-    size_t vec_len = (page_end - page_begin) / kPageSize;
+-    std::unique_ptr<unsigned char[]> vec(new unsigned char[vec_len]);
+-    if (mincore(page_begin, page_end - page_begin, vec.get()) == 0) {
+-      uint8_t* current_page = page_begin;
+-      size_t current_size = kPageSize;
+-      uint32_t old_state = vec[0] & 0x1;
+-      for (size_t i = 1; i < vec_len; ++i) {
+-        uint32_t new_state = vec[i] & 0x1;
+-        if (old_state == new_state) {
+-          current_size += kPageSize;
+-        } else {
+-          ClearMemory(current_page, current_size, old_state);
+-          current_page = current_page + current_size;
+-          current_size = kPageSize;
+-          old_state = new_state;
+-        }
+-      }
+-      ClearMemory(current_page, current_size, old_state);
+-      return;
+-    }
+-    static bool logged_about_mincore = false;
+-    if (!logged_about_mincore) {
+-      PLOG(WARNING) << "mincore failed, falling back to madvise MADV_DONTNEED";
+-      logged_about_mincore = true;
+-    }
+-    // mincore failed, fall through to MADV_DONTNEED.
++    CHECK_NE(madvise(page_begin, page_end - page_begin, MADV_DONTNEED), -1) << "madvise failed";
++#endif
++    std::fill(page_end, mem_end, 0);
+   }
+-#else
+-  UNUSED(release_eagerly);
+-#endif  // __linux__
+-  bool res = madvise(page_begin, page_end - page_begin, MADV_DONTNEED);
+-  CHECK_NE(res, -1) << "madvise failed";
+-#endif  // _WIN32
+ }
+
+ void MemMap::AlignBy(size_t alignment, bool align_both_ends) {
+diff --git a/libartbase/base/mem_map.h b/libartbase/base/mem_map.h
+index db85f08c08..98fb69d87c 100644
+--- a/libartbase/base/mem_map.h
++++ b/libartbase/base/mem_map.h
+@@ -242,10 +242,7 @@ class MemMap {
+
+   bool Protect(int prot);
+
+-  void FillWithZero(bool release_eagerly);
+-  void MadviseDontNeedAndZero() {
+-    FillWithZero(/* release_eagerly= */ true);
+-  }
++  void MadviseDontNeedAndZero();
+   int MadviseDontFork();
+
+   int GetProtect() const {
+@@ -440,11 +437,8 @@ inline void swap(MemMap& lhs, MemMap& rhs) {
+
+ std::ostream& operator<<(std::ostream& os, const MemMap& mem_map);
+
+-// Zero and maybe release memory if possible, no requirements on alignments.
+-void ZeroMemory(void* address, size_t length, bool release_eagerly);
+-inline void ZeroAndReleaseMemory(void* address, size_t length) {
+-  ZeroMemory(address, length, /* release_eagerly= */ true);
+-}
++// Zero and release pages if possible, no requirements on alignments.
++void ZeroAndReleasePages(void* address, size_t length);
+
+ }  // namespace art
+
+diff --git a/runtime/base/gc_visited_arena_pool.cc b/runtime/base/gc_visited_arena_pool.cc
+index 039157a30c..52b3829401 100644
+--- a/runtime/base/gc_visited_arena_pool.cc
++++ b/runtime/base/gc_visited_arena_pool.cc
+@@ -52,7 +52,7 @@ void TrackedArena::Release() {
+       // MADV_REMOVE fails if invoked on anonymous mapping, which could happen
+       // if the arena is released before userfaultfd-GC starts using memfd. So
+       // use MADV_DONTNEED.
+-      ZeroAndReleaseMemory(Begin(), Size());
++      ZeroAndReleasePages(Begin(), Size());
+     }
+     std::fill_n(first_obj_array_.get(), Size() / kPageSize, nullptr);
+     bytes_allocated_ = 0;
+diff --git a/runtime/gc/accounting/card_table.cc b/runtime/gc/accounting/card_table.cc
+index 248a6f1982..b8b328c795 100644
+--- a/runtime/gc/accounting/card_table.cc
++++ b/runtime/gc/accounting/card_table.cc
+@@ -106,7 +106,7 @@ void CardTable::ClearCardRange(uint8_t* start, uint8_t* end) {
+   static_assert(kCardClean == 0, "kCardClean must be 0");
+   uint8_t* start_card = CardFromAddr(start);
+   uint8_t* end_card = CardFromAddr(end);
+-  ZeroAndReleaseMemory(start_card, end_card - start_card);
++  ZeroAndReleasePages(start_card, end_card - start_card);
+ }
+
+ bool CardTable::AddrIsInCardTable(const void* addr) const {
+diff --git a/runtime/gc/accounting/space_bitmap.cc b/runtime/gc/accounting/space_bitmap.cc
+index d7fc5aeffd..a0458d2ae1 100644
+--- a/runtime/gc/accounting/space_bitmap.cc
++++ b/runtime/gc/accounting/space_bitmap.cc
+@@ -148,11 +148,9 @@ std::string SpaceBitmap<kAlignment>::DumpMemAround(mirror::Object* obj) const {
+ }
+
+ template<size_t kAlignment>
+-void SpaceBitmap<kAlignment>::Clear(bool release_eagerly) {
++void SpaceBitmap<kAlignment>::Clear() {
+   if (bitmap_begin_ != nullptr) {
+-    // We currently always eagerly release the memory to the OS.
+-    static constexpr bool kAlwaysEagerlyReleaseBitmapMemory = true;
+-    mem_map_.FillWithZero(kAlwaysEagerlyReleaseBitmapMemory || release_eagerly);
++    mem_map_.MadviseDontNeedAndZero();
+   }
+ }
+
+@@ -172,7 +170,7 @@ void SpaceBitmap<kAlignment>::ClearRange(const mirror::Object* begin, const mirr
+   // Bitmap word boundaries.
+   const uintptr_t start_index = OffsetToIndex(begin_offset);
+   const uintptr_t end_index = OffsetToIndex(end_offset);
+-  ZeroAndReleaseMemory(reinterpret_cast<uint8_t*>(&bitmap_begin_[start_index]),
++  ZeroAndReleasePages(reinterpret_cast<uint8_t*>(&bitmap_begin_[start_index]),
+                       (end_index - start_index) * sizeof(*bitmap_begin_));
+ }
+
+diff --git a/runtime/gc/accounting/space_bitmap.h b/runtime/gc/accounting/space_bitmap.h
+index dbbea3a462..e3189331c4 100644
+--- a/runtime/gc/accounting/space_bitmap.h
++++ b/runtime/gc/accounting/space_bitmap.h
+@@ -102,9 +102,7 @@ class SpaceBitmap {
+   bool AtomicTestAndSet(const mirror::Object* obj);
+
+   // Fill the bitmap with zeroes.  Returns the bitmap's memory to the system as a side-effect.
+-  // If `release_eagerly` is true, this method will also try to give back the
+-  // memory to the OS eagerly.
+-  void Clear(bool release_eagerly = true);
++  void Clear();
+
+   // Clear a range covered by the bitmap using madvise if possible.
+   void ClearRange(const mirror::Object* begin, const mirror::Object* end);
+diff --git a/runtime/gc/collector/concurrent_copying.cc b/runtime/gc/collector/concurrent_copying.cc
+index 48c595f1ce..7eddef816e 100644
+--- a/runtime/gc/collector/concurrent_copying.cc
++++ b/runtime/gc/collector/concurrent_copying.cc
+@@ -395,7 +395,7 @@ void ConcurrentCopying::BindBitmaps() {
+           // It is OK to clear the bitmap with mutators running since the only place it is read is
+           // VisitObjects which has exclusion with CC.
+           region_space_bitmap_ = region_space_->GetMarkBitmap();
+-          region_space_bitmap_->Clear(ShouldEagerlyReleaseMemoryToOS());
++          region_space_bitmap_->Clear();
+         }
+       }
+     }
+@@ -465,7 +465,7 @@ void ConcurrentCopying::InitializePhase() {
+     LOG(INFO) << "GC end of InitializePhase";
+   }
+   if (use_generational_cc_ && !young_gen_) {
+-    region_space_bitmap_->Clear(ShouldEagerlyReleaseMemoryToOS());
++    region_space_bitmap_->Clear();
+   }
+   mark_stack_mode_.store(ConcurrentCopying::kMarkStackModeThreadLocal, std::memory_order_relaxed);
+   // Mark all of the zygote large objects without graying them.
+@@ -2790,25 +2790,13 @@ void ConcurrentCopying::ReclaimPhase() {
+     // Cleared bytes and objects, populated by the call to RegionSpace::ClearFromSpace below.
+     uint64_t cleared_bytes;
+     uint64_t cleared_objects;
+-    bool should_eagerly_release_memory = ShouldEagerlyReleaseMemoryToOS();
+     {
+       TimingLogger::ScopedTiming split4("ClearFromSpace", GetTimings());
+-      region_space_->ClearFromSpace(&cleared_bytes,
+-                                    &cleared_objects,
+-                                    /*clear_bitmap*/ !young_gen_,
+-                                    should_eagerly_release_memory);
+-      // `cleared_bytes` may be greater than the from space equivalents since
++      region_space_->ClearFromSpace(&cleared_bytes, &cleared_objects, /*clear_bitmap*/ !young_gen_);
++      // `cleared_bytes` and `cleared_objects` may be greater than the from space equivalents since
+       // RegionSpace::ClearFromSpace may clear empty unevac regions.
+       CHECK_GE(cleared_bytes, from_bytes);
+     }
+-
+-    // If we need to release available memory to the OS, go over all free
+-    // regions which the kernel might still cache.
+-    if (should_eagerly_release_memory) {
+-      TimingLogger::ScopedTiming split4("Release free regions", GetTimings());
+-      region_space_->ReleaseFreeRegions();
+-    }
+-
+     // freed_bytes could conceivably be negative if we fall back to nonmoving space and have to
+     // pad to a larger size.
+     int64_t freed_bytes = (int64_t)cleared_bytes - (int64_t)to_bytes;
+@@ -3767,7 +3755,6 @@ void ConcurrentCopying::FinishPhase() {
+     CHECK(revoked_mark_stacks_.empty());
+     CHECK_EQ(pooled_mark_stacks_.size(), kMarkStackPoolSize);
+   }
+-  bool should_eagerly_release_memory = ShouldEagerlyReleaseMemoryToOS();
+   // kVerifyNoMissingCardMarks relies on the region space cards not being cleared to avoid false
+   // positives.
+   if (!kVerifyNoMissingCardMarks && !use_generational_cc_) {
+@@ -3775,8 +3762,8 @@ void ConcurrentCopying::FinishPhase() {
+     // We do not currently use the region space cards at all, madvise them away to save ram.
+     heap_->GetCardTable()->ClearCardRange(region_space_->Begin(), region_space_->Limit());
+   } else if (use_generational_cc_ && !young_gen_) {
+-    region_space_inter_region_bitmap_.Clear(should_eagerly_release_memory);
+-    non_moving_space_inter_region_bitmap_.Clear(should_eagerly_release_memory);
++    region_space_inter_region_bitmap_.Clear();
++    non_moving_space_inter_region_bitmap_.Clear();
+   }
+   {
+     MutexLock mu(self, skipped_blocks_lock_);
+@@ -3786,7 +3773,7 @@ void ConcurrentCopying::FinishPhase() {
+     ReaderMutexLock mu(self, *Locks::mutator_lock_);
+     {
+       WriterMutexLock mu2(self, *Locks::heap_bitmap_lock_);
+-      heap_->ClearMarkedObjects(should_eagerly_release_memory);
++      heap_->ClearMarkedObjects();
+     }
+     if (kUseBakerReadBarrier && kFilterModUnionCards) {
+       TimingLogger::ScopedTiming split("FilterModUnionCards", GetTimings());
+diff --git a/runtime/gc/collector/garbage_collector.cc b/runtime/gc/collector/garbage_collector.cc
+index 7b35cd9c92..258c087afc 100644
+--- a/runtime/gc/collector/garbage_collector.cc
++++ b/runtime/gc/collector/garbage_collector.cc
+@@ -366,23 +366,6 @@ const Iteration* GarbageCollector::GetCurrentIteration() const {
+   return heap_->GetCurrentGcIteration();
+ }
+
+-bool GarbageCollector::ShouldEagerlyReleaseMemoryToOS() const {
+-  Runtime* runtime = Runtime::Current();
+-  // Zygote isn't a memory heavy process, we should always instantly release memory to the OS.
+-  if (runtime->IsZygote()) {
+-    return true;
+-  }
+-  if (GetCurrentIteration()->GetGcCause() == kGcCauseExplicit &&
+-      !runtime->IsEagerlyReleaseExplicitGcDisabled()) {
+-    // Our behavior with explicit GCs is to always release any available memory.
+-    return true;
+-  }
+-  // Keep on the memory if the app is in foreground. If it is in background or
+-  // goes into the background (see invocation with cause kGcCauseCollectorTransition),
+-  // release the memory.
+-  return !runtime->InJankPerceptibleProcessState();
+-}
+-
+ void GarbageCollector::RecordFree(const ObjectBytePair& freed) {
+   GetCurrentIteration()->freed_.Add(freed);
+   heap_->RecordFree(freed.objects, freed.bytes);
+diff --git a/runtime/gc/collector/garbage_collector.h b/runtime/gc/collector/garbage_collector.h
+index 694d7a0e2b..948a868bd2 100644
+--- a/runtime/gc/collector/garbage_collector.h
++++ b/runtime/gc/collector/garbage_collector.h
+@@ -143,8 +143,6 @@ class GarbageCollector : public RootVisitor, public IsMarkedVisitor, public Mark
+     return is_transaction_active_;
+   }
+
+-  bool ShouldEagerlyReleaseMemoryToOS() const;
+-
+  protected:
+   // Run all of the GC phases.
+   virtual void RunPhases() = 0;
+diff --git a/runtime/gc/collector/mark_compact.cc b/runtime/gc/collector/mark_compact.cc
+index 62de3ea077..5b3bb4a937 100644
+--- a/runtime/gc/collector/mark_compact.cc
++++ b/runtime/gc/collector/mark_compact.cc
+@@ -3457,7 +3457,7 @@ void MarkCompact::ProcessLinearAlloc() {
+     // processing any pages in this arena, then we can madvise the shadow size.
+     // Otherwise, we will double the memory use for linear-alloc.
+     if (!minor_fault_initialized_ && !others_processing) {
+-      ZeroAndReleaseMemory(arena_begin + diff, arena_size);
++      ZeroAndReleasePages(arena_begin + diff, arena_size);
+     }
+   }
+ }
+@@ -3583,7 +3583,7 @@ void MarkCompact::CompactionPhase() {
+     // We will only iterate once if gKernelHasFaultRetry is true.
+     do {
+       // madvise the page so that we can get userfaults on it.
+-      ZeroAndReleaseMemory(conc_compaction_termination_page_, kPageSize);
++      ZeroAndReleasePages(conc_compaction_termination_page_, kPageSize);
+       // The following load triggers 'special' userfaults. When received by the
+       // thread-pool workers, they will exit out of the compaction task. This fault
+       // happens because we madvised the page.
+@@ -4234,8 +4234,8 @@ void MarkCompact::FinishPhase() {
+   if (use_uffd_sigbus_ || !minor_fault_initialized_ || !shadow_to_space_map_.IsValid() ||
+       shadow_to_space_map_.Size() < (moving_first_objs_count_ + black_page_count_) * kPageSize) {
+     size_t adjustment = use_uffd_sigbus_ ? 0 : kPageSize;
+-    ZeroAndReleaseMemory(compaction_buffers_map_.Begin() + adjustment,
+-                         compaction_buffers_map_.Size() - adjustment);
++    ZeroAndReleasePages(compaction_buffers_map_.Begin() + adjustment,
++                        compaction_buffers_map_.Size() - adjustment);
+   } else if (shadow_to_space_map_.Size() == bump_pointer_space_->Capacity()) {
+     // Now that we are going to use minor-faults from next GC cycle, we can
+     // unmap the buffers used by worker threads.
+diff --git a/runtime/gc/heap.cc b/runtime/gc/heap.cc
+index c454922025..9cd49f4df5 100644
+--- a/runtime/gc/heap.cc
++++ b/runtime/gc/heap.cc
+@@ -4381,16 +4381,16 @@ void Heap::RemoveRememberedSet(space::Space* space) {
+   CHECK(remembered_sets_.find(space) == remembered_sets_.end());
+ }
+
+-void Heap::ClearMarkedObjects(bool release_eagerly) {
++void Heap::ClearMarkedObjects() {
+   // Clear all of the spaces' mark bitmaps.
+   for (const auto& space : GetContinuousSpaces()) {
+     if (space->GetLiveBitmap() != nullptr && !space->HasBoundBitmaps()) {
+-      space->GetMarkBitmap()->Clear(release_eagerly);
++      space->GetMarkBitmap()->Clear();
+     }
+   }
+   // Clear the marked objects in the discontinous space object sets.
+   for (const auto& space : GetDiscontinuousSpaces()) {
+-    space->GetMarkBitmap()->Clear(release_eagerly);
++    space->GetMarkBitmap()->Clear();
+   }
+ }
+
+diff --git a/runtime/gc/heap.h b/runtime/gc/heap.h
+index 936fa07136..f85855221a 100644
+--- a/runtime/gc/heap.h
++++ b/runtime/gc/heap.h
+@@ -425,7 +425,7 @@ class Heap {
+
+   // Clear all of the mark bits, doesn't clear bitmaps which have the same live bits as mark bits.
+   // Mutator lock is required for GetContinuousSpaces.
+-  void ClearMarkedObjects(bool release_eagerly = true)
++  void ClearMarkedObjects()
+       REQUIRES(Locks::heap_bitmap_lock_)
+       REQUIRES_SHARED(Locks::mutator_lock_);
+
+diff --git a/runtime/gc/space/region_space.cc b/runtime/gc/space/region_space.cc
+index 9a66f8a800..60141d656b 100644
+--- a/runtime/gc/space/region_space.cc
++++ b/runtime/gc/space/region_space.cc
+@@ -393,30 +393,16 @@ void RegionSpace::SetFromSpace(accounting::ReadBarrierTable* rb_table,
+   evac_region_ = &full_region_;
+ }
+
+-static void ZeroAndProtectRegion(uint8_t* begin, uint8_t* end, bool release_eagerly) {
+-  ZeroMemory(begin, end - begin, release_eagerly);
++static void ZeroAndProtectRegion(uint8_t* begin, uint8_t* end) {
++  ZeroAndReleasePages(begin, end - begin);
+   if (kProtectClearedRegions) {
+     CheckedCall(mprotect, __FUNCTION__, begin, end - begin, PROT_NONE);
+   }
+ }
+
+-void RegionSpace::ReleaseFreeRegions() {
+-  MutexLock mu(Thread::Current(), region_lock_);
+-  for (size_t i = 0u; i < num_regions_; ++i) {
+-    if (regions_[i].IsFree()) {
+-      uint8_t* begin = regions_[i].Begin();
+-      DCHECK_ALIGNED(begin, kPageSize);
+-      DCHECK_ALIGNED(regions_[i].End(), kPageSize);
+-      bool res = madvise(begin, regions_[i].End() - begin, MADV_DONTNEED);
+-      CHECK_NE(res, -1) << "madvise failed";
+-    }
+-  }
+-}
+-
+ void RegionSpace::ClearFromSpace(/* out */ uint64_t* cleared_bytes,
+                                  /* out */ uint64_t* cleared_objects,
+-                                 const bool clear_bitmap,
+-                                 const bool release_eagerly) {
++                                 const bool clear_bitmap) {
+   DCHECK(cleared_bytes != nullptr);
+   DCHECK(cleared_objects != nullptr);
+   *cleared_bytes = 0;
+@@ -497,7 +483,7 @@ void RegionSpace::ClearFromSpace(/* out */ uint64_t* cleared_bytes,
+   // Madvise the memory ranges.
+   uint64_t start_time = NanoTime();
+   for (const auto &iter : madvise_list) {
+-    ZeroAndProtectRegion(iter.first, iter.second, release_eagerly);
++    ZeroAndProtectRegion(iter.first, iter.second);
+   }
+   madvise_time_ += NanoTime() - start_time;
+
+@@ -1026,7 +1012,7 @@ void RegionSpace::Region::Clear(bool zero_and_release_pages) {
+   alloc_time_ = 0;
+   live_bytes_ = static_cast<size_t>(-1);
+   if (zero_and_release_pages) {
+-    ZeroAndProtectRegion(begin_, end_, /* release_eagerly= */ true);
++    ZeroAndProtectRegion(begin_, end_);
+   }
+   is_newly_allocated_ = false;
+   is_a_tlab_ = false;
+diff --git a/runtime/gc/space/region_space.h b/runtime/gc/space/region_space.h
+index 98f2060df1..27b9e9c367 100644
+--- a/runtime/gc/space/region_space.h
++++ b/runtime/gc/space/region_space.h
+@@ -313,8 +313,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
+   size_t ToSpaceSize() REQUIRES(!region_lock_);
+   void ClearFromSpace(/* out */ uint64_t* cleared_bytes,
+                       /* out */ uint64_t* cleared_objects,
+-                      const bool clear_bitmap,
+-                      const bool release_eagerly)
++                      const bool clear_bitmap)
+       REQUIRES(!region_lock_);
+
+   void AddLiveBytes(mirror::Object* ref, size_t alloc_size) {
+@@ -385,8 +384,6 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
+     return madvise_time_;
+   }
+
+-  void ReleaseFreeRegions();
+-
+  private:
+   RegionSpace(const std::string& name, MemMap&& mem_map, bool use_generational_cc);
+
