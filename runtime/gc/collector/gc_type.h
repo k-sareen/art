@@ -28,6 +28,8 @@ namespace collector {
 enum GcType {
   // Placeholder for when no GC has been performed.
   kGcTypeNone,
+  // No GC type.
+  kGcTypeNoGC,
   // Sticky mark bits GC that attempts to only free objects allocated since the last GC.
   kGcTypeSticky,
   // Partial GC that marks the application heap but not the Zygote.

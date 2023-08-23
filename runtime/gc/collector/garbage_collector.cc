@@ -165,6 +165,15 @@ void GarbageCollector::Run(GcCause gc_cause, bool clear_soft_references) {
   Runtime* runtime = Runtime::Current();
   uint64_t start_time = NanoTime();
   uint64_t thread_cpu_start_time = ThreadCpuNanoTime();
+
+  bool inside_harness = GetHeap()->inside_harness_;
+  if (inside_harness) {
+    for (PerfCounter* perf_counter : GetHeap()->perf_counters_) {
+      perf_counter->current_gc_start_value_ = perf_counter->ReadCounter();
+      perf_counter->current_gc_pause_values_.clear();
+    }
+  }
+
   GetHeap()->CalculatePreGcWeightedAllocatedBytes();
   Iteration* current_iteration = GetCurrentIteration();
   current_iteration->Reset(gc_cause, clear_soft_references);
@@ -189,12 +198,28 @@ void GarbageCollector::Run(GcCause gc_cause, bool clear_soft_references) {
   total_thread_cpu_time_ns_ += thread_cpu_end_time - thread_cpu_start_time;
   uint64_t duration_ns = end_time - start_time;
   current_iteration->SetDurationNs(duration_ns);
+
+  if (inside_harness) {
+    for (PerfCounter* perf_counter : GetHeap()->perf_counters_) {
+      perf_counter->current_gc_end_value_ = perf_counter->ReadCounter();
+    }
+  }
+
   if (Locks::mutator_lock_->IsExclusiveHeld(self)) {
     // The entire GC was paused, clear the fake pauses which might be in the pause times and add
     // the whole GC duration.
     current_iteration->pause_times_.clear();
     RegisterPause(duration_ns);
+    if (inside_harness) {
+      for (PerfCounter* perf_counter : GetHeap()->perf_counters_) {
+        perf_counter->current_gc_pause_values_.clear();
+        perf_counter->current_gc_pause_values_.push_back(
+            perf_counter->current_gc_end_value_
+            - perf_counter->current_gc_start_value_);
+      }
+    }
   }
+
   total_time_ns_ += duration_ns;
   uint64_t total_pause_time_ns = 0;
   for (uint64_t pause_time : current_iteration->GetPauseTimes()) {
@@ -202,6 +227,15 @@ void GarbageCollector::Run(GcCause gc_cause, bool clear_soft_references) {
     pause_histogram_.AdjustAndAddValue(pause_time);
     total_pause_time_ns += pause_time;
   }
+
+  if (inside_harness) {
+    for (PerfCounter* perf_counter : GetHeap()->perf_counters_) {
+      for (uint64_t stw_count : perf_counter->current_gc_pause_values_) {
+        perf_counter->count_stw_ += stw_count;
+      }
+    }
+  }
+
   metrics::ArtMetrics* metrics = runtime->GetMetrics();
   // Report STW pause time in microseconds.
   const uint64_t total_pause_time_us = total_pause_time_ns / 1'000;
@@ -286,6 +320,14 @@ void GarbageCollector::ResetMeasurements() {
 GarbageCollector::ScopedPause::ScopedPause(GarbageCollector* collector, bool with_reporting)
     : start_time_(NanoTime()), collector_(collector), with_reporting_(with_reporting) {
   Runtime* runtime = Runtime::Current();
+  Heap* heap = runtime->GetHeap();
+  if (heap->inside_harness_) {
+    for (PerfCounter* perf_counter : heap->perf_counters_) {
+      uint64_t current_value = perf_counter->ReadCounter();
+      perf_counter->prev_value_ = current_value;
+    }
+  }
+
   runtime->GetThreadList()->SuspendAll(__FUNCTION__);
   if (with_reporting) {
     GcPauseListener* pause_listener = runtime->GetHeap()->GetGcPauseListener();
@@ -298,6 +340,15 @@ GarbageCollector::ScopedPause::ScopedPause(GarbageCollector* collector, bool wit
 GarbageCollector::ScopedPause::~ScopedPause() {
   collector_->RegisterPause(NanoTime() - start_time_);
   Runtime* runtime = Runtime::Current();
+  Heap* heap = runtime->GetHeap();
+  if (heap->inside_harness_) {
+    for (PerfCounter* perf_counter : heap->perf_counters_) {
+      uint64_t current_value = perf_counter->ReadCounter();
+      perf_counter->current_gc_pause_values_.push_back(current_value - perf_counter->prev_value_);
+      perf_counter->prev_value_ = current_value;
+    }
+  }
+
   if (with_reporting_) {
     GcPauseListener* pause_listener = runtime->GetHeap()->GetGcPauseListener();
     if (pause_listener != nullptr) {

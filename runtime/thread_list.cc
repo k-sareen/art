@@ -558,6 +558,12 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
 
   // ThreadFlipBegin happens before we suspend all the threads, so it does not
   // count towards the pause.
+  bool inside_harness = collector->GetHeap()->GetInsideHarness();
+  if (inside_harness) {
+    for (art::gc::PerfCounter* perf_counter : collector->GetHeap()->GetPerfCounters()) {
+      perf_counter->prev_value_ = perf_counter->ReadCounter();
+    }
+  }
   const uint64_t suspend_start_time = NanoTime();
   SuspendAllInternal(self, self, nullptr);
   if (pause_listener != nullptr) {
@@ -613,6 +619,13 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
   }
 
   collector->RegisterPause(NanoTime() - suspend_start_time);
+  if (inside_harness) {
+    for (art::gc::PerfCounter* perf_counter : collector->GetHeap()->GetPerfCounters()) {
+      uint64_t current_value = perf_counter->ReadCounter();
+      perf_counter->current_gc_pause_values_.push_back(current_value - perf_counter->prev_value_);
+      perf_counter->prev_value_ = current_value;
+    }
+  }
   if (pause_listener != nullptr) {
     pause_listener->EndPause();
   }

@@ -26,6 +26,8 @@ namespace gc {
 enum CollectorType {
   // No collector selected.
   kCollectorTypeNone,
+  // A collector which never collects.
+  kCollectorTypeNoGC,
   // Non concurrent mark-sweep.
   kCollectorTypeMS,
   // Concurrent mark-sweep.

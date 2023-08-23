@@ -310,6 +310,8 @@ constexpr int32_t EncodeGcCollectorType(gc::CollectorType collector_type) {
       return statsd::ART_DATUM_REPORTED__GC__ART_GC_COLLECTOR_TYPE_CONCURRENT_COPYING;
     case gc::kCollectorTypeCCBackground:
       return statsd::ART_DATUM_REPORTED__GC__ART_GC_COLLECTOR_TYPE_CONCURRENT_COPYING_BACKGROUND;
+    case gc::kCollectorTypeNoGC:
+      return statsd::ART_DATUM_REPORTED__GC__ART_GC_COLLECTOR_TYPE_NO_GC;
     case gc::kCollectorTypeNone:
     case gc::kCollectorTypeInstrumentation:
     case gc::kCollectorTypeAddRemoveAppImageSpace:
