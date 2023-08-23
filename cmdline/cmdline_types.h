@@ -541,6 +541,8 @@ static gc::CollectorType ParseCollectorType(const std::string& option) {
     return gc::kCollectorTypeCC;
   } else if (option == "CMC") {
     return gc::kCollectorTypeCMC;
+  } else if (option == "NoGC") {
+    return gc::kCollectorTypeNoGC;
   } else {
     return gc::kCollectorTypeNone;
   }
@@ -632,7 +634,7 @@ struct CmdlineType<XGcOption> : CmdlineTypeParser<XGcOption> {
 
   static const char* Name() { return "XgcOption"; }
   static const char* DescribeType() {
-    return "MS|nonconccurent|concurrent|CMS|SS|CC|[no]preverify[_rosalloc]|"
+    return "MS|nonconcurrent|concurrent|NoGC|CMS|SS|CC|[no]preverify[_rosalloc]|"
            "[no]presweepingverify[_rosalloc]|[no]generation_cc|[no]postverify[_rosalloc]|"
            "[no]gcstress|measure|[no]precisce|[no]verifycardtable";
   }
@@ -676,7 +678,7 @@ struct CmdlineType<BackgroundGcOption>
 
   static const char* Name() { return "BackgroundGcOption"; }
   static const char* DescribeType() {
-    return "HSpaceCompact|MS|nonconccurent|CMS|concurrent|SS|CC";
+    return "HSpaceCompact|MS|nonconcurrent|CMS|concurrent|SS|CC";
   }
 };
 

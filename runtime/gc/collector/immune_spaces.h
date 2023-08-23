@@ -67,7 +67,7 @@ class ImmuneSpaces {
     return largest_immune_region_;
   }
 
-  // Return true if the object is contained by any of the immune space.s
+  // Return true if the object is contained by any of the immune spaces.
   ALWAYS_INLINE bool ContainsObject(const mirror::Object* obj) const {
     if (largest_immune_region_.ContainsObject(obj)) {
       return true;

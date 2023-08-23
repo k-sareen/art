@@ -1,0 +1,12 @@
+diff --git a/stats/atoms/art/art_extension_atoms.proto b/stats/atoms/art/art_extension_atoms.proto
+index 2f2e8c20..bf0243f8 100644
+--- a/stats/atoms/art/art_extension_atoms.proto
++++ b/stats/atoms/art/art_extension_atoms.proto
+@@ -206,6 +206,7 @@ enum ArtGcCollectorType {
+     ART_GC_COLLECTOR_TYPE_SEMI_SPACE = 4;
+     ART_GC_COLLECTOR_TYPE_CONCURRENT_COPYING = 5;
+     ART_GC_COLLECTOR_TYPE_CONCURRENT_COPYING_BACKGROUND = 6;
++    ART_GC_COLLECTOR_TYPE_NO_GC = 7;
+ }
+ 
+ // Indicates support for userfaultfd and minor fault mode.
