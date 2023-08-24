@@ -438,6 +438,9 @@ class ContinuousMemMapAllocSpace : public MemMapSpace, public AllocSpace {
 
   // Clear the space back to an empty space.
   virtual void Clear() = 0;
+  // Clear the space back to an empty space but do not release memory back to
+  // the operating system
+  virtual void ClearAndDontRelease() {}
 
   accounting::ContinuousSpaceBitmap* GetLiveBitmap() override {
     return &live_bitmap_;

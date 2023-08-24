@@ -112,6 +112,8 @@ class EXPORT BumpPointerSpace final : public ContinuousMemMapAllocSpace {
 
   // Reset the space to empty.
   void Clear() override REQUIRES(!lock_);
+  // Reset the space to empty but do not return memory back to the OS.
+  void ClearAndDontRelease() override REQUIRES(!lock_);
 
   void Dump(std::ostream& os) const override;
 
