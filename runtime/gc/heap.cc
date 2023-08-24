@@ -959,6 +959,14 @@ Heap::Heap(size_t initial_size,
 
   perf_counters_.clear();
 
+  // If we are using NoGC then clear and don't release the entire bump pointer
+  // space. This means that each page in the heap has been touched at least
+  // once and hence the mutator should not get page faults when allocating.
+  // This can drastically improve the performance of the mutator
+  if (collector_type_ == kCollectorTypeNoGC) {
+    bump_pointer_space_->ClearAndDontRelease();
+  }
+
   instrumentation::Instrumentation* const instrumentation = runtime->GetInstrumentation();
   if (gc_stress_mode_) {
     backtrace_lock_ = new Mutex("GC complete lock");

@@ -56,7 +56,11 @@ namespace art {
 namespace gc {
 namespace collector {
 
-static constexpr bool kProtectFromSpace = true;
+// Turn off from space protection. Adding the protection makes the mutator page
+// fault during allocation. This results in very poor mutator performance.
+// Since we clear the from space before swapping and have removed the madvise
+// call, we don't need to protect the from space
+static constexpr bool kProtectFromSpace = false;
 static constexpr bool kStoreStackTraces = false;
 
 void SemiSpace::BindBitmaps() {
@@ -213,7 +217,7 @@ void SemiSpace::MarkingPhase() {
   // space.
   RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
   // Clear and protect the from space.
-  from_space_->Clear();
+  from_space_->ClearAndDontRelease();
   // b/31172841. Temporarily disable the from-space protection with host debug build
   // due to some protection issue in the build server.
   if (kProtectFromSpace && !(kIsDebugBuild && !kIsTargetBuild)) {

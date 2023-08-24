@@ -95,6 +95,21 @@ void BumpPointerSpace::Clear() {
   }
 }
 
+void BumpPointerSpace::ClearAndDontRelease() {
+  memset(Begin(), 0, Limit() - Begin());
+  // Reset the end of the space back to the beginning, we move the end forward as we allocate
+  // objects.
+  SetEnd(Begin());
+  objects_allocated_.store(0, std::memory_order_relaxed);
+  bytes_allocated_.store(0, std::memory_order_relaxed);
+  growth_end_ = Limit();
+  {
+    MutexLock mu(Thread::Current(), block_lock_);
+    block_sizes_.clear();
+    main_block_size_ = 0;
+  }
+}
+
 void BumpPointerSpace::Dump(std::ostream& os) const {
   os << GetName() << " "
       << reinterpret_cast<void*>(Begin()) << "-" << reinterpret_cast<void*>(End()) << " - "
