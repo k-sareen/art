@@ -111,6 +111,7 @@
 #include "trace.h"
 #include "verify_object.h"
 #include "well_known_classes-inl.h"
+#include "write_barrier_config.h"
 
 #if ART_USE_FUTEXES
 #include "linux/futex.h"
@@ -157,7 +158,9 @@ constexpr size_t kStackOverflowProtectedSize = 4 * kMemoryToolStackGuardSizeScal
 static const char* kThreadNameDuringStartup = "<native thread without managed peer>";
 
 void Thread::InitCardTable() {
-  tlsPtr_.card_table = Runtime::Current()->GetHeap()->GetCardTable()->GetBiasedBegin();
+  if (gUseWriteBarrier) {
+    tlsPtr_.card_table = Runtime::Current()->GetHeap()->GetCardTable()->GetBiasedBegin();
+  }
 }
 
 static void UnimplementedEntryPoint() {
