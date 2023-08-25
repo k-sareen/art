@@ -1224,7 +1224,9 @@ void IntrinsicCodeGeneratorX86_64::VisitSystemArrayCopy(HInvoke* invoke) {
   }
 
   // We only need one card marking on the destination array.
-  codegen_->MarkGCCard(temp1, temp2, dest, CpuRegister(kNoRegister), /* emit_null_check= */ false);
+  if (gUseWriteBarrier) {
+    codegen_->MarkGCCard(temp1, temp2, dest, CpuRegister(kNoRegister), /* emit_null_check= */ false);
+  }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());
 }
@@ -2148,7 +2150,7 @@ static void GenUnsafePut(LocationSummary* locations, DataType::Type type, bool i
     codegen->MemoryFence();
   }
 
-  if (type == DataType::Type::kReference) {
+  if (type == DataType::Type::kReference && gUseWriteBarrier) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(locations->GetTemp(0).AsRegister<CpuRegister>(),
                         locations->GetTemp(1).AsRegister<CpuRegister>(),
@@ -2443,8 +2445,10 @@ static void GenCompareAndSetOrExchangeRef(CodeGeneratorX86_64* codegen,
   X86_64Assembler* assembler = down_cast<X86_64Assembler*>(codegen->GetAssembler());
 
   // Mark card for object assuming new value is stored.
-  bool value_can_be_null = true;  // TODO: Worth finding out this information?
-  codegen->MarkGCCard(temp1, temp2, base, value, value_can_be_null);
+  if (gUseWriteBarrier) {
+    bool value_can_be_null = true;  // TODO: Worth finding out this information?
+    codegen->MarkGCCard(temp1, temp2, base, value, value_can_be_null);
+  }
 
   Address field_addr(base, offset, TIMES_1, 0);
   if (gUseReadBarrier && kUseBakerReadBarrier) {
@@ -4281,7 +4285,10 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke,
           &temp1,
           &temp2);
     }
-    codegen->MarkGCCard(temp1, temp2, ref, valreg, /* emit_null_check= */ false);
+
+    if (gUseWriteBarrier) {
+      codegen->MarkGCCard(temp1, temp2, ref, valreg, /*emit_null_check=*/ false);
+    }
 
     DCHECK_EQ(valreg, out.AsRegister<CpuRegister>());
     if (kPoisonHeapReferences) {

@@ -5771,9 +5771,13 @@ void LocationsBuilderX86_64::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RegisterOrConstant(instruction->InputAt(2)));
   }
 
-  if (needs_write_barrier) {
-    // Used by reference poisoning or emitting write barrier.
+  // Need a temporary for the kReference type for reference poisoning
+  if (value_type == DataType::Type::kReference && !(instruction->GetValue())->IsNullConstant()) {
     locations->AddTemp(Location::RequiresRegister());
+  }
+
+  if (needs_write_barrier) {
+    // Used for emitting write barrier.
     if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
       // Only used when emitting a write barrier.
       locations->AddTemp(Location::RequiresRegister());
@@ -5836,7 +5840,7 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
         break;
       }
 
-      DCHECK(needs_write_barrier);
+      // DCHECK(needs_write_barrier);
       CpuRegister register_value = value.AsRegister<CpuRegister>();
       Location temp_loc = locations->GetTemp(0);
       CpuRegister temp = temp_loc.AsRegister<CpuRegister>();
@@ -5895,7 +5899,7 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
         }
       }
 
-      if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+      if (needs_write_barrier && instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
         DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
             << " Already null checked so we shouldn't do it again.";
         CpuRegister card = locations->GetTemp(1).AsRegister<CpuRegister>();

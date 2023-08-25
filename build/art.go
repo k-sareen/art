@@ -80,6 +80,18 @@ func globalFlags(ctx android.LoadHookContext) ([]string, []string) {
 		tlab = true
 	}
 
+	if ctx.Config().IsEnvTrue("ART_USE_WRITE_BARRIER") {
+		cflags = append(cflags,
+			"-DART_USE_WRITE_BARRIER=1")
+		asflags = append(asflags,
+			"-DART_USE_WRITE_BARRIER=1")
+	} else {
+		cflags = append(cflags,
+			"-DART_USE_WRITE_BARRIER=0")
+		asflags = append(asflags,
+			"-DART_USE_WRITE_BARRIER=0")
+	}
+
 	if tlab {
 		cflags = append(cflags, "-DART_USE_TLAB=1")
 	}
