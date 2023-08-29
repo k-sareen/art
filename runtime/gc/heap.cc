@@ -1409,11 +1409,10 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     total_paused_time += collector->GetTotalPausedTimeNs();
   }
 
-  std::cout << "GC\tmajorGC\ttime.total\ttime.other\ttime.stw";
+  std::cout << "GC\tmajorGC\ttime\ttime.other\ttime.stw";
 
   for (PerfCounter* perf_counter : perf_counters_) {
-    std::cout << "\t" << perf_counter->name_ << ".total"
-      << "\t" << perf_counter->name_ << ".other"
+    std::cout << "\t" << perf_counter->name_ << ".other"
       << "\t" << perf_counter->name_ << ".stw";
   }
 
@@ -1435,8 +1434,7 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     << "\t" << total_paused_time;
 
   for (PerfCounter* perf_counter : perf_counters_) {
-    std::cout << "\t" << perf_counter->GetTotalCount()
-      << "\t" << perf_counter->GetOtherCount()
+    std::cout << "\t" << perf_counter->GetOtherCount()
       << "\t" << perf_counter->GetStwCount();
   }
 
