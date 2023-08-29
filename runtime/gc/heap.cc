@@ -302,7 +302,20 @@ PerfCounter::PerfCounter(std::string perf_event_name)
   } else if (perf_event_name == "PERF_COUNT_HW_INSTRUCTIONS") {
     pe.type = PERF_TYPE_HARDWARE;
     pe.config = PERF_COUNT_HW_INSTRUCTIONS;
-  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:MISS") {
+  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_MISSES") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_CACHE_MISSES;
+  } else if (perf_event_name == "PERF_COUNT_HW_BRANCH_MISSES") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_BRANCH_MISSES;
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_FRONTEND") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_STALLED_CYCLES_FRONTEND;
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_BACKEND") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_STALLED_CYCLES_BACKEND;
+  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:REFILL") {
+    // See system/extras/simpleperf/event_type_table.h
     pe.type = PERF_TYPE_RAW;
     pe.config = 0x3;
   } else {
@@ -312,6 +325,8 @@ PerfCounter::PerfCounter(std::string perf_event_name)
     pe.config = PERF_COUNT_SW_TASK_CLOCK;
     name_ = "PERF_COUNT_SW_TASK_CLOCK";
   }
+
+  LOG(INFO) << "Created performance counter " << name_;
 
   pe.size = PERF_ATTR_SIZE_VER1;
   pe.exclude_user = 0;

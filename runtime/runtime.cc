@@ -1105,6 +1105,8 @@ void Runtime::InitNonZygoteOrPostFork(
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
+  GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+  GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   LOG(DEBUG) << "Finished creating perf counters";
 
