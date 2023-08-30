@@ -309,13 +309,13 @@ PerfCounter::PerfCounter(std::string perf_event_name)
     pe.type = PERF_TYPE_HARDWARE;
     pe.config = PERF_COUNT_HW_BRANCH_MISSES;
   } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_FRONTEND") {
-    pe.type = PERF_TYPE_HARDWARE;
-    pe.config = PERF_COUNT_HW_STALLED_CYCLES_FRONTEND;
-  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_BACKEND") {
-    pe.type = PERF_TYPE_HARDWARE;
-    pe.config = PERF_COUNT_HW_STALLED_CYCLES_BACKEND;
-  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:REFILL") {
     // See system/extras/simpleperf/event_type_table.h
+    pe.type = PERF_TYPE_RAW;
+    pe.config = 0x23;
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_BACKEND") {
+    pe.type = PERF_TYPE_RAW;
+    pe.config = 0x24;
+  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:REFILL") {
     pe.type = PERF_TYPE_RAW;
     pe.config = 0x3;
   } else {
@@ -363,14 +363,16 @@ uint64_t PerfCounter::ReadCounter() {
     memset(values, 0, sizeof(values));
     ssize_t ret = read(fd_, values, sizeof(values));
     if (ret < (ssize_t) sizeof(values)) {
-      LOG(WARNING) << "Read failed for perf counter " << fd_;
+      LOG(WARNING) << "Read failed for perf counter " << name_;
       return 0;
     } else {
       if (values[1] != values[2]) {
-        LOG(WARNING) << "Multiplexed counters for " << fd_;
+        LOG(WARNING) << "Multiplexed counters for " << name_ << "\n  "
+          << "Counter total time enabled " << values[1] << "\n  "
+          << "Counter total time running " << values[2];
         return 0;
       } else {
-        LOG(DEBUG) << "Counter value for " << fd_ << " = " << values[0];
+        LOG(DEBUG) << "Counter value for " << name_ << " = " << values[0];
       }
       return values[0];
     }

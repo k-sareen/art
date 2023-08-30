@@ -1102,6 +1102,11 @@ void Runtime::InitNonZygoteOrPostFork(
   }
 
   LOG(DEBUG) << "Creating perf counters";
+  // XXX: If you are using these many hardware performance counters, then you
+  // will have to temporarily change the devfreq governor (under
+  // /sys/class/devfreq/*/governor) from "mem_latency" to "performance". The
+  // mem_latency governor uses four hardware performance counters, out of the
+  // six available on the Google Pixel 6 Pro CPUs
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
