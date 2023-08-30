@@ -308,10 +308,10 @@ PerfCounter::PerfCounter(std::string perf_event_name)
   } else if (perf_event_name == "PERF_COUNT_HW_BRANCH_MISSES") {
     pe.type = PERF_TYPE_HARDWARE;
     pe.config = PERF_COUNT_HW_BRANCH_MISSES;
-  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_FRONTEND") {
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_FRONTEND") {
     pe.type = PERF_TYPE_HARDWARE;
     pe.config = PERF_COUNT_HW_STALLED_CYCLES_FRONTEND;
-  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_BACKEND") {
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_BACKEND") {
     pe.type = PERF_TYPE_HARDWARE;
     pe.config = PERF_COUNT_HW_STALLED_CYCLES_BACKEND;
   } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:REFILL") {
