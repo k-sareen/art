@@ -1,0 +1,89 @@
+diff --git a/ojluni/src/main/java/java/lang/Runtime.java b/ojluni/src/main/java/java/lang/Runtime.java
+index c1d49d1c550..9b3dd7c9bcd 100644
+--- a/ojluni/src/main/java/java/lang/Runtime.java
++++ b/ojluni/src/main/java/java/lang/Runtime.java
+@@ -724,9 +724,8 @@ public class Runtime {
+      *          machine; never smaller than one
+      * @since 1.4
+      */
+-    public int availableProcessors() {
+-        return (int) Libcore.os.sysconf(_SC_NPROCESSORS_CONF);
+-    }
++    @FastNative
++    public native int availableProcessors();
+ 
+     /**
+      * Returns the amount of free memory in the Java Virtual Machine.
+@@ -1028,7 +1027,7 @@ public class Runtime {
+         // the behavior when we used to not pass the class.
+         loadLibrary0(loader, null, libname);
+     }
+-    
++
+     /**
+      * Loads the shared library {@code libname} in the context of {@code loader} and
+      * {@code callerClass}.
+@@ -1037,9 +1036,9 @@ public class Runtime {
+      *                       underlying linker to determine linker namespace. A {@code null}
+      *                       value represents the boot class loader.
+      * @param      fromClass the class that initiated the loading. Used when loader is
+-     *                       {@code null} and ignored in all other cases. When used, it 
++     *                       {@code null} and ignored in all other cases. When used, it
+      *                       determines the linker namespace from the class's .dex location.
+-     *                       {@code null} indicates the default namespace for the boot 
++     *                       {@code null} indicates the default namespace for the boot
+      *                       class loader.
+      * @param      libname   the name of the library.
+      */
+diff --git a/ojluni/src/main/native/Runtime.c b/ojluni/src/main/native/Runtime.c
+index 749511eb080..c331820a9f0 100644
+--- a/ojluni/src/main/native/Runtime.c
++++ b/ojluni/src/main/native/Runtime.c
+@@ -35,6 +35,12 @@
+  *             code tree.
+  */
+ 
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif  // _GNU_SOURCE
++#include <sched.h>
++#include <unistd.h>
++
+ #include "jni.h"
+ #include "jni_util.h"
+ #include "jvm.h"
+@@ -43,6 +49,26 @@
+ 
+ #include "nativehelper/jni_macros.h"
+ 
++JNIEXPORT jint JNICALL
++Runtime_availableProcessors(JNIEnv *env, jobject this)
++{
++#if defined(__linux__) && defined(_GNU_SOURCE)
++    int err;
++    cpu_set_t cpu_set;
++
++    CPU_ZERO(&cpu_set);
++    if ((err = sched_getaffinity(/* pid= */ 0, /* size= */ sizeof(cpu_set), /* cpuset= */ &cpu_set)) != 0) {
++        // Error in sched_getaffinity; return the number of configured cores instead
++        return sysconf(_SC_NPROCESSORS_CONF);
++    }
++
++    return CPU_COUNT(&cpu_set);
++#else
++    // No support for sched_getaffinity; return the number of configured cores instead
++    return sysconf(_SC_NPROCESSORS_CONF);
++#endif  // defined(__linux__) && defined(_GNU_SOURCE)
++}
++
+ JNIEXPORT jlong JNICALL
+ Runtime_freeMemory(JNIEnv *env, jobject this)
+ {
+@@ -81,6 +107,7 @@ Runtime_nativeLoad(JNIEnv* env, jclass ignored, jstring javaFilename,
+ }
+ 
+ static JNINativeMethod gMethods[] = {
++  FAST_NATIVE_METHOD(Runtime, availableProcessors, "()I"),
+   FAST_NATIVE_METHOD(Runtime, freeMemory, "()J"),
+   FAST_NATIVE_METHOD(Runtime, totalMemory, "()J"),
+   FAST_NATIVE_METHOD(Runtime, maxMemory, "()J"),
