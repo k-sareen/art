@@ -64,9 +64,15 @@ class TaskProcessor {
   bool IsRunning() const REQUIRES(!lock_);
   void UpdateTargetRunTime(Thread* self, HeapTask* target_time, uint64_t new_target_time)
       REQUIRES(!lock_);
-  Thread* GetRunningThread() const REQUIRES(!lock_);
+  // Is the given thread the task processor thread?
+  // If wait is true, and no thread has been registered via Start(), we briefly
+  // wait for one to be registered. If we time out, we return true.
+  bool IsRunningThread(Thread* t, bool wait = false) REQUIRES(!lock_);
 
  private:
+  // Wait briefly for running_thread_ to become non-null. Return false on timeout.
+  bool WaitForThread(Thread* self) REQUIRES(lock_);
+
   class CompareByTargetRunTime {
    public:
     bool operator()(const HeapTask* a, const HeapTask* b) const {

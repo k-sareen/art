@@ -45,35 +45,30 @@ static ResultT GetThreadStack(const ScopedFastNativeObjectAccess& soa,
   ObjPtr<mirror::Object> decoded_peer = soa.Decode<mirror::Object>(peer);
   if (decoded_peer == soa.Self()->GetPeer()) {
     trace = fn(soa.Self(), soa);
-  } else {
-    // Never allow suspending the heap task thread since it may deadlock if allocations are
-    // required for the stack trace.
-    Thread* heap_task_thread =
-        Runtime::Current()->GetHeap()->GetTaskProcessor()->GetRunningThread();
-    // heap_task_thread could be null if the daemons aren't yet started.
-    if (heap_task_thread != nullptr && decoded_peer == heap_task_thread->GetPeerFromOtherThread()) {
-      return nullptr;
-    }
-    // Suspend thread to build stack trace.
-    ScopedThreadSuspension sts(soa.Self(), ThreadState::kNative);
-    ThreadList* thread_list = Runtime::Current()->GetThreadList();
-    bool timed_out;
-    Thread* thread = thread_list->SuspendThreadByPeer(peer,
-                                                      SuspendReason::kInternal,
-                                                      &timed_out);
-    if (thread != nullptr) {
-      // Must be runnable to create returned array.
+    return trace;
+  }
+  // Suspend thread to build stack trace.
+  ScopedThreadSuspension sts(soa.Self(), ThreadState::kNative);
+  Runtime* runtime = Runtime::Current();
+  ThreadList* thread_list = runtime->GetThreadList();
+  Thread* thread = thread_list->SuspendThreadByPeer(peer, SuspendReason::kInternal);
+  if (thread != nullptr) {
+    // If we were asked for the HeapTaskDaemon's stack trace, we went ahead and suspended it.
+    // It's usually already in a suspended state anyway. But we should immediately give up and
+    // resume it, since we must be able to allocate while generating the stack trace.
+    if (!runtime->GetHeap()->GetTaskProcessor()->IsRunningThread(thread, /*wait=*/true)) {
       {
+        // Must be runnable to create returned array.
         ScopedObjectAccess soa2(soa.Self());
         trace = fn(thread, soa);
       }
-      // Restart suspended thread.
-      bool resumed = thread_list->Resume(thread, SuspendReason::kInternal);
-      DCHECK(resumed);
-    } else if (timed_out) {
-      LOG(ERROR) << "Trying to get thread's stack failed as the thread failed to suspend within a "
-          "generous timeout.";
+      // Else either thread is the HeapTaskDaemon, or we couldn't identify the thread yet. The
+      // HeapTaskDaemon can appear in enumerations before it is registered with the task
+      // processor, and we don't wait indefinitely, so there is a tiny chance of the latter.
     }
+    // Restart suspended thread.
+    bool resumed = thread_list->Resume(thread, SuspendReason::kInternal);
+    DCHECK(resumed);
   }
   return trace;
 }

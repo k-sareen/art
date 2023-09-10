@@ -363,7 +363,13 @@ static void RunCheckpointAndWait(Data* data, size_t max_frame_count)
     REQUIRES_SHARED(art::Locks::mutator_lock_) {
   // Note: requires the mutator lock as the checkpoint requires the mutator lock.
   GetAllStackTracesVectorClosure<Data> closure(max_frame_count, data);
-  size_t barrier_count = art::Runtime::Current()->GetThreadList()->RunCheckpoint(&closure, nullptr);
+  // TODO(b/253671779): Replace this use of RunCheckpointUnchecked() with RunCheckpoint(). This is
+  // currently not possible, since the following undesirable call chain (abbreviated here) is then
+  // possible and exercised by current tests: (jvmti) GetAllStackTraces -> <this function> ->
+  // RunCheckpoint -> GetStackTraceVisitor -> EncodeMethodId -> Class::EnsureMethodIds ->
+  // Class::Alloc -> AllocObjectWithAllocator -> potentially suspends, or runs GC, etc. -> CHECK
+  // failure.
+  size_t barrier_count = art::Runtime::Current()->GetThreadList()->RunCheckpointUnchecked(&closure);
   if (barrier_count == 0) {
     return;
   }
@@ -544,7 +550,6 @@ jvmtiError StackUtil::GetThreadListStackTraces(jvmtiEnv* env,
           // Found the thread.
           art::MutexLock mu(self, mutex);
 
-          threads.push_back(thread);
           thread_list_indices.push_back(index);
 
           frames.emplace_back(new std::vector<jvmtiFrameInfo>());
@@ -562,7 +567,6 @@ jvmtiError StackUtil::GetThreadListStackTraces(jvmtiEnv* env,
 
     // Storage. Only access directly after completion.
 
-    std::vector<art::Thread*> threads;
     std::vector<size_t> thread_list_indices;
 
     std::vector<std::unique_ptr<std::vector<jvmtiFrameInfo>>> frames;
@@ -600,12 +604,10 @@ jvmtiError StackUtil::GetThreadListStackTraces(jvmtiEnv* env,
     jvmtiStackInfo& stack_info = stack_info_array.get()[index];
     memset(&stack_info, 0, sizeof(jvmtiStackInfo));
 
-    art::Thread* self = data.threads[index];
     const std::vector<jvmtiFrameInfo>& thread_frames = *data.frames[index].get();
 
     // For the time being, set the thread to null. We don't have good ScopedLocalRef
     // infrastructure.
-    DCHECK(self->GetPeerFromOtherThread() != nullptr);
     stack_info.thread = nullptr;
     stack_info.state = JVMTI_THREAD_STATE_SUSPENDED;
 
