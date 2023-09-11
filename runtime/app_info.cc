@@ -155,5 +155,10 @@ std::string AppInfo::GetPrimaryApkReferenceProfile() {
   return "";
 }
 
+std::string AppInfo::PackageName() {
+  MutexLock mu(Thread::Current(), update_mutex_);
+  return package_name_.value_or("unknown");
+}
+
 
 }  // namespace art
