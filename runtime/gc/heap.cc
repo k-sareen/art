@@ -1403,22 +1403,31 @@ uint64_t Heap::GetTotalGcCpuTime() {
 
 void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
+  LOG(INFO) << "Stopping perf counters for "
+    << Runtime::Current()->GetAppInfo()->PackageName()
+    << "\n";
+  for (PerfCounter* perf_counter : perf_counters_) {
+    if (perf_counter->IsRunning()) {
+      uint64_t current_value = perf_counter->ReadCounter();
+      perf_counter->count_total_ = (current_value - perf_counter->initial_value_);
+      perf_counter->Stop();
+    }
+  }
 
-  std::cout << "============================ Tabulate Statistics ============================\n";
+  LOG(INFO) << "============================ Tabulate Statistics ============================\n";
 
   uint64_t total_paused_time = 0;
   for (auto* collector : garbage_collectors_) {
     total_paused_time += collector->GetTotalPausedTimeNs();
   }
 
-  std::cout << "GC\tmajorGC\ttime\ttime.other\ttime.stw";
-
+  std::string table_headers = "GC\tmajorGC\ttime\ttime.other\ttime.stw";
   for (PerfCounter* perf_counter : perf_counters_) {
-    std::cout << "\t" << perf_counter->name_ << ".other"
-      << "\t" << perf_counter->name_ << ".stw";
+    table_headers += "\t" + perf_counter->name_ + ".other"
+      + "\t" + perf_counter->name_ + ".stw";
   }
 
-  std::cout << "\n";
+  LOG(INFO) << table_headers + "\n";
 
   uint64_t total_gc_count = GetGcCount();
   uint64_t major_gc_count = total_gc_count;
@@ -1429,19 +1438,20 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     }
   }
 
-  std::cout << total_gc_count
-    << "\t" << major_gc_count
-    << "\t" << total_time
-    << "\t" << total_time - total_paused_time
-    << "\t" << total_paused_time;
+  std::string table_values = "";
+  table_values += std::to_string(total_gc_count)
+    + "\t" + std::to_string(major_gc_count)
+    + "\t" + std::to_string(total_time)
+    + "\t" + std::to_string(total_time - total_paused_time)
+    + "\t" + std::to_string(total_paused_time);
 
   for (PerfCounter* perf_counter : perf_counters_) {
-    std::cout << "\t" << perf_counter->GetOtherCount()
-      << "\t" << perf_counter->GetStwCount();
+    table_values += "\t" + std::to_string(perf_counter->GetOtherCount())
+      + "\t" + std::to_string(perf_counter->GetStwCount());
   }
 
-  std::cout << "\n";
-  std::cout << "-------------------------- End Tabulate Statistics --------------------------\n";
+  LOG(INFO) << table_values + "\n";
+  LOG(INFO) << "-------------------------- End Tabulate Statistics --------------------------\n";
 
   LOG(INFO) << "Number of GCs for each collector:\n";
   for (auto* collector : garbage_collectors_) {
@@ -1482,35 +1492,44 @@ void Heap::ResetGcPerformanceInfo() {
 }
 
 void Heap::HarnessBegin() {
-  if (gc_plan_.back() != collector::kGcTypeNoGC) {
-    LOG(INFO) << "Performing a GC with " << gc_plan_.back()
-      << " before HarnessBegin\n";
-    CollectGarbage(/* clear_soft_references = */ false, kGcCauseExplicit);
-    LOG(INFO) << "Finished GC before HarnessBegin\n";
-  } else {
-    LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
-  }
+  // XXX(kunals): Temporarily disable the GC just before HarnessBegin
+  // if (gc_plan_.back() != collector::kGcTypeNoGC) {
+  //   LOG(INFO) << "Performing a GC with " << gc_plan_.back()
+  //     << " before HarnessBegin\n";
+  //   CollectGarbage(/* clear_soft_references = */ false, kGcCauseExplicit);
+  //   LOG(INFO) << "Finished GC before HarnessBegin\n";
+  // } else {
+  //   LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
+  // }
 
   inside_harness_ = true;
   dumped_gc_performance_info_ = false;
   harness_begin_start_time_ns_ = NanoTime();
 
-  LOG(INFO) << "Starting perf counters";
+  LOG(INFO) << "Starting perf counters for "
+    << Runtime::Current()->GetAppInfo()->PackageName()
+    << "\n";
   for (PerfCounter* perf_counter : perf_counters_) {
-    perf_counter->initial_value_ = perf_counter->ReadCounter();
-    perf_counter->prev_value_ = perf_counter->initial_value_;
-    perf_counter->Start();
+    if (!perf_counter->IsRunning()) {
+      perf_counter->initial_value_ = perf_counter->ReadCounter();
+      perf_counter->prev_value_ = perf_counter->initial_value_;
+      perf_counter->Start();
+    }
   }
 
   ResetGcPerformanceInfo();
 }
 
 void Heap::HarnessEnd() {
-  LOG(INFO) << "Stopping perf counters";
+  LOG(INFO) << "Stopping perf counters for "
+    << Runtime::Current()->GetAppInfo()->PackageName()
+    << "\n";
   for (PerfCounter* perf_counter : perf_counters_) {
-    uint64_t current_value = perf_counter->ReadCounter();
-    perf_counter->count_total_ = (current_value - perf_counter->initial_value_);
-    perf_counter->Stop();
+    if (perf_counter->IsRunning()) {
+      uint64_t current_value = perf_counter->ReadCounter();
+      perf_counter->count_total_ = (current_value - perf_counter->initial_value_);
+      perf_counter->Stop();
+    }
   }
 
   DumpGcPerformanceInfo(LOG_STREAM(INFO));
@@ -3032,7 +3051,9 @@ void Heap::LogGC(GcCause gc_cause, collector::GarbageCollector* collector) {
   const std::vector<uint64_t>& pause_times = GetCurrentGcIteration()->GetPauseTimes();
   // Print the GC if it is an explicit GC (e.g. Runtime.gc()) or a slow GC
   // (mutator time blocked >= long_pause_log_threshold_).
-  bool log_gc = kLogAllGCs || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_);
+  bool log_gc = kLogAllGCs
+    || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_)
+    || Runtime::Current()->GetAppInfo()->PackageName() == "com.kunals.simpleapp";
   if (!log_gc && CareAboutPauseTimes()) {
     // GC for alloc pauses the allocating thread, so consider it as a pause.
     log_gc = duration > long_gc_log_threshold_ ||
@@ -3991,7 +4012,20 @@ void Heap::ClampGrowthLimit() {
   // Use heap bitmap lock to guard against races with BindLiveToMarkBitmap.
   ScopedObjectAccess soa(Thread::Current());
   WriterMutexLock mu(soa.Self(), *Locks::heap_bitmap_lock_);
-  capacity_ = growth_limit_;
+  std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
+  if (package_name == "com.kunals.simpleapp") {
+    size_t MB = 1024 * 1024;
+    capacity_ = 64 * MB;
+    if (growth_limit_ > capacity_) {
+      growth_limit_ = capacity_;
+    }
+    SetIdealFootprint(capacity_);
+    SetDefaultConcurrentStartBytes();
+    Runtime::Current()->SetDumpGCPerformanceOnShutdown(true);
+    HarnessBegin();
+  } else {
+    capacity_ = growth_limit_;
+  }
   for (const auto& space : continuous_spaces_) {
     if (space->IsMallocSpace()) {
       gc::space::MallocSpace* malloc_space = space->AsMallocSpace();
@@ -4007,6 +4041,12 @@ void Heap::ClampGrowthLimit() {
   if (main_space_backup_.get() != nullptr) {
     main_space_backup_->ClampGrowthLimit();
   }
+  LOG(INFO) << "Clamping growth limit for "
+    << Runtime::Current()->GetAppInfo()->PackageName()
+    << ". Capacity = " << capacity_ << " (" << 2 * capacity_
+    << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
+    << ". Growth limit = " << growth_limit_
+    << ". Concurrent start bytes = " << concurrent_start_bytes_;
 }
 
 void Heap::ClearGrowthLimit() {
@@ -4029,6 +4069,12 @@ void Heap::ClearGrowthLimit() {
     main_space_backup_->ClearGrowthLimit();
     main_space_backup_->SetFootprintLimit(main_space_backup_->Capacity());
   }
+  LOG(INFO) << "Clearing growth limit for "
+    << Runtime::Current()->GetAppInfo()->PackageName()
+    << ". Capacity = " << capacity_ << " (" << 2 * capacity_
+    << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
+    << ". Growth limit = " << growth_limit_
+    << ". Concurrent start bytes = " << concurrent_start_bytes_;
 }
 
 void Heap::AddFinalizerReference(Thread* self, ObjPtr<mirror::Object>* object) {

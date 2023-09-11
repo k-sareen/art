@@ -1107,12 +1107,16 @@ void Runtime::InitNonZygoteOrPostFork(
   // /sys/class/devfreq/*/governor) from "mem_latency" to "performance". The
   // mem_latency governor uses four hardware performance counters, out of the
   // six available on the Google Pixel 6 Pro CPUs
+  //
+  // Note that you must either run the VM as root (i.e. in the chroot setup) or
+  // have SELinux turned off (either from the kernel commandline or via `adb
+  // shell setenforce 0`) to create performance counters
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
   GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CACHE_MISSES");
-  GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
-  GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   LOG(DEBUG) << "Finished creating perf counters";
 

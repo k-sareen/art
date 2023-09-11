@@ -217,7 +217,13 @@ void SemiSpace::MarkingPhase() {
   // space.
   RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
   // Clear and protect the from space.
-  from_space_->ClearAndDontRelease();
+  // XXX(kunals): Uncomment the following line and comment out
+  // from_space->Clear() if running inside chroot. The SemiSpace collector is
+  // used for the Zygote so if the pages are not returned back to the operating
+  // system here, then the phone soft reboots (restarts inplace) before
+  // eventually dying completely from out of memory errors
+  // from_space_->ClearAndDontRelease();
+  from_space_->Clear();
   // b/31172841. Temporarily disable the from-space protection with host debug build
   // due to some protection issue in the build server.
   if (kProtectFromSpace && !(kIsDebugBuild && !kIsTargetBuild)) {

@@ -145,6 +145,10 @@ class PerfCounter {
   void Start();
   void Stop();
 
+  bool IsRunning() {
+    return running_;
+  }
+
   uint64_t ReadCounter();
 
   uint64_t GetTotalCount() {
@@ -454,7 +458,7 @@ class Heap {
 
   // Make the current growth limit the new maximum capacity, unmaps pages at the end of spaces
   // which will never be used. Used to implement dalvik.system.VMRuntime.clampGrowthLimit.
-  void ClampGrowthLimit() REQUIRES(!Locks::heap_bitmap_lock_);
+  void ClampGrowthLimit() REQUIRES(!Locks::heap_bitmap_lock_, !*gc_complete_lock_);
 
   // Target ideal heap utilization ratio, implements
   // dalvik.system.VMRuntime.getTargetHeapUtilization.
@@ -806,8 +810,7 @@ class Heap {
       REQUIRES(!*gc_complete_lock_);
   void ResetGcPerformanceInfo() REQUIRES(!*gc_complete_lock_);
 
-  void HarnessBegin()
-      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
+  void HarnessBegin() REQUIRES(!*gc_complete_lock_);
   void HarnessEnd() REQUIRES(!*gc_complete_lock_);
 
   bool HaveDumpedGcPerformanceInfo() {
