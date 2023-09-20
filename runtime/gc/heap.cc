@@ -17,6 +17,7 @@
 #include "heap.h"
 
 #include <fcntl.h>
+#include <fstream>
 #include <linux/perf_event.h>
 #include <limits>
 #include "android-base/thread_annotations.h"
@@ -4002,9 +4003,19 @@ void Heap::ClampGrowthLimit() {
   ScopedObjectAccess soa(Thread::Current());
   WriterMutexLock mu(soa.Self(), *Locks::heap_bitmap_lock_);
   std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
-  if (package_name == "com.kunals.simpleapp") {
+  if (package_name == "com.google.android.youtube") {
+    LOG(INFO) << "Found target app " << package_name << "!";
+    size_t minheap = 256;
+    std::ifstream minheap_file("/data/local/minheap");
+    if (minheap_file.is_open()) {
+      std::string line;
+      getline(minheap_file, line);
+      std::stringstream sstream(line);
+      sstream >> minheap;
+      minheap_file.close();
+    }
     size_t MB = 1024 * 1024;
-    capacity_ = 128 * MB;
+    capacity_ = minheap * MB;
     if (growth_limit_ > capacity_) {
       growth_limit_ = capacity_;
     }
@@ -4038,6 +4049,12 @@ void Heap::ClampGrowthLimit() {
 }
 
 void Heap::ClearGrowthLimit() {
+  std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
+  if (package_name == "com.google.android.youtube") {
+    LOG(INFO) << "Target app " << package_name << " uses large heap, clamping heap instead";
+    ClampGrowthLimit();
+    return;
+  }
   if (target_footprint_.load(std::memory_order_relaxed) == growth_limit_
       && growth_limit_ < capacity_) {
     target_footprint_.store(capacity_, std::memory_order_relaxed);
@@ -4057,8 +4074,7 @@ void Heap::ClearGrowthLimit() {
     main_space_backup_->ClearGrowthLimit();
     main_space_backup_->SetFootprintLimit(main_space_backup_->Capacity());
   }
-  LOG(INFO) << "Clearing growth limit for "
-    << Runtime::Current()->GetAppInfo()->PackageName()
+  LOG(INFO) << "Clearing growth limit for " << package_name
     << ". Capacity = " << capacity_ << " (" << 2 * capacity_
     << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
     << ". Growth limit = " << growth_limit_
