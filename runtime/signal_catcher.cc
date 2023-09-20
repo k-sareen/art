@@ -155,6 +155,21 @@ void SignalCatcher::HandleSigUsr1() {
   ProfileSaver::ForceProcessProfiles();
 }
 
+// We use SIGUSR2 to start/stop harnessing of a particular runtime. We assume
+// that no user application will handle this signal. If a user application does
+// handle this signal, then the harnessing may not work.
+void SignalCatcher::HandleSigUsr2() {
+  Runtime* runtime = Runtime::Current();
+  bool inside_harness = runtime->GetHeap()->GetInsideHarness();
+  if (!inside_harness) {
+    LOG(INFO) << "SIGUSR2 HarnessBegin";
+    runtime->HarnessBegin();
+  } else {
+    LOG(INFO) << "SIGUSR2 HarnessEnd";
+    runtime->HarnessEnd();
+  }
+}
+
 int SignalCatcher::WaitForSignal(Thread* self, SignalSet& signals) {
   ScopedThreadStateChange tsc(self, ThreadState::kWaitingInMainSignalCatcherLoop);
 
@@ -195,6 +210,7 @@ void* SignalCatcher::Run(void* arg) {
   SignalSet signals;
   signals.Add(SIGQUIT);
   signals.Add(SIGUSR1);
+  signals.Add(SIGUSR2);
 
   while (true) {
     int signal_number = signal_catcher->WaitForSignal(self, signals);
@@ -209,6 +225,9 @@ void* SignalCatcher::Run(void* arg) {
       break;
     case SIGUSR1:
       signal_catcher->HandleSigUsr1();
+      break;
+    case SIGUSR2:
+      signal_catcher->HandleSigUsr2();
       break;
     default:
       LOG(ERROR) << "Unexpected signal %d" << signal_number;
