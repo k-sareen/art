@@ -1180,6 +1180,9 @@ class Runtime {
     }
   }
 
+  void HarnessBegin();
+  void HarnessEnd();
+
  private:
   static void InitPlatformSignalHandlers();
 

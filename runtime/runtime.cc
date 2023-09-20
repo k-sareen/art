@@ -2418,6 +2418,8 @@ void Runtime::BlockSignals() {
   signals.Add(SIGQUIT);
   // SIGUSR1 is used to initiate a GC.
   signals.Add(SIGUSR1);
+  // SIGUSR2 is used to start/stop harnessing.
+  signals.Add(SIGUSR2);
   signals.Block();
 }
 
@@ -3547,6 +3549,14 @@ void Runtime::AddExtraBootDexFiles(const std::string& filename,
     }
   }
   GetClassLinker()->AddExtraBootDexFiles(Thread::Current(), std::move(dex_files));
+}
+
+void Runtime::HarnessBegin() {
+  GetHeap()->HarnessBegin();
+}
+
+void Runtime::HarnessEnd() {
+  GetHeap()->HarnessEnd();
 }
 
 }  // namespace art
