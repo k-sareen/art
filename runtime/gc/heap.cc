@@ -3010,6 +3010,10 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
   CHECK(collector != nullptr)
       << "Could not find garbage collector with collector_type="
       << static_cast<size_t>(collector_type_) << " and gc_type=" << gc_type;
+  std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
+  if (package_name == "com.google.android.youtube") {
+    LOG(INFO) << "Heap size before GC " << PrettySize(GetBytesAllocated());
+  }
   collector->Run(gc_cause, clear_soft_references || runtime->IsZygote());
   IncrementFreedEver();
   RequestTrim(self);
@@ -3018,6 +3022,9 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
   // Grow the heap so that we know when to perform the next GC.
   GrowForUtilization(collector, bytes_allocated_before_gc);
   old_native_bytes_allocated_.store(GetNativeBytes());
+  if (package_name == "com.google.android.youtube") {
+    LOG(INFO) << "Heap size after GC " << PrettySize(GetBytesAllocated());
+  }
   LogGC(gc_cause, collector);
   FinishGC(self, gc_type);
   // Actually enqueue all cleared references. Do this after the GC has officially finished since
@@ -3043,7 +3050,7 @@ void Heap::LogGC(GcCause gc_cause, collector::GarbageCollector* collector) {
   // (mutator time blocked >= long_pause_log_threshold_).
   bool log_gc = kLogAllGCs
     || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_)
-    || Runtime::Current()->GetAppInfo()->PackageName() == "com.kunals.simpleapp";
+    || Runtime::Current()->GetAppInfo()->PackageName() == "com.google.android.youtube";
   if (!log_gc && CareAboutPauseTimes()) {
     // GC for alloc pauses the allocating thread, so consider it as a pause.
     log_gc = duration > long_gc_log_threshold_ ||
@@ -3079,7 +3086,8 @@ void Heap::LogGC(GcCause gc_cause, collector::GarbageCollector* collector) {
               << PrettySize(current_gc_iteration_.GetFreedLargeObjectBytes()) << ") LOS objects, "
               << percent_free << "% free, " << PrettySize(current_heap_size) << "/"
               << PrettySize(total_memory) << ", " << "paused " << pause_string.str()
-              << " total " << PrettyDuration((duration / 1000) * 1000);
+              << " total " << PrettyDuration((duration / 1000) * 1000)
+              << " growth limit " << PrettySize(growth_limit_);
     VLOG(heap) << Dumpable<TimingLogger>(*current_gc_iteration_.GetTimings());
   }
 }
@@ -4852,11 +4860,13 @@ class Heap::TriggerPostForkCCGcTask : public HeapTask {
   explicit TriggerPostForkCCGcTask(uint64_t target_time, uint32_t initial_gc_num) :
       HeapTask(target_time), initial_gc_num_(initial_gc_num) {}
   void Run(Thread* self) override {
+    LOG(INFO) << "Calling TriggerPostForkCCGcTask target_time=" << GetTargetRunTime()
+      << ", initial_gc_num=" << initial_gc_num_;
     gc::Heap* heap = Runtime::Current()->GetHeap();
     if (heap->GetCurrentGcNum() == initial_gc_num_) {
-      if (kLogAllGCs) {
-        LOG(INFO) << "Forcing GC for allocation-inactive process";
-      }
+      // if (kLogAllGCs) {
+      LOG(INFO) << "Forcing GC for allocation-inactive process";
+      // }
       heap->RequestConcurrentGC(self, kGcCauseBackground, false, initial_gc_num_);
     }
   }
@@ -4872,6 +4882,8 @@ class Heap::ReduceTargetFootprintTask : public HeapTask {
                                      uint32_t initial_gc_num) :
       HeapTask(target_time), new_target_sz_(new_target_sz), initial_gc_num_(initial_gc_num) {}
   void Run(Thread* self) override {
+    LOG(INFO) << "Calling ReduceTargetFootprintTask target_time=" << GetTargetRunTime()
+      << ", new_target_sz=" << new_target_sz_ << ", initial_gc_num=" << initial_gc_num_;
     gc::Heap* heap = Runtime::Current()->GetHeap();
     MutexLock mu(self, *(heap->gc_complete_lock_));
     if (heap->GetCurrentGcNum() == initial_gc_num_
@@ -4880,6 +4892,8 @@ class Heap::ReduceTargetFootprintTask : public HeapTask {
       if (target_footprint > new_target_sz_) {
         if (heap->target_footprint_.CompareAndSetStrongRelaxed(target_footprint, new_target_sz_)) {
           heap->SetDefaultConcurrentStartBytesLocked();
+          LOG(INFO) << "Set target_footprint=" << new_target_sz_
+            << ", concurrent_start_bytes=" << heap->concurrent_start_bytes_;
         }
       }
     }
