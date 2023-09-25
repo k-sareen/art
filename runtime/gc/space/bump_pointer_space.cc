@@ -122,7 +122,7 @@ void BumpPointerSpace::ClearAndDontRelease() {
   bytes_allocated_.store(0, std::memory_order_relaxed);
   growth_end_ = Limit();
   {
-    MutexLock mu(Thread::Current(), block_lock_);
+    MutexLock mu(Thread::Current(), lock_);
     block_sizes_.clear();
     main_block_size_ = 0;
   }
