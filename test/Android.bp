@@ -314,6 +314,43 @@ art_cc_defaults {
     ],
 }
 
+// Variant of art_standalone_gtest_defaults that doesn't link dynamically to any
+// internal ART libraries.
+art_cc_defaults {
+    name: "art_cts_gtest_defaults",
+    defaults: [
+        // Note: We don't include "art_debug_defaults" here, as standalone ART
+        // gtests link with the "non-d" versions of the libraries contained in
+        // the ART APEX, so that they can be used with all ART APEX flavors
+        // (including the Release ART APEX).
+        "art_standalone_test_defaults",
+        "art_gtest_common_defaults",
+    ],
+    gtest: true,
+
+    // Support multilib variants (using different suffix per sub-architecture), which is needed on
+    // build targets with secondary architectures, as the MTS test suite packaging logic flattens
+    // all test artifacts into a single `testcases` directory.
+    compile_multilib: "both",
+    multilib: {
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
+    },
+
+    static_libs: [
+        "libartbase",
+    ],
+
+    test_suites: [
+        "general-tests",
+        "mts-art",
+    ],
+}
+
 // Properties common to `libart-gtest-defaults` and `libartd-gtest-defaults`.
 art_cc_defaults {
     name: "libart-gtest-common-defaults",
