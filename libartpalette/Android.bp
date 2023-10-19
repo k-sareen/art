@@ -116,7 +116,6 @@ art_cc_defaults {
     srcs: ["apex/palette_test.cc"],
     shared_libs: [
         "libartpalette",
-        "libnativehelper",
     ],
     target: {
         android: {
@@ -133,6 +132,9 @@ art_cc_test {
         "art_gtest_defaults",
         "art_libartpalette_tests_defaults",
     ],
+    shared_libs: [
+        "libnativehelper",
+    ],
     host_supported: true,
 }
 
@@ -141,8 +143,14 @@ art_cc_test {
 art_cc_test {
     name: "art_standalone_libartpalette_tests",
     defaults: [
-        "art_standalone_gtest_defaults",
+        "art_cts_gtest_defaults",
         "art_libartpalette_tests_defaults",
+    ],
+    static_libs: [
+        "libc++fs",
+        // libnativehelper_lazy has the glue we need to dlsym the platform-only
+        // APIs we need, like JniInvocationInit.
+        "libnativehelper_lazy",
     ],
     test_config_template: ":art-gtests-target-standalone-cts-template",
     test_suites: ["cts"],

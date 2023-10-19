@@ -29,6 +29,7 @@
 #endif
 
 #include "gtest/gtest.h"
+#include "nativehelper/JniInvocation.h"                                 \
 
 namespace {
 
@@ -95,6 +96,11 @@ TEST_F(PaletteClientTest, JniInvocation) {
 #else
   bool enabled;
   EXPECT_EQ(PALETTE_STATUS_OK, PaletteShouldReportJniInvocations(&enabled));
+
+  // This calls JniInvocationInit, which is necessary to load the VM. It's not
+  // public but still stable.
+  JniInvocation jni_invocation;
+  ASSERT_TRUE(jni_invocation.Init(nullptr));
 
   JavaVMInitArgs vm_args;
   JavaVMOption options[] = {
