@@ -33,6 +33,11 @@ static size_t size_of(void* object) {
   return obj->SizeOf();
 }
 
+static void scan_object(void* object ATTRIBUTE_UNUSED) {
+  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  // obj->VisitReferences<true, art::kVerifyNone, art::kWithoutReadBarrier>(nullptr, nullptr);
+}
+
 REQUIRES(art::Roles::uninterruptible_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void block_for_gc(void* tls) {
@@ -131,7 +136,7 @@ static void for_all_mutators(MutatorClosure closure) {
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
-static void scan_all_roots(EdgesClosure closure) {
+static void scan_all_roots(NodesClosure closure) {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
   runtime->VisitRoots(&visitor);
@@ -139,6 +144,7 @@ static void scan_all_roots(EdgesClosure closure) {
 
 ArtUpcalls art_upcalls = {
   size_of,
+  scan_object,
   block_for_gc,
   spawn_gc_thread,
   stop_all_mutators,

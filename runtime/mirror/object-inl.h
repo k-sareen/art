@@ -367,7 +367,7 @@ inline size_t Object::SizeOf() {
   } else {
     result = GetClass<kNewFlags, kWithoutReadBarrier>()->template GetObjectSize<kNewFlags>();
   }
-  DCHECK_GE(result, sizeof(Object)) << " class="
+  DCHECK_GE(result, sizeof(Object)) << " " << this << " class="
       // Note: Class::PrettyClass() is reading constant reference fields to get to constant
       // primitive fields and safely avoids read barriers, so it is safe to call on a Class
       // reference read without read barrier from a constant reference field.
