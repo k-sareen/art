@@ -32,7 +32,7 @@ namespace third_party_heap {
 
 class MmtkRootVisitor : public ThirdPartyHeapRootVisitor {
  public:
-  MmtkRootVisitor(EdgesClosure closure);
+  MmtkRootVisitor(NodesClosure closure);
 
   ~MmtkRootVisitor();
 
@@ -46,7 +46,7 @@ class MmtkRootVisitor : public ThirdPartyHeapRootVisitor {
  private:
   void FlushBuffer();
 
-  EdgesClosure closure_;
+  NodesClosure closure_;
   void** buffer_;
   size_t capacity_;
   size_t cursor_;

@@ -4073,6 +4073,11 @@ class ReferenceMapVisitor : public StackVisitor {
     for (size_t reg = 0; reg < num_regs; ++reg) {
       mirror::Object* ref = shadow_frame->GetVRegReference(reg);
       if (ref != nullptr) {
+        // mirror::Object* new_ref = ref;
+        // visitor_((mirror::Object**) &(shadow_frame->References()[reg]), reg, this);
+        // if (new_ref != ref) {
+        //   shadow_frame->SetVRegReference(reg, new_ref);
+        // }
         mirror::Object* new_ref = ref;
         visitor_(&new_ref, reg, this);
         if (new_ref != ref) {

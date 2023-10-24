@@ -15,14 +15,17 @@
  */
 
 #include "gc/third_party_heap.h"
+#include "mirror/object-inl.h"
 #include "mmtk_root_visitor.h"
 #include "mmtk.h"
+
+#include <iostream>
 
 namespace art {
 namespace gc {
 namespace third_party_heap {
 
-MmtkRootVisitor::MmtkRootVisitor(EdgesClosure closure) : closure_(closure), cursor_(0) {
+MmtkRootVisitor::MmtkRootVisitor(NodesClosure closure) : closure_(closure), cursor_(0) {
   RustBuffer buf = closure_.invoke(NULL, 0, 0);
   buffer_ = buf.buf;
   capacity_ = buf.capacity;
@@ -40,12 +43,19 @@ MmtkRootVisitor::~MmtkRootVisitor() {
 
 void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
                 size_t count,
-                const RootInfo& info ATTRIBUTE_UNUSED) {
+                const RootInfo& info) {
+  std::cout << "roots = " << roots << ", count = " << count << "\n";
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
-    // auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
+    std::cout << "*root = " << *root << ", **root = " << (**root).GetClass() << "\n";
+    std::cout << "  object size = " << (**root).GetClass()->SizeOf() << " " << info << "\n";
+    auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
 
-    buffer_[cursor_++] = (void*) root;
+    // if (info.GetType() == kRootJavaFrame) {
+    //   *(volatile int*) 0 = 0;
+    // }
+
+    buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
@@ -58,9 +68,13 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
 
 void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** roots,
                 size_t count,
-                const RootInfo& info ATTRIBUTE_UNUSED) {
+                const RootInfo& info) {
+  std::cout << "roots = " << roots << ", count = " << count << "\n";
   for (size_t i = 0; i < count; ++i) {
-    buffer_[cursor_++] = (void*) roots[i];
+    std::cout << "root = " << roots[i] << ", root->AsMirrorPtr() = " << roots[i]->AsMirrorPtr() << "\n";
+    std::cout << "  object size = " << roots[i]->AsMirrorPtr()->SizeOf() << " " << info << "\n";
+
+    buffer_[cursor_++] = (void*) roots[i]->AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
