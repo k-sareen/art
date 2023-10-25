@@ -64,14 +64,15 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   // Have to round up allocation size in order to make sure that object starting
   // addresses are aligned
   alloc_size = RoundUp(alloc_size, kObjectAlignment);
+  AllocationSemantics semantics = alloc_size <= 16384 ? AllocatorDefault : AllocatorLos;
   uint8_t* ret = (uint8_t *) mmtk_alloc(
     self->GetMmtkMutator(),
     alloc_size,
     kObjectAlignment,
-    0 /* offset */,
-    0 /* default allocation semantics */
+    /* offset= */ 0,
+    semantics
   );
-  mmtk_post_alloc(self->GetMmtkMutator(), ret, alloc_size, 0 /* default allocation semantics */);
+  mmtk_post_alloc(self->GetMmtkMutator(), ret, alloc_size, semantics);
   if (LIKELY(ret != nullptr)) {
     *bytes_allocated = alloc_size;
     *usable_size = alloc_size;
