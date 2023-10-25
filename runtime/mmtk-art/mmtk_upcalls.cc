@@ -18,10 +18,14 @@
 #include "gc/third_party_heap.h"
 #include "mmtk_gc_thread.h"
 #include "mmtk_root_visitor.h"
+#include "mmtk_scan_object_visitor.h"
 #include "mmtk_upcalls.h"
 #include "mirror/object-inl.h"
+#include "mirror/object-refvisitor-inl.h"
 #include "thread.h"
 #include "thread_list.h"
+
+#include <iostream>
 
 namespace art {
 class Thread;
@@ -29,13 +33,19 @@ class Thread;
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static size_t size_of(void* object) {
-  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
+  // state and causing segfaults
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
   return obj->SizeOf();
 }
 
-static void scan_object(void* object ATTRIBUTE_UNUSED) {
-  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
-  // obj->VisitReferences<true, art::kVerifyNone, art::kWithoutReadBarrier>(nullptr, nullptr);
+static void scan_object(void* object, void (*closure)(void* edge)) {
+  art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
+  // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
+  // state and causing segfaults
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  std::cout << "Scanning object " << obj << "\n";
+  obj->VisitReferences<true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
 }
 
 REQUIRES(art::Roles::uninterruptible_)

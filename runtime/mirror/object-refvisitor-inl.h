@@ -23,6 +23,8 @@
 #include "class_loader-inl.h"
 #include "dex_cache-inl.h"
 
+// #include <iostream>
+
 namespace art {
 namespace mirror {
 
@@ -35,6 +37,7 @@ inline void Object::VisitReferences(const Visitor& visitor,
                                     const JavaLangRefVisitor& ref_visitor) {
   visitor(this, ClassOffset(), /* is_static= */ false);
   ObjPtr<Class> klass = GetClass<kVerifyFlags, kReadBarrierOption>();
+  // std::cout << "Object = " << this << ", class = " << klass << "\n";
   const uint32_t class_flags = klass->GetClassFlags<kVerifyNone>();
   if (LIKELY(class_flags == kClassFlagNormal)) {
     DCHECK((!klass->IsVariableSize<kVerifyFlags>()));
