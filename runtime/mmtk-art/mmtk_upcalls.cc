@@ -113,27 +113,18 @@ static size_t number_of_mutators() {
 }
 
 static bool is_mutator(void* tls) {
-#if ART_USE_MMTK
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   return self->GetMmtkMutator() != nullptr;
-#else
-  return true;
-#endif  // ART_USE_MMTK
 }
 
 static MmtkMutator get_mmtk_mutator(void* tls) {
-#if ART_USE_MMTK
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   return self->GetMmtkMutator();
-#else
-  return nullptr;
-#endif  // ART_USE_MMTK
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void for_all_mutators(MutatorClosure closure) {
-#if ART_USE_MMTK
   {
     art::Runtime* runtime = art::Runtime::Current();
     art::MutexLock mu(art::Thread::Current(), *art::Locks::thread_list_lock_);
@@ -142,7 +133,6 @@ static void for_all_mutators(MutatorClosure closure) {
       closure.invoke(thread->GetMmtkMutator());
     });
   }
-#endif  // ART_USE_MMTK
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)

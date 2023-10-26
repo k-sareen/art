@@ -60,7 +60,6 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               size_t* bytes_allocated,
                                               size_t* usable_size,
                                               size_t* bytes_tl_bulk_allocated) {
-#if ART_USE_MMTK
   // Have to round up allocation size in order to make sure that object starting
   // addresses are aligned
   alloc_size = RoundUp(alloc_size, kObjectAlignment);
@@ -79,14 +78,6 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
     *bytes_tl_bulk_allocated = alloc_size;
   }
   return reinterpret_cast<mirror::Object*>(ret);
-#else
-  UNUSED(self);
-  UNUSED(alloc_size);
-  UNUSED(bytes_allocated);
-  UNUSED(usable_size);
-  UNUSED(bytes_tl_bulk_allocated);
-  return nullptr;
-#endif  // ART_USE_MMTK
 }
 
 collector::GcType ThirdPartyHeap::CollectGarbage(GcCause cause,
