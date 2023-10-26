@@ -21,6 +21,10 @@
 #include "runtime.h"
 #include "thread-inl.h"
 #include "thread.h"
+#include "thread_list.h"
+
+#include <condition_variable>
+#include <mutex>
 
 namespace art {
 
@@ -97,6 +101,72 @@ MmtkControllerThread::MmtkControllerThread(const std::string& name,
 void MmtkControllerThread::Run() {
   LOG(INFO) << "Starting MmtkControllerThread " << thread_ << " with context " << context_;
   mmtk_start_gc_controller_thread((void*) thread_, (void*) context_);
+}
+
+MmtkVmCompanionThread::MmtkVmCompanionThread(const std::string& name)
+                                    : MmtkWorkerThread(name, nullptr),
+                                      current_state_(StwState::Resumed),
+                                      desired_state_(StwState::Resumed) {
+  lock_ = new std::mutex();
+  cond_ = new std::condition_variable();
+}
+
+void MmtkVmCompanionThread::Run() {
+  LOG(INFO) << "Starting MmtkVmCompanionThread " << thread_;
+  while (true) {
+    VLOG(threads) << "Waiting for suspend request";
+    {
+      std::unique_lock mu(*lock_);
+      cond_->wait(mu, [&]{ return desired_state_ == StwState::Suspended; });
+    }
+
+    // Suspend threads
+    VLOG(threads) << "Received suspend request";
+    SuspendAll();
+
+    // All threads have been suspended at this point. Notify GC worker which
+    // requested STW
+    {
+      std::unique_lock mu(*lock_);
+      current_state_ = StwState::Suspended;
+      cond_->notify_all();
+    }
+
+    VLOG(threads) << "Waiting for resume request";
+    {
+      std::unique_lock mu(*lock_);
+      cond_->wait(mu, [&]{ return desired_state_ == StwState::Resumed; });
+    }
+
+    // Resume threads
+    VLOG(threads) << "Received resume request";
+    ResumeAll();
+
+    // All threads have been resumed at this point. Notify GC worker which
+    // requested resumption
+    {
+      std::unique_lock mu(*lock_);
+      current_state_ = StwState::Resumed;
+      cond_->notify_all();
+    }
+  }
+}
+
+void MmtkVmCompanionThread::Request(StwState desired_state) {
+  std::unique_lock mu(*lock_);
+  desired_state_ = desired_state;
+  cond_->notify_all();
+  cond_->wait(mu, [&]{ return current_state_ == desired_state; });
+}
+
+void MmtkVmCompanionThread::SuspendAll() {
+  Runtime* runtime = Runtime::Current();
+  runtime->GetThreadList()->SuspendAll(__FUNCTION__, /* long_suspend= */ false,
+        /* is_self_registered= */ false);
+}
+
+void MmtkVmCompanionThread::ResumeAll() {
+  Runtime::Current()->GetThreadList()->ResumeAll();
 }
 
 }  // namespace art

@@ -15,6 +15,7 @@
  */
 
 #include "gc/third_party_heap.h"
+#include "mmtk-art/mmtk_gc_thread.h"
 #include "mmtk-art/mmtk_upcalls.h"
 #include "mmtk.h"
 #include "runtime.h"
@@ -30,11 +31,14 @@ namespace third_party_heap {
 ThirdPartyHeap::ThirdPartyHeap(size_t initial_size, size_t capacity) {
   mmtk_set_heap_size(initial_size, capacity);
   mmtk_init(&art_upcalls);
+  // We create and start the companion thread in EnableCollection
+  companion_thread_ = nullptr;
 }
 
 ThirdPartyHeap::~ThirdPartyHeap() {}
 
 void ThirdPartyHeap::EnableCollection(Thread* tls) {
+  companion_thread_ = reinterpret_cast<void*>(new MmtkVmCompanionThread("MMTk VM Companion Thread"));
   mmtk_initialize_collection(tls);
 }
 
@@ -88,6 +92,19 @@ collector::GcType ThirdPartyHeap::CollectGarbage(GcCause cause,
   UNUSED(requested_gc_num);
   LOG(WARNING) << "Called Heap::CollectGarbage() for MMTk!";
   return collector::kGcTypeNone;
+}
+
+void ThirdPartyHeap::FinishGC(Thread* self) {
+  Heap* heap = Runtime::Current()->GetHeap();
+  MutexLock mu(self, *heap->gc_complete_lock_);
+  heap->collector_type_running_ = kCollectorTypeNone;
+  heap->last_gc_type_ = collector::kGcTypeFull;
+
+  heap->running_collection_is_blocking_ = false;
+  heap->gcs_completed_.fetch_add(1, std::memory_order_release);
+
+  // Wake anyone who may have been waiting for the GC to complete
+  heap->gc_complete_cond_->Broadcast(self);
 }
 
 }  // namespace third_party_heap

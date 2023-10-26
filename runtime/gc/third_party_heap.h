@@ -83,6 +83,15 @@ class ThirdPartyHeap {
   collector::GcType CollectGarbage(GcCause gc_cause,
                                    bool clear_soft_references,
                                    uint32_t requested_gc_num);
+
+  void FinishGC(Thread* self);
+
+  void* GetCompanionThread() {
+    return companion_thread_;
+  }
+
+ private:
+  void* companion_thread_;
 };
 
 class ThirdPartyHeapRootVisitor : public RootVisitor {
