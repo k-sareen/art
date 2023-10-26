@@ -1264,11 +1264,13 @@ class Thread {
     tls32_.state_and_flags.fetch_and(~enum_cast<uint32_t>(flag), order);
   }
 
-#if ART_USE_MMTK
   MmtkMutator GetMmtkMutator() const {
+#if ART_USE_MMTK
     return tlsPtr_.mmtk_mutator;
-  }
+#else
+    return nullptr;
 #endif  // ART_USE_MMTK
+  }
 
   void ResetQuickAllocEntryPointsForThread();
 

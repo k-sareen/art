@@ -47,13 +47,17 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
   std::cout << "roots = " << roots << ", count = " << count << "\n";
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
-    std::cout << "*root = " << *root << ", **root = " << (**root).GetClass() << "\n";
-    std::cout << "  object size = " << (**root).GetClass()->SizeOf() << " " << info << "\n";
     auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
 
     // if (info.GetType() == kRootJavaFrame) {
     //   *(volatile int*) 0 = 0;
     // }
+
+    std::cout << "*root = " << *root << " (" << (*root)->GetClass()->PrettyClass()
+      << "), **root = " << (**root).GetClass() << " ("
+      << (**root).GetClass()->PrettyClass() << ")\n";
+    std::cout << "  object size = " << (*root)->GetClass()->SizeOf() << " " << info << "\n";
+    std::cout << "  adding " << ref.AsMirrorPtr() << "\n";
 
     buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
@@ -71,8 +75,11 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
                 const RootInfo& info) {
   std::cout << "roots = " << roots << ", count = " << count << "\n";
   for (size_t i = 0; i < count; ++i) {
-    std::cout << "root = " << roots[i] << ", root->AsMirrorPtr() = " << roots[i]->AsMirrorPtr() << "\n";
-    std::cout << "  object size = " << roots[i]->AsMirrorPtr()->SizeOf() << " " << info << "\n";
+    std::cout << "*root = " << roots[i] << " (" << roots[i]->AsMirrorPtr()->GetClass()->PrettyClass()
+      << "), (*root)->AsMirrorPtr() = " << (*roots[i]).AsMirrorPtr()
+      << " (" << (*roots[i]).AsMirrorPtr()->GetClass()->PrettyClass() << ")\n";
+    std::cout << "  object size = " << (*roots[i]).AsMirrorPtr()->SizeOf() << " " << info << "\n";
+    std::cout << "  adding " << roots[i]->AsMirrorPtr() << "\n";
 
     buffer_[cursor_++] = (void*) roots[i]->AsMirrorPtr();
     if (cursor_ >= capacity_) {

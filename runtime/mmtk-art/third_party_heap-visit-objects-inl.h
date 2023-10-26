@@ -27,15 +27,15 @@ namespace third_party_heap {
 template <typename Visitor>
 inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
   // TODO(kunals): Investigate performance of visiting objects like this
-  void *heap_start = mmtk_get_heap_start();
-  void *heap_end = mmtk_get_heap_end();
+  void* heap_start = mmtk_get_heap_start();
+  void* heap_end = mmtk_get_heap_end();
 
   // Linear scan through all allocated objects (not just live ones) and call the
   // visitor for each one
-  uint8_t *cursor = (uint8_t *) heap_start;
+  uint8_t* cursor = reinterpret_cast<uint8_t*>(heap_start);
   while (cursor < heap_end) {
     if (IsAligned<kObjectAlignment>(cursor) && mmtk_is_valid_object(cursor)) {
-      mirror::Object *object = (mirror::Object *) cursor;
+      mirror::Object* object = reinterpret_cast<mirror::Object*>(cursor);
       visitor(object);
       cursor += RoundUp(object->SizeOf(), kObjectAlignment);
     } else {
