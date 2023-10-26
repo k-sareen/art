@@ -35,7 +35,8 @@ REQUIRES_SHARED(art::Locks::mutator_lock_)
 static size_t size_of(void* object) {
   // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
   // state and causing segfaults
-  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   return obj->SizeOf();
 }
 
@@ -43,7 +44,8 @@ static void scan_object(void* object, void (*closure)(void* edge)) {
   art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
   // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
   // state and causing segfaults
-  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   std::cout << "Scanning object " << obj << "\n";
   obj->VisitReferences<true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
 }
