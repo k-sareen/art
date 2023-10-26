@@ -29,7 +29,11 @@
 
 namespace art {
 
+#if !ART_USE_MMTK
 constexpr bool kObjPtrPoisoning = kIsDebugBuild;
+#else
+constexpr bool kObjPtrPoisoning = false;
+#endif  // !ART_USE_MMTK
 
 // It turns out that most of the performance overhead comes from copying. Don't validate for now.
 // This defers finding stale ObjPtr objects until they are used.
