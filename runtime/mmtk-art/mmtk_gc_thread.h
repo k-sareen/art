@@ -19,6 +19,9 @@
 
 #include <pthread.h>
 
+#include <condition_variable>
+#include <mutex>
+
 #include "base/locks.h"
 #include "base/mem_map.h"
 #include "thread.h"
@@ -52,10 +55,50 @@ class MmtkControllerThread : MmtkWorkerThread {
  public:
   MmtkControllerThread(const std::string& name, void* context);
 
-  ~MmtkControllerThread();
+ protected:
+  void Run() override;
+};
+
+enum StwState {
+  Resumed,
+  Suspended,
+};
+
+// A separate companion thread whose sole job is to suspend/resume all mutator
+// threads. We require a separate thread as ART expects the thread that suspends
+// the mutators to be the thread that resumes the mutators (due to
+// ThreadList::SuspendAll acquiring an exclusive lock on mutator_lock_).
+class MmtkVmCompanionThread : MmtkWorkerThread {
+ public:
+  MmtkVmCompanionThread(const std::string& name);
+
+  // Request the companion thread to transition to desired_state
+  void Request(StwState desired_state);
 
  protected:
   void Run() override;
+
+  // Suspend all mutator threads. Acquires exclusive lock on mutator_lock_
+  void SuspendAll() EXCLUSIVE_LOCK_FUNCTION(Locks::mutator_lock_);
+
+  // Resume all mutator threads. Releases exclusive lock on mutator_lock_
+  void ResumeAll() UNLOCK_FUNCTION(Locks::mutator_lock_);
+
+ private:
+  // Current state of mutator threads
+  StwState current_state_;
+  // Desired state of mutator threads
+  StwState desired_state_;
+
+  // We use C++ stdlib mutex and condvar implementations as ART does not allow
+  // waiting on a condvar while holding on to another lock (in this case we
+  // would wait on `cond_` while holding on to the mutator_lock).
+
+  // Lock associated with requesting suspend/resume all mutator threads
+  std::mutex* lock_;
+  // Associated condition variable. Used by GC worker(s) to communicate to the
+  // companion thread
+  std::condition_variable* cond_;
 };
 
 }  // namespace art

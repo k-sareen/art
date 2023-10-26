@@ -84,17 +84,24 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
   }
 }
 
-EXCLUSIVE_LOCK_FUNCTION(art::Locks::mutator_lock_)
 static void stop_all_mutators() {
-  art::Runtime* runtime = art::Runtime::Current();
-  runtime->GetThreadList()->SuspendAll(__FUNCTION__, /* long_suspend= */ false,
-        /* is_self_registered= */ false);
+  art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
+    art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+
+  art::MmtkVmCompanionThread* companion =
+    reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
+  companion->Request(art::StwState::Suspended);
 }
 
-UNLOCK_FUNCTION(art::Locks::mutator_lock_)
 static void resume_mutators() {
-  art::Runtime* runtime = art::Runtime::Current();
-  runtime->GetThreadList()->ResumeAll();
+  art::Thread* self = art::Thread::Current();
+  art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
+    art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+
+  art::MmtkVmCompanionThread* companion =
+    reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
+  companion->Request(art::StwState::Resumed);
+  tp_heap->FinishGC(self);
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
