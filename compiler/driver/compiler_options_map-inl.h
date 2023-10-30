@@ -57,7 +57,6 @@ inline bool ReadCompilerOptions(Base& map, CompilerOptions* options, std::string
   }
   map.AssignIfExists(Base::CompileArtTest, &options->compile_art_test_);
   map.AssignIfExists(Base::HugeMethodMaxThreshold, &options->huge_method_threshold_);
-  map.AssignIfExists(Base::LargeMethodMaxThreshold, &options->large_method_threshold_);
   map.AssignIfExists(Base::InlineMaxCodeUnitsThreshold, &options->inline_max_code_units_);
   map.AssignIfExists(Base::GenerateDebugInfo, &options->generate_debug_info_);
   map.AssignIfExists(Base::GenerateMiniDebugInfo, &options->generate_mini_debug_info_);
@@ -134,10 +133,6 @@ NO_INLINE void AddCompilerOptionsArgumentParserOptions(Builder& b) {
           .template WithType<unsigned int>()
           .WithHelp("threshold size for a huge method for compiler filter tuning.")
           .IntoKey(Map::HugeMethodMaxThreshold)
-      .Define("--large-method-max=_")
-          .template WithType<unsigned int>()
-          .WithHelp("threshold size for a large method for compiler filter tuning.")
-          .IntoKey(Map::LargeMethodMaxThreshold)
       .Define("--inline-max-code-units=_")
           .template WithType<unsigned int>()
           .WithHelp("the maximum code units that a methodcan have to be considered for inlining.\n"
@@ -256,6 +251,7 @@ NO_INLINE void AddCompilerOptionsArgumentParserOptions(Builder& b) {
       .Ignore({
         "--num-dex-methods=_",
         "--top-k-profile-threshold=_",
+        "--large-method-max=_",
       });
   // clang-format on
 }

@@ -53,7 +53,7 @@ class HGraphBuilder : public ValueObject {
   static constexpr const char* kBuilderPassName = "builder";
 
  private:
-  bool SkipCompilation(size_t number_of_branches);
+  bool SkipCompilation();
 
   HGraph* const graph_;
   const DexFile* const dex_file_;

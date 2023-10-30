@@ -42,7 +42,6 @@ class HBasicBlockBuilder : public ValueObject {
   // Creates basic blocks in `graph_` for compiling an intrinsic.
   void BuildIntrinsic();
 
-  size_t GetNumberOfBranches() const { return number_of_branches_; }
   HBasicBlock* GetBlockAt(uint32_t dex_pc) const { return branch_targets_[dex_pc]; }
 
  private:
@@ -79,7 +78,6 @@ class HBasicBlockBuilder : public ValueObject {
   ScopedArenaAllocator* const local_allocator_;
   ScopedArenaVector<HBasicBlock*> branch_targets_;
   ScopedArenaVector<HBasicBlock*> throwing_blocks_;
-  size_t number_of_branches_;
 
   static constexpr size_t kDefaultNumberOfThrowingBlocks = 2u;
 
