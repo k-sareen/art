@@ -29,8 +29,6 @@
 namespace art {
 
 class MmtkWorkerThread {
-  static const size_t kDefaultStackSize = 1 * MB;
-
  public:
   MmtkWorkerThread(const std::string& name, void* context);
 
@@ -41,8 +39,22 @@ class MmtkWorkerThread {
   }
 
  protected:
+  static const size_t kDefaultStackSize = 1 * MB;
+
+  // Callback to `pthread_create` that registers worker thread with the runtime
+  // (i.e. creating an associated art::Thread object) and then executes the
+  // `Run` function for the worker.
   static void* Callback(void* arg) REQUIRES(!Locks::mutator_lock_);
-  virtual void Run();
+
+  // Create a new worker thread using `pthread_create`. Note there is a race
+  // condition if one tries to create a new pthread inside the MmtkWorkerThread
+  // constructor (See https://github.com/rr-debugger/rr/issues/3641). Hence,
+  // each derived class needs to call this function inside their own
+  // constructor.
+  static void CreateWorkerThread(MmtkWorkerThread* worker);
+
+  // Function that specialized classes override for worker type-specific work
+  virtual void Run() {}
 
   const std::string name_;
   pthread_t pthread_;
@@ -51,6 +63,17 @@ class MmtkWorkerThread {
   void* context_;
 };
 
+// MMTk GC thread. These threads are responsible for performing garbage collection.
+class MmtkCollectorThread : MmtkWorkerThread {
+ public:
+  MmtkCollectorThread(const std::string& name, void* context);
+
+ protected:
+  void Run() override;
+};
+
+// MMTk GC Controller thread. There is only a single such thread. It is
+// responsible for coordinating garbage collection.
 class MmtkControllerThread : MmtkWorkerThread {
  public:
   MmtkControllerThread(const std::string& name, void* context);

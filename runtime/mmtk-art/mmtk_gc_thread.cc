@@ -35,7 +35,9 @@ static constexpr bool kUseCustomThreadPoolStack = true;
 #endif
 
 MmtkWorkerThread::MmtkWorkerThread(const std::string& name, void* context)
-        : name_(name), context_(context) {
+        : name_(name), context_(context) {}
+
+void MmtkWorkerThread::CreateWorkerThread(MmtkWorkerThread* worker) {
   std::string error_msg;
   size_t stack_size = kDefaultStackSize;
   // On Bionic, we know pthreads will give us a big-enough stack with
@@ -43,34 +45,29 @@ MmtkWorkerThread::MmtkWorkerThread(const std::string& name, void* context)
   if (kUseCustomThreadPoolStack) {
     // Add an inaccessible page to catch stack overflow.
     stack_size += kPageSize;
-    stack_ = MemMap::MapAnonymous(name.c_str(),
+    worker->stack_ = MemMap::MapAnonymous(worker->name_.c_str(),
                                   stack_size,
                                   PROT_READ | PROT_WRITE,
                                   /*low_4gb=*/ false,
                                   &error_msg);
-    CHECK(stack_.IsValid()) << error_msg;
-    CHECK_ALIGNED(stack_.Begin(), kPageSize);
+    CHECK(worker->stack_.IsValid()) << error_msg;
+    CHECK_ALIGNED(worker->stack_.Begin(), kPageSize);
     CheckedCall(mprotect,
                 "mprotect bottom page of MmtkWorkerThread stack",
-                stack_.Begin(),
+                worker->stack_.Begin(),
                 kPageSize,
                 PROT_NONE);
   }
-  const char* reason = "new MmtkWorkerThread";
+  const char* reason = "MmtkWorkerThread";
   pthread_attr_t attr;
   CHECK_PTHREAD_CALL(pthread_attr_init, (&attr), reason);
   if (kUseCustomThreadPoolStack) {
-    CHECK_PTHREAD_CALL(pthread_attr_setstack, (&attr, stack_.Begin(), stack_.Size()), reason);
+    CHECK_PTHREAD_CALL(pthread_attr_setstack, (&attr, worker->stack_.Begin(), worker->stack_.Size()), reason);
   } else {
     CHECK_PTHREAD_CALL(pthread_attr_setstacksize, (&attr, stack_size), reason);
   }
-  CHECK_PTHREAD_CALL(pthread_create, (&pthread_, &attr, &Callback, this), reason);
+  CHECK_PTHREAD_CALL(pthread_create, (&worker->pthread_, &attr, &Callback, worker), reason);
   CHECK_PTHREAD_CALL(pthread_attr_destroy, (&attr), reason);
-}
-
-void MmtkWorkerThread::Run() {
-  LOG(INFO) << "Starting MmtkWorkerThread " << thread_ << " with context " << context_;
-  mmtk_start_gc_worker_thread((void*) thread_, (void*) context_);
 }
 
 void* MmtkWorkerThread::Callback(void* arg) {
@@ -94,9 +91,22 @@ void* MmtkWorkerThread::Callback(void* arg) {
   return nullptr;
 }
 
+MmtkCollectorThread::MmtkCollectorThread(const std::string& name,
+                                         void* context)
+                                    : MmtkWorkerThread(name, context) {
+  CreateWorkerThread(this);
+}
+
+void MmtkCollectorThread::Run() {
+  LOG(INFO) << "Starting MmtkCollectorThread " << thread_ << " with context " << context_;
+  mmtk_start_gc_worker_thread((void*) thread_, (void*) context_);
+}
+
 MmtkControllerThread::MmtkControllerThread(const std::string& name,
                                            void* context)
-                                    : MmtkWorkerThread(name, context) {}
+                                    : MmtkWorkerThread(name, context) {
+  CreateWorkerThread(this);
+}
 
 void MmtkControllerThread::Run() {
   LOG(INFO) << "Starting MmtkControllerThread " << thread_ << " with context " << context_;
@@ -109,6 +119,7 @@ MmtkVmCompanionThread::MmtkVmCompanionThread(const std::string& name)
                                       desired_state_(StwState::Resumed) {
   lock_ = new std::mutex();
   cond_ = new std::condition_variable();
+  CreateWorkerThread(this);
 }
 
 void MmtkVmCompanionThread::Run() {

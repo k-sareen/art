@@ -74,7 +74,7 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
       break;
     }
     case MmtkGcWorker: {
-      new art::MmtkWorkerThread("MMTk Collector Thread", ctx);
+      new art::MmtkCollectorThread("MMTk Collector Thread", ctx);
       break;
     }
     default: {
