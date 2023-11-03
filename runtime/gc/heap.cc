@@ -4173,7 +4173,7 @@ static constexpr size_t kNewNativeDiscountFactor = 2;
 // newly allocated memory exceeds stop_for_native_allocs_, we wait for GC to complete to avoid
 // running out of memory.
 static constexpr float kStopForNativeFactor = 4.0;
-#endif  // ART_USE_MMTK
+#endif  // !ART_USE_MMTK
 
 // Return the ratio of the weighted native + java allocated bytes to its target value.
 // A return value > 1.0 means we should collect. Significantly larger values mean we're falling
