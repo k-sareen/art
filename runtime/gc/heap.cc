@@ -16,6 +16,7 @@
 
 #include "heap.h"
 
+#include <iostream>
 #include <limits>
 #include "android-base/thread_annotations.h"
 #if defined(__BIONIC__) || defined(__GLIBC__)
@@ -2170,7 +2171,8 @@ void Heap::CountInstances(const std::vector<Handle<mirror::Class>>& classes,
 
 void Heap::CollectGarbage(bool clear_soft_references, GcCause cause) {
 #if ART_USE_MMTK
-  tp_heap_->CollectGarbage(cause, clear_soft_references, GC_NUM_ANY);
+  UNUSED(clear_soft_references);
+  tp_heap_->CollectGarbage(Thread::Current(), cause);
 #else
   // Even if we waited for a GC we still need to do another GC since weaks allocated during the
   // last GC will not have necessarily been cleared.
@@ -4166,10 +4168,12 @@ void Heap::RevokeAllThreadLocalBuffers() {
 static constexpr size_t kOldNativeDiscountFactor = 65536;  // Approximately infinite for now.
 static constexpr size_t kNewNativeDiscountFactor = 2;
 
+#if !ART_USE_MMTK
 // If weighted java + native memory use exceeds our target by kStopForNativeFactor, and
 // newly allocated memory exceeds stop_for_native_allocs_, we wait for GC to complete to avoid
 // running out of memory.
 static constexpr float kStopForNativeFactor = 4.0;
+#endif  // ART_USE_MMTK
 
 // Return the ratio of the weighted native + java allocated bytes to its target value.
 // A return value > 1.0 means we should collect. Significantly larger values mean we're falling
@@ -4202,10 +4206,18 @@ inline float Heap::NativeMemoryOverTarget(size_t current_native_bytes, bool is_g
 }
 
 inline void Heap::CheckGCForNative(Thread* self) {
-  // TODO(kunals): Fix this function to call MMTk GC
+  // TODO(kunals): Native allocations should technically be counted in the
+  // VMCollection::vm_live_bytes function to allow for more prompt reclamation
+  size_t current_native_bytes = GetNativeBytes();
+#if ART_USE_MMTK
+  if (current_native_bytes + tp_heap_->GetBytesAllocated() >= capacity_) {
+    std::cout << "CheckGCForNative " << current_native_bytes + tp_heap_->GetBytesAllocated()
+      << " >= " << capacity_ << "\n";
+    tp_heap_->CollectGarbage(self, kGcCauseForNativeAlloc);
+  }
+#else
   bool is_gc_concurrent = IsGcConcurrent();
   uint32_t starting_gc_num = GetCurrentGcNum();
-  size_t current_native_bytes = GetNativeBytes();
   float gc_urgency = NativeMemoryOverTarget(current_native_bytes, is_gc_concurrent);
   if (UNLIKELY(gc_urgency >= 1.0)) {
     if (is_gc_concurrent) {
@@ -4237,6 +4249,7 @@ inline void Heap::CheckGCForNative(Thread* self) {
       CollectGarbageInternal(NonStickyGcType(), kGcCauseForNativeAlloc, false, starting_gc_num + 1);
     }
   }
+#endif  // ART_USE_MMTK
 }
 
 // About kNotifyNativeInterval allocations have occurred. Check whether we should garbage collect.
@@ -4249,6 +4262,12 @@ void Heap::NotifyNativeAllocations(JNIEnv* env) {
 // This should only be done for large allocations of non-malloc memory, which we wouldn't
 // otherwise see.
 void Heap::RegisterNativeAllocation(JNIEnv* env, size_t bytes) {
+  std::string temp;
+  Thread* self = Thread::ForEnv(env);
+  self->GetThreadName(temp);
+  std::cout << "RegisterNativeAllocation " << self << " " << temp
+    << " bytes " << bytes << "\n";
+
   // Cautiously check for a wrapped negative bytes argument.
   DCHECK(sizeof(size_t) < 8 || bytes < (std::numeric_limits<size_t>::max() / 2));
   native_bytes_registered_.fetch_add(bytes, std::memory_order_relaxed);
@@ -4262,9 +4281,16 @@ void Heap::RegisterNativeAllocation(JNIEnv* env, size_t bytes) {
   JHPCheckNonTlabSampleAllocation(Thread::Current(), nullptr, bytes);
 }
 
-void Heap::RegisterNativeFree(JNIEnv*, size_t bytes) {
+void Heap::RegisterNativeFree(JNIEnv* env, size_t bytes) {
   size_t allocated;
   size_t new_freed_bytes;
+
+  std::string temp;
+  Thread* self = Thread::ForEnv(env);
+  self->GetThreadName(temp);
+  std::cout << "RegisterNativeFree " << self << " " << temp
+    << " bytes " << bytes << "\n";
+
   do {
     allocated = native_bytes_registered_.load(std::memory_order_relaxed);
     new_freed_bytes = std::min(allocated, bytes);

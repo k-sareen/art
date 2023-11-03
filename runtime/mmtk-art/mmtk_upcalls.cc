@@ -52,16 +52,20 @@ static void scan_object(void* object, void (*closure)(void* edge)) {
 REQUIRES(art::Roles::uninterruptible_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void block_for_gc(void* tls) {
-#define PERFORM_SUSPENDING_OPERATION(op)                                                    \
+#define PERFORM_SUSPENDING_OPERATION(self, op)                                              \
   [&]() REQUIRES(art::Roles::uninterruptible_) REQUIRES_SHARED(art::Locks::mutator_lock_) { \
-    art::ScopedAllowThreadSuspension ats;                                                   \
-    return (op);                                                                            \
+    if (!self->IsThreadSuspensionAllowable()) {                                             \
+      art::ScopedAllowThreadSuspension ats;                                                 \
+      return (op);                                                                          \
+    } else {                                                                                \
+      return (op);                                                                          \
+    }                                                                                       \
   }()
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
   // tp_heap->BlockThreadForCollection calls Heap::WaitForGcToComplete internally
-  PERFORM_SUSPENDING_OPERATION(tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
+  PERFORM_SUSPENDING_OPERATION(self, tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
 #undef PERFORM_SUSPENDING_OPERATION
 }
 

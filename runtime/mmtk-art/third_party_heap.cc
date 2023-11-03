@@ -42,6 +42,10 @@ void ThirdPartyHeap::EnableCollection(Thread* tls) {
   mmtk_initialize_collection(tls);
 }
 
+size_t ThirdPartyHeap::GetBytesAllocated() {
+  return mmtk_get_used_bytes();
+}
+
 void ThirdPartyHeap::BlockThreadForCollection(GcCause cause, Thread* self) {
   art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
   Heap* heap = Runtime::Current()->GetHeap();
@@ -84,14 +88,14 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   return reinterpret_cast<mirror::Object*>(ret);
 }
 
-collector::GcType ThirdPartyHeap::CollectGarbage(GcCause cause,
-                                                 bool clear_soft_references,
-                                                 uint32_t requested_gc_num) {
-  UNUSED(clear_soft_references);
+collector::GcType ThirdPartyHeap::CollectGarbage(Thread* self, GcCause cause) {
   UNUSED(cause);
-  UNUSED(requested_gc_num);
-  LOG(WARNING) << "Called Heap::CollectGarbage() for MMTk!";
-  return collector::kGcTypeNone;
+  mmtk_handle_user_collection_request(
+    reinterpret_cast<void*>(self),
+    /* force= */ true,
+    /* exhaustive= */ true
+  );
+  return collector::kGcTypeFull;
 }
 
 void ThirdPartyHeap::FinishGC(Thread* self) {
@@ -102,6 +106,7 @@ void ThirdPartyHeap::FinishGC(Thread* self) {
 
   heap->running_collection_is_blocking_ = false;
   heap->gcs_completed_.fetch_add(1, std::memory_order_release);
+  heap->old_native_bytes_allocated_.store(heap->GetNativeBytes());
 
   // Wake anyone who may have been waiting for the GC to complete
   heap->gc_complete_cond_->Broadcast(self);
