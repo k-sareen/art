@@ -4202,6 +4202,7 @@ inline float Heap::NativeMemoryOverTarget(size_t current_native_bytes, bool is_g
 }
 
 inline void Heap::CheckGCForNative(Thread* self) {
+  // TODO(kunals): Fix this function to call MMTk GC
   bool is_gc_concurrent = IsGcConcurrent();
   uint32_t starting_gc_num = GetCurrentGcNum();
   size_t current_native_bytes = GetNativeBytes();

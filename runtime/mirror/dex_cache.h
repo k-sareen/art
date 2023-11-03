@@ -170,15 +170,18 @@ template <typename T, size_t size> class DexCachePairArray {
   DexCachePairArray() {}
 
   T* Get(uint32_t index) REQUIRES_SHARED(Locks::mutator_lock_) {
-    return GetPair(index).GetObjectForIndex(index);
+    return GetPair(index)->GetObjectForIndex(index);
   }
 
   void Set(uint32_t index, T* value) REQUIRES_SHARED(Locks::mutator_lock_) {
     SetPair(index, DexCachePair<T>(value, index));
   }
 
-  DexCachePair<T> GetPair(uint32_t index) {
-    return entries_[SlotIndex(index)].load(std::memory_order_relaxed);
+  DexCachePair<T>* GetPair(uint32_t index) {
+    // XXX(kunals): Return the slot of the DexCachePair instead returning a
+    // local DexCachePair variable. This allows us to avoid reusing slots
+    static_assert(sizeof(DexCachePair<T>) == sizeof(std::atomic<DexCachePair<T>>));
+    return reinterpret_cast<DexCachePair<T>*>(&entries_[SlotIndex(index)]);
   }
 
   void SetPair(uint32_t index, DexCachePair<T> value) {

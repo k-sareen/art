@@ -205,7 +205,9 @@ class GcRoot {
     }
   }
 
-  ALWAYS_INLINE mirror::CompressedReference<mirror::Object>* AddressWithoutBarrier() {
+  // XXX(kunals): Change to `const` function to allow
+  // ClassTable::TableSlot::VisitRoot to compile
+  ALWAYS_INLINE mirror::CompressedReference<mirror::Object>* AddressWithoutBarrier() const {
     return &root_;
   }
 

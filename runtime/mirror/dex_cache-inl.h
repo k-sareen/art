@@ -267,17 +267,8 @@ inline void VisitDexCachePairs(T* array,
   // Check both the data pointer and count since the array might be initialized
   // concurrently on other thread, and we might observe just one of the values.
   for (size_t i = 0; array != nullptr && i < num_pairs; ++i) {
-    auto source = array->GetPair(i);
-    // NOTE: We need the "template" keyword here to avoid a compilation
-    // failure. GcRoot<T> is a template argument-dependent type and we need to
-    // tell the compiler to treat "Read" as a template rather than a field or
-    // function. Otherwise, on encountering the "<" token, the compiler would
-    // treat "Read" as a field.
-    auto const before = source.object.template Read<kReadBarrierOption>();
-    visitor.VisitRootIfNonNull(source.object.AddressWithoutBarrier());
-    if (source.object.template Read<kReadBarrierOption>() != before) {
-      array->SetPair(i, source);
-    }
+    auto* source = array->GetPair(i);
+    visitor.VisitRootIfNonNull(source->object.AddressWithoutBarrier());
   }
 }
 

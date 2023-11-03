@@ -392,7 +392,7 @@ class RuntimeImageHelper {
     explicit ClassDescriptorHash(RuntimeImageHelper* helper) : helper_(helper) {}
 
     uint32_t operator()(const ClassTable::TableSlot& slot) const NO_THREAD_SAFETY_ANALYSIS {
-      uint32_t ptr = slot.NonHashData();
+      uint32_t ptr = slot.KlassPointer();
       if (helper_->IsInBootImage(reinterpret_cast32<const void*>(ptr))) {
         return reinterpret_cast32<mirror::Class*>(ptr)->DescriptorHash();
       }
@@ -411,7 +411,7 @@ class RuntimeImageHelper {
         const NO_THREAD_SAFETY_ANALYSIS {
       // No need to fetch the descriptor: we know the classes we are inserting
       // in the ClassTable are unique.
-      return a.Data() == b.Data();
+      return (a.KlassPointer() == b.KlassPointer()) && (a.Hash() == b.Hash());
     }
   };
 

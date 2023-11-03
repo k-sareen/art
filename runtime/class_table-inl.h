@@ -61,7 +61,7 @@ inline bool ClassTable::ClassDescriptorEquals::operator()(const TableSlot& a,
                                                           const DescriptorHashPair& b) const {
   // No read barrier needed, we're reading a chain of constant references for comparison
   // with null and retrieval of constant primitive data. See ReadBarrierOption.
-  if (!a.MaskedHashEquals(b.second)) {
+  if (a.Hash() != ((uint8_t) b.second)) {
     DCHECK(!a.Read<kWithoutReadBarrier>()->DescriptorEquals(b.first));
     return false;
   }
@@ -173,48 +173,21 @@ inline bool ClassTable::TableSlot::IsNull() const {
 
 template<ReadBarrierOption kReadBarrierOption>
 inline ObjPtr<mirror::Class> ClassTable::TableSlot::Read() const {
-  const uint32_t before = data_.load(std::memory_order_relaxed);
-  const ObjPtr<mirror::Class> before_ptr(ExtractPtr(before));
-  const ObjPtr<mirror::Class> after_ptr(
-      GcRoot<mirror::Class>(before_ptr).Read<kReadBarrierOption>());
-  if (kReadBarrierOption != kWithoutReadBarrier && before_ptr != after_ptr) {
-    // If another thread raced and updated the reference, do not store the read barrier updated
-    // one.
-    data_.CompareAndSetStrongRelease(before, Encode(after_ptr, MaskHash(before)));
-  }
-  return after_ptr;
+  return klass_.Read<kReadBarrierOption>();
 }
 
 template<typename Visitor>
 inline void ClassTable::TableSlot::VisitRoot(const Visitor& visitor) const {
-  const uint32_t before = data_.load(std::memory_order_relaxed);
-  ObjPtr<mirror::Class> before_ptr(ExtractPtr(before));
-  GcRoot<mirror::Class> root(before_ptr);
-  visitor.VisitRoot(root.AddressWithoutBarrier());
-  ObjPtr<mirror::Class> after_ptr(root.Read<kWithoutReadBarrier>());
-  if (before_ptr != after_ptr) {
-    // If another thread raced and updated the reference, do not store the read barrier updated
-    // one.
-    data_.CompareAndSetStrongRelease(before, Encode(after_ptr, MaskHash(before)));
-  }
-}
-
-inline ObjPtr<mirror::Class> ClassTable::TableSlot::ExtractPtr(uint32_t data) {
-  return reinterpret_cast<mirror::Class*>(data & ~kHashMask);
-}
-
-inline uint32_t ClassTable::TableSlot::Encode(ObjPtr<mirror::Class> klass, uint32_t hash_bits) {
-  DCHECK_LE(hash_bits, kHashMask);
-  return reinterpret_cast<uintptr_t>(klass.Ptr()) | hash_bits;
+  visitor.VisitRoot(klass_.AddressWithoutBarrier());
 }
 
 inline ClassTable::TableSlot::TableSlot(ObjPtr<mirror::Class> klass, uint32_t descriptor_hash)
-    : data_(Encode(klass, MaskHash(descriptor_hash))) {
+    : klass_(klass), descriptor_hash_((uint8_t) descriptor_hash) {
   DCHECK_EQ(descriptor_hash, klass->DescriptorHash());
 }
 
 inline ClassTable::TableSlot::TableSlot(uint32_t ptr, uint32_t descriptor_hash)
-    : data_(ptr | MaskHash(descriptor_hash)) {
+    : klass_(reinterpret_cast<mirror::Class*>(ptr)), descriptor_hash_((uint8_t) descriptor_hash) {
   DCHECK_ALIGNED(ptr, kObjectAlignment);
 }
 
