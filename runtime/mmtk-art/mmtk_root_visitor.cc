@@ -53,8 +53,7 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
     //   *(volatile int*) 0 = 0;
     // }
 
-    std::cout << "*root = " << *root << " (" << (*root)->GetClass()->PrettyClass()
-      << "), **root = " << (**root).GetClass() << " ("
+    std::cout << "*root = " << *root << ", **root = " << (**root).GetClass() << " ("
       << (**root).GetClass()->PrettyClass() << ")\n";
     std::cout << "  object size = " << (*root)->GetClass()->SizeOf() << " " << info << "\n";
     std::cout << "  adding " << ref.AsMirrorPtr() << "\n";
@@ -75,8 +74,7 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
                 const RootInfo& info) {
   std::cout << "roots = " << roots << ", count = " << count << "\n";
   for (size_t i = 0; i < count; ++i) {
-    std::cout << "*root = " << roots[i] << " (" << roots[i]->AsMirrorPtr()->GetClass()->PrettyClass()
-      << "), (*root)->AsMirrorPtr() = " << (*roots[i]).AsMirrorPtr()
+    std::cout << "*root = " << roots[i] << ", (*root).AsMirrorPtr() = " << (*roots[i]).AsMirrorPtr()
       << " (" << (*roots[i]).AsMirrorPtr()->GetClass()->PrettyClass() << ")\n";
     std::cout << "  object size = " << (*roots[i]).AsMirrorPtr()->SizeOf() << " " << info << "\n";
     std::cout << "  adding " << roots[i]->AsMirrorPtr() << "\n";

@@ -98,12 +98,14 @@ class MANAGED Reference : public Object {
     return GetPendingNext<kWithoutReadBarrier>() == nullptr;
   }
 
- private:
   // Note: This avoids a read barrier, it should only be used by the GC.
+  // XXX(kunals): Temporarily make this public to allow MMTk to use it for
+  // enqueuing the slot for the referent
   HeapReference<Object>* GetReferentReferenceAddr() REQUIRES_SHARED(Locks::mutator_lock_) {
     return GetFieldObjectReferenceAddr<kDefaultVerifyFlags>(ReferentOffset());
   }
 
+ private:
   // Field order required by test "ValidateFieldOrderOfJavaCppUnionClasses".
   HeapReference<Reference> pending_next_;
   HeapReference<Object> queue_;
