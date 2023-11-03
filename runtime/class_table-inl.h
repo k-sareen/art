@@ -98,18 +98,11 @@ void ClassTable::VisitRoots(const Visitor& visitor, bool skip_classes) {
       }
     }
   }
-  std::cout << "Visiting strong_roots_ roots "
-    << static_cast<void*>(strong_roots_.data()) << "\n";
   for (GcRoot<mirror::Object>& root : strong_roots_) {
-    std::cout << "Visiting strong_roots_ root "
-      << root.AddressWithoutBarrier() << "\n";
     visitor.VisitRoot(root.AddressWithoutBarrier());
   }
   for (const OatFile* oat_file : oat_files_) {
-    std::cout << "Visiting OatFile BSS roots " << oat_file << "\n";
     for (GcRoot<mirror::Object>& root : oat_file->GetBssGcRoots()) {
-      std::cout << "Visiting OatFile BSS root "
-        << root.AddressWithoutBarrier() << "\n";
       visitor.VisitRootIfNonNull(root.AddressWithoutBarrier());
     }
   }

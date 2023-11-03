@@ -19,8 +19,6 @@
 #include "mmtk_root_visitor.h"
 #include "mmtk.h"
 
-#include <iostream>
-
 namespace art {
 namespace gc {
 namespace third_party_heap {
@@ -43,8 +41,7 @@ MmtkRootVisitor::~MmtkRootVisitor() {
 
 void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
                 size_t count,
-                const RootInfo& info) {
-  std::cout << "roots = " << roots << ", count = " << count << "\n";
+                const RootInfo& info ATTRIBUTE_UNUSED) {
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
     auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
@@ -52,11 +49,6 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
     // if (info.GetType() == kRootJavaFrame) {
     //   *(volatile int*) 0 = 0;
     // }
-
-    std::cout << "*root = " << *root << ", **root = " << (**root).GetClass() << " ("
-      << (**root).GetClass()->PrettyClass() << ")\n";
-    std::cout << "  object size = " << (*root)->GetClass()->SizeOf() << " " << info << "\n";
-    std::cout << "  adding " << ref.AsMirrorPtr() << "\n";
 
     buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
@@ -71,14 +63,8 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
 
 void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** roots,
                 size_t count,
-                const RootInfo& info) {
-  std::cout << "roots = " << roots << ", count = " << count << "\n";
+                const RootInfo& info ATTRIBUTE_UNUSED) {
   for (size_t i = 0; i < count; ++i) {
-    std::cout << "*root = " << roots[i] << ", (*root).AsMirrorPtr() = " << (*roots[i]).AsMirrorPtr()
-      << " (" << (*roots[i]).AsMirrorPtr()->GetClass()->PrettyClass() << ")\n";
-    std::cout << "  object size = " << (*roots[i]).AsMirrorPtr()->SizeOf() << " " << info << "\n";
-    std::cout << "  adding " << roots[i]->AsMirrorPtr() << "\n";
-
     buffer_[cursor_++] = (void*) roots[i]->AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
