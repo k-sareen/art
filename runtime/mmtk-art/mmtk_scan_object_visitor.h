@@ -18,6 +18,8 @@
 #define MMTK_ART_MMTK_SCAN_OBJECT_VISITOR_H
 
 #include "gc/third_party_heap.h"
+#include "mirror/class.h"
+#include "mirror/reference.h"
 #include "mmtk.h"
 
 #include <iostream>
@@ -38,14 +40,30 @@ class MmtkScanObjectVisitor {
 
   void operator()(ObjPtr<mirror::Object> obj, MemberOffset offset, bool /* is_static */) const ALWAYS_INLINE
       REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
-    void* edge = reinterpret_cast<void*>(obj->GetFieldObjectReferenceAddr<kVerifyNone>(offset));
-    std::cout << "Object " << obj << " found edge " << edge << "\n";
-    closure_(edge);
+    mirror::HeapReference<mirror::Object>* field = obj->GetFieldObjectReferenceAddr<kVerifyNone>(offset);
+    void* slot = reinterpret_cast<void*>(field);
+    if (field->AsMirrorPtr() != nullptr) {
+      std::cout << "Object " << obj << " (" << obj->GetClass()->PrettyClass()
+        << ") found slot " << slot << " (" << field->AsMirrorPtr() << " "
+        << field->AsMirrorPtr()->GetClass()->PrettyClass() << ")\n";
+    } else {
+      std::cout << "Object " << obj << " (" << obj->GetClass()->PrettyClass() << ") found slot " << slot << " to nullptr\n";
+    }
+    closure_(slot);
   }
 
-  void operator()(ObjPtr<mirror::Class> klass ATTRIBUTE_UNUSED, ObjPtr<mirror::Reference> ref ATTRIBUTE_UNUSED) const ALWAYS_INLINE
+  void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
       REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
+    void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
+    if (referent_slot != nullptr) {
+      std::cout << "ScanObject DelayReferenceReferent klass " << klass << " ref " << ref
+        << " referent address " << referent_slot << "\n";
+    } else {
+      std::cout << "ScanObject DelayReferenceReferent klass " << klass << " ref " << ref
+        << " referent address nullptr\n";
+    }
     // collector_->DelayReferenceReferent(klass, ref);
+    closure_(referent_slot);
   }
 
   // TODO(kunals): Investigate why VisitRoot() is required for scanning object references
@@ -58,8 +76,11 @@ class MmtkScanObjectVisitor {
 
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
-    std::cout << "ScanObject root = " << root << ", root->AsMirrorPtr() = " << root->AsMirrorPtr() << "\n";
+    std::cout << "ScanObject root = " << root << ", root->AsMirrorPtr() = " << root->AsMirrorPtr()
+      << " (" << root->AsMirrorPtr()->GetClass()->PrettyClass() << ")\n";
     std::cout << "  object size = " << root->AsMirrorPtr()->SizeOf() << "\n";
+    std::cout << "  adding " << root << "\n";
+    closure_(reinterpret_cast<void*>(root));
   }
 
  private:

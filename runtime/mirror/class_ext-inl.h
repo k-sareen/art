@@ -17,6 +17,8 @@
 #ifndef ART_RUNTIME_MIRROR_CLASS_EXT_INL_H_
 #define ART_RUNTIME_MIRROR_CLASS_EXT_INL_H_
 
+#include <iostream>
+
 #include "class_ext.h"
 
 #include "array-inl.h"
@@ -169,6 +171,7 @@ inline ObjPtr<Object> ClassExt::GetOriginalDexFile() {
 template<ReadBarrierOption kReadBarrierOption, bool kVisitProxyMethod, class Visitor>
 void ClassExt::VisitNativeRoots(Visitor& visitor, PointerSize pointer_size) {
   VisitMethods<kReadBarrierOption>([&](ArtMethod* method) {
+    std::cout << "Visiting ClassExt ArtMethod " << reinterpret_cast<void*>(method) << "\n";
     method->VisitRoots<kReadBarrierOption, kVisitProxyMethod>(visitor, pointer_size);
   }, pointer_size);
 }

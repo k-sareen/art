@@ -46,8 +46,8 @@ static void scan_object(void* object, void (*closure)(void* edge)) {
   // state and causing segfaults
   // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
-  std::cout << "Scanning object " << obj << "\n";
-  obj->VisitReferences<true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
+  std::cout << "\nScanning object " << obj << "\n";
+  obj->VisitReferences</* kVisitNativeRoots= */ true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
 }
 
 REQUIRES(art::Roles::uninterruptible_)

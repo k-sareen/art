@@ -48,21 +48,26 @@ inline void Object::VisitReferences(const Visitor& visitor,
       DCHECK(!klass->IsStringClass<kVerifyFlags>());
       if (class_flags == kClassFlagClass) {
         DCHECK((klass->IsClassClass<kVerifyFlags>()));
+        // std::cout << "  object " << this << " kClassFlagClass\n";
         ObjPtr<Class> as_klass = AsClass<kVerifyNone>();
         as_klass->VisitReferences<kVisitNativeRoots, kVerifyFlags, kReadBarrierOption>(klass,
                                                                                        visitor);
       } else if (class_flags == kClassFlagObjectArray) {
+        // std::cout << "  object " << this << " kClassFlagObjectArray\n";
         DCHECK((klass->IsObjectArrayClass<kVerifyFlags>()));
         AsObjectArray<mirror::Object, kVerifyNone>()->VisitReferences(visitor);
       } else if ((class_flags & kClassFlagReference) != 0) {
+        // std::cout << "  object " << this << " kClassFlagReference\n";
         VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
         ref_visitor(klass, AsReference<kVerifyFlags, kReadBarrierOption>());
       } else if (class_flags == kClassFlagDexCache) {
+        // std::cout << "  object " << this << " kClassFlagDexCache\n";
         ObjPtr<mirror::DexCache> const dex_cache = AsDexCache<kVerifyFlags, kReadBarrierOption>();
         dex_cache->VisitReferences<kVisitNativeRoots,
                                    kVerifyFlags,
                                    kReadBarrierOption>(klass, visitor);
       } else {
+        // std::cout << "  object " << this << " ClassLoader\n";
         ObjPtr<mirror::ClassLoader> const class_loader =
             AsClassLoader<kVerifyFlags, kReadBarrierOption>();
         class_loader->VisitReferences<kVisitNativeRoots,

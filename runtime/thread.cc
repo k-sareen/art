@@ -4424,6 +4424,10 @@ void Thread::VisitReflectiveTargets(ReflectiveValueVisitor* visitor) {
 template <bool kPrecise>
 void Thread::VisitRoots(RootVisitor* visitor) {
   const uint32_t thread_id = GetThreadId();
+  std::string thread_name;
+  this->GetThreadName(thread_name);
+  std::cout << "Visiting roots for thread " << this << " tid "
+    << thread_id <<  " name " << thread_name << "\n";
   visitor->VisitRootIfNonNull(&tlsPtr_.opeer, RootInfo(kRootThreadObject, thread_id));
   if (tlsPtr_.exception != nullptr && tlsPtr_.exception != GetDeoptimizationException()) {
     visitor->VisitRoot(reinterpret_cast<mirror::Object**>(&tlsPtr_.exception),

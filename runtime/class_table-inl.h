@@ -26,6 +26,8 @@
 #include "oat_file.h"
 #include "obj_ptr-inl.h"
 
+#include <iostream>
+
 namespace art {
 
 inline ClassTable::TableSlot::TableSlot(ObjPtr<mirror::Class> klass)
@@ -89,16 +91,25 @@ void ClassTable::VisitRoots(Visitor& visitor) {
 template<class Visitor>
 void ClassTable::VisitRoots(const Visitor& visitor) {
   ReaderMutexLock mu(Thread::Current(), lock_);
+  std::cout << "Visiting ClassTable roots " << this << "\n";
   for (ClassSet& class_set : classes_) {
     for (TableSlot& table_slot : class_set) {
+      std::cout << "Visiting table_slot roots " << (void*) &table_slot << "\n";
       table_slot.VisitRoot(visitor);
     }
   }
+  std::cout << "Visiting strong_roots_ roots "
+    << static_cast<void*>(strong_roots_.data()) << "\n";
   for (GcRoot<mirror::Object>& root : strong_roots_) {
+    std::cout << "Visiting strong_roots_ root "
+      << root.AddressWithoutBarrier() << "\n";
     visitor.VisitRoot(root.AddressWithoutBarrier());
   }
   for (const OatFile* oat_file : oat_files_) {
+    std::cout << "Visiting OatFile BSS roots " << oat_file << "\n";
     for (GcRoot<mirror::Object>& root : oat_file->GetBssGcRoots()) {
+      std::cout << "Visiting OatFile BSS root "
+        << root.AddressWithoutBarrier() << "\n";
       visitor.VisitRootIfNonNull(root.AddressWithoutBarrier());
     }
   }

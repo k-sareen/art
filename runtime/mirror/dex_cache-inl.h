@@ -39,6 +39,7 @@
 #include "write_barrier-inl.h"
 
 #include <atomic>
+#include <iostream>
 
 namespace art {
 namespace mirror {
@@ -298,15 +299,19 @@ template <VerifyObjectFlags kVerifyFlags,
           ReadBarrierOption kReadBarrierOption,
           typename Visitor>
 inline void DexCache::VisitNativeRoots(const Visitor& visitor) {
+  std::cout << "Visiting strings DexCachePairs\n";
   VisitDexCachePairs<kReadBarrierOption, Visitor>(
       GetStrings<kVerifyFlags>(), NumStrings<kVerifyFlags>(), visitor);
 
+  std::cout << "Visiting resolved types DexCachePairs\n";
   VisitDexCachePairs<kReadBarrierOption, Visitor>(
       GetResolvedTypes<kVerifyFlags>(), NumResolvedTypes<kVerifyFlags>(), visitor);
 
+  std::cout << "Visiting resolved method types DexCachePairs\n";
   VisitDexCachePairs<kReadBarrierOption, Visitor>(
       GetResolvedMethodTypes<kVerifyFlags>(), NumResolvedMethodTypes<kVerifyFlags>(), visitor);
 
+  std::cout << "Visiting resolved call sites GcRootArray\n";
   GcRootArray<mirror::CallSite>* resolved_call_sites = GetResolvedCallSites<kVerifyFlags>();
   size_t num_call_sites = NumResolvedCallSites<kVerifyFlags>();
   for (size_t i = 0; resolved_call_sites != nullptr && i != num_call_sites; ++i) {
@@ -315,6 +320,7 @@ inline void DexCache::VisitNativeRoots(const Visitor& visitor) {
 
   // Dex cache arrays can be reset and cleared during app startup. Assert we do not get
   // suspended to ensure the arrays are not deallocated.
+  std::cout << "Visiting resolved types GcRootArray\n";
   ScopedAssertNoThreadSuspension soants("dex caches");
   GcRootArray<mirror::Class>* resolved_types = GetResolvedTypesArray<kVerifyFlags>();
   size_t num_resolved_types = NumResolvedTypesArray<kVerifyFlags>();
@@ -322,12 +328,14 @@ inline void DexCache::VisitNativeRoots(const Visitor& visitor) {
     visitor.VisitRootIfNonNull(resolved_types->GetGcRootAddress(i)->AddressWithoutBarrier());
   }
 
+  std::cout << "Visiting resolved strings GcRootArray\n";
   GcRootArray<mirror::String>* resolved_strings = GetStringsArray<kVerifyFlags>();
   size_t num_resolved_strings = NumStringsArray<kVerifyFlags>();
   for (size_t i = 0; resolved_strings != nullptr && i != num_resolved_strings; ++i) {
     visitor.VisitRootIfNonNull(resolved_strings->GetGcRootAddress(i)->AddressWithoutBarrier());
   }
 
+  std::cout << "Visiting resolved method types GcRootArray\n";
   GcRootArray<mirror::MethodType>* resolved_method_types =
       GetResolvedMethodTypesArray<kVerifyFlags>();
   size_t num_resolved_method_types = NumResolvedMethodTypesArray<kVerifyFlags>();

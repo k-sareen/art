@@ -17,6 +17,8 @@
 #ifndef ART_RUNTIME_MIRROR_CLASS_REFVISITOR_INL_H_
 #define ART_RUNTIME_MIRROR_CLASS_REFVISITOR_INL_H_
 
+#include <iostream>
+
 #include "class-inl.h"
 
 #include "art_field-inl.h"
@@ -54,14 +56,18 @@ inline void Class::VisitReferences(ObjPtr<Class> klass, const Visitor& visitor) 
 template<ReadBarrierOption kReadBarrierOption, bool kVisitProxyMethod, class Visitor>
 void Class::VisitNativeRoots(Visitor& visitor, PointerSize pointer_size) {
   VisitFields<kReadBarrierOption>([&](ArtField* field) REQUIRES_SHARED(art::Locks::mutator_lock_) {
+    // std::cout << "Visiting ArtField " << reinterpret_cast<void*>(field) << "\n";
     field->VisitRoots(visitor);
+#if !ART_USE_MMTK
     if (kIsDebugBuild && !gUseUserfaultfd && IsResolved()) {
       CHECK_EQ(field->GetDeclaringClass<kReadBarrierOption>(), this)
           << GetStatus() << field->GetDeclaringClass()->PrettyClass() << " != " << PrettyClass();
     }
+#endif  // !ART_USE_MMTK
   });
   // Don't use VisitMethods because we don't want to hit the class-ext methods twice.
   for (ArtMethod& method : GetMethods(pointer_size)) {
+    // std::cout << "Visiting ArtMethod " << &method << "\n";
     method.VisitRoots<kReadBarrierOption, kVisitProxyMethod>(visitor, pointer_size);
   }
   ObjPtr<ClassExt> ext(GetExtData<kDefaultVerifyFlags, kReadBarrierOption>());
