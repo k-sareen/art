@@ -50,6 +50,8 @@ class ThirdPartyHeap {
   // initialization has ocurred.
   void EnableCollection(Thread* tls);
 
+  size_t GetBytesAllocated();
+
   // Block and suspend mutator thread for GC
   void BlockThreadForCollection(GcCause cause, Thread* self)
     REQUIRES(!*Heap::gc_complete_lock_)
@@ -80,9 +82,7 @@ class ThirdPartyHeap {
       REQUIRES(!Locks::heap_bitmap_lock_, !*Heap::gc_complete_lock_);
 
   // Collect dead objects in heap
-  collector::GcType CollectGarbage(GcCause gc_cause,
-                                   bool clear_soft_references,
-                                   uint32_t requested_gc_num);
+  collector::GcType CollectGarbage(Thread* self, GcCause gc_cause);
 
   void FinishGC(Thread* self);
 
