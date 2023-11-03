@@ -488,7 +488,7 @@ Result<void> AddCacheInfoFd(/*inout*/ CmdlineBuilder& args,
                             const std::string& cache_info_filename) {
   std::unique_ptr<File> cache_info_file(OS::OpenFileForReading(cache_info_filename.c_str()));
   if (cache_info_file == nullptr) {
-    return ErrnoErrorf("Failed to open a cache info file '{}'", cache_info_file);
+    return ErrnoErrorf("Failed to open a cache info file '{}'", cache_info_filename);
   }
 
   args.Add("--cache-info-fd=%d", cache_info_file->Fd());

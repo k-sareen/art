@@ -30,6 +30,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "android-base/format.h"
 #include "android-base/logging.h"
 #include "android-base/parseint.h"
 #include "android-base/result.h"

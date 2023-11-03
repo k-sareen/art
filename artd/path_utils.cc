@@ -237,7 +237,8 @@ Result<std::string> BuildFinalProfilePath(const TmpProfilePath& tmp_profile_path
       // No default. All cases should be explicitly handled, or the compilation will fail.
   }
   // This should never happen. Just in case we get a non-enumerator value.
-  LOG(FATAL) << ART_FORMAT("Unexpected writable profile path type {}", final_path.getTag());
+  LOG(FATAL) << ART_FORMAT("Unexpected writable profile path type {}",
+                           fmt::underlying(final_path.getTag()));
 }
 
 Result<std::string> BuildTmpProfilePath(const TmpProfilePath& tmp_profile_path) {
@@ -270,7 +271,8 @@ Result<std::string> BuildProfileOrDmPath(const ProfilePath& profile_path) {
       // No default. All cases should be explicitly handled, or the compilation will fail.
   }
   // This should never happen. Just in case we get a non-enumerator value.
-  LOG(FATAL) << ART_FORMAT("Unexpected profile path type {}", profile_path.getTag());
+  LOG(FATAL) << ART_FORMAT("Unexpected profile path type {}",
+                           fmt::underlying(profile_path.getTag()));
 }
 
 Result<std::string> BuildVdexPath(const VdexPath& vdex_path) {
