@@ -51,9 +51,9 @@ class ClassTable {
  public:
   class TableSlot {
    public:
-    TableSlot() : data_(0u) {}
+    TableSlot() : klass_(reinterpret_cast<mirror::Class*>(0u)), descriptor_hash_(0u) {}
 
-    TableSlot(const TableSlot& copy) : data_(copy.data_.load(std::memory_order_relaxed)) {}
+    TableSlot(const TableSlot& copy) : klass_(copy.klass_), descriptor_hash_(copy.descriptor_hash_) {}
 
     explicit TableSlot(ObjPtr<mirror::Class> klass);
 
@@ -61,34 +61,19 @@ class ClassTable {
     TableSlot(uint32_t ptr, uint32_t descriptor_hash);
 
     TableSlot& operator=(const TableSlot& copy) {
-      data_.store(copy.data_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+      klass_ = copy.klass_;
+      descriptor_hash_ = copy.descriptor_hash_;
       return *this;
-    }
-
-    uint32_t Data() const {
-      return data_.load(std::memory_order_relaxed);
     }
 
     bool IsNull() const REQUIRES_SHARED(Locks::mutator_lock_);
 
     uint32_t Hash() const {
-      return MaskHash(data_.load(std::memory_order_relaxed));
+      return descriptor_hash_;
     }
 
-    uint32_t NonHashData() const {
-      return RemoveHash(Data());
-    }
-
-    static uint32_t RemoveHash(uint32_t hash) {
-      return hash & ~kHashMask;
-    }
-
-    static uint32_t MaskHash(uint32_t hash) {
-      return hash & kHashMask;
-    }
-
-    bool MaskedHashEquals(uint32_t other) const {
-      return MaskHash(other) == Hash();
+    uint32_t KlassPointer() const REQUIRES_SHARED(Locks::mutator_lock_) {
+      return reinterpret_cast32<uint32_t>(klass_.Read<kWithoutReadBarrier>());
     }
 
     template<ReadBarrierOption kReadBarrierOption = kWithReadBarrier>
@@ -102,15 +87,20 @@ class ClassTable {
     class ClassAndRootVisitor;
 
    private:
-    // Extract a raw pointer from an address.
-    static ObjPtr<mirror::Class> ExtractPtr(uint32_t data)
-        REQUIRES_SHARED(Locks::mutator_lock_);
+    // XXX(kunals): Had to split the descriptor hash and class pointer as MMTk.
+    // Previously only the last three bits of the descriptor hash were used.
+    // Those bits were encoded into the last three bits of the class pointer.
+    // Hence, this implementation has an extra byte overhead.
+    // Previously ART would copy the class pointer to a local variable on the
+    // stack and then visit the root. This is incompatible with MMTk as the same
+    // slot (i.e. stack address) would be used for different roots.
+    // One possibility is to not move these objects, hence we would never have
+    // to update the class pointer.
 
-    static uint32_t Encode(ObjPtr<mirror::Class> klass, uint32_t hash_bits)
-        REQUIRES_SHARED(Locks::mutator_lock_);
-
-    // Data contains the class pointer GcRoot as well as the low bits of the descriptor hash.
-    mutable Atomic<uint32_t> data_;
+    // Class pointer
+    GcRoot<mirror::Class> klass_;
+    // Hash of class descriptor. Used as the hash for the `ClassSet` HashSet
+    uint8_t descriptor_hash_;
     static constexpr uint32_t kHashMask = kObjectAlignment - 1;
   };
 
