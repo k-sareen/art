@@ -4289,6 +4289,26 @@ void IntrinsicCodeGeneratorRISCV64::VisitThreadCurrentThread(HInvoke* invoke) {
   __ Loadwu(out, TR, Thread::PeerOffset<kRiscv64PointerSize>().Int32Value());
 }
 
+void IntrinsicLocationsBuilderRISCV64::VisitThreadInterrupted(HInvoke* invoke) {
+  LocationSummary* locations =
+      new (allocator_) LocationSummary(invoke, LocationSummary::kNoCall, kIntrinsified);
+  locations->SetOut(Location::RequiresRegister());
+}
+
+void IntrinsicCodeGeneratorRISCV64::VisitThreadInterrupted(HInvoke* invoke) {
+  LocationSummary* locations = invoke->GetLocations();
+  Riscv64Assembler* assembler = GetAssembler();
+  XRegister out = locations->Out().AsRegister<XRegister>();
+  Riscv64Label done;
+
+  codegen_->GenerateMemoryBarrier(MemBarrierKind::kAnyAny);
+  __ Loadw(out, TR, Thread::InterruptedOffset<kRiscv64PointerSize>().Int32Value());
+  __ Beqz(out, &done);
+  __ Storew(Zero, TR, Thread::InterruptedOffset<kRiscv64PointerSize>().Int32Value());
+  codegen_->GenerateMemoryBarrier(MemBarrierKind::kAnyAny);
+  __ Bind(&done);
+}
+
 void IntrinsicLocationsBuilderRISCV64::VisitReachabilityFence(HInvoke* invoke) {
   LocationSummary* locations =
       new (allocator_) LocationSummary(invoke, LocationSummary::kNoCall, kIntrinsified);
