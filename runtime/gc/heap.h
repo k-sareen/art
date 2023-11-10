@@ -153,7 +153,12 @@ class Heap {
   static constexpr double kDefaultTargetUtilization = 0.75;
   static constexpr double kDefaultHeapGrowthMultiplier = 2.0;
   // Primitive arrays larger than this size are put in the large object space.
+  #if !ART_USE_MMTK
   static constexpr size_t kMinLargeObjectThreshold = 3 * kPageSize;
+  #else
+  // TODO(kunals): Max non-LOS alloc bytes
+  static constexpr size_t kMinLargeObjectThreshold = 4 * kPageSize;
+  #endif  // !ART_USE_MMTK
   static constexpr size_t kDefaultLargeObjectThreshold = kMinLargeObjectThreshold;
   // Whether or not parallel GC is enabled. If not, then we never create the thread pool.
   static constexpr bool kDefaultEnableParallelGC = true;

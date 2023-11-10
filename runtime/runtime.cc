@@ -1647,8 +1647,12 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
                        GetBootClassPathOatFds(),
                        image_locations_,
                        instruction_set_,
+#if ART_USE_MMTK
+                       gc::kCollectorTypeThirdPartyHeap,
+#else
                        // Override the collector type to CC if the read barrier config.
                        gUseReadBarrier ? gc::kCollectorTypeCC : xgc_option.collector_type_,
+#endif  // ART_USE_MMTK
                        background_gc,
                        runtime_options.GetOrDefault(Opt::LargeObjectSpace),
                        runtime_options.GetOrDefault(Opt::LargeObjectThreshold),

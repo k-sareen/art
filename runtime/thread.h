@@ -930,6 +930,28 @@ class Thread {
   }
 
   template<PointerSize pointer_size>
+  static constexpr ThreadOffset<pointer_size> MmtkThreadLocalCursorOffset() {
+#if ART_USE_MMTK
+    return ThreadOffsetFromTlsPtr<pointer_size>(
+        OFFSETOF_MEMBER(tls_ptr_sized_values, mmtk_default_bump_pointer)
+          + OFFSETOF_MEMBER(MmtkBumpPointer, cursor));
+#else
+    return 0;
+#endif  // ART_USE_MMTK
+  }
+
+  template<PointerSize pointer_size>
+  static constexpr ThreadOffset<pointer_size> MmtkThreadLocalLimitOffset() {
+#if ART_USE_MMTK
+    return ThreadOffsetFromTlsPtr<pointer_size>(
+        OFFSETOF_MEMBER(tls_ptr_sized_values, mmtk_default_bump_pointer)
+          + OFFSETOF_MEMBER(MmtkBumpPointer, limit));
+#else
+    return 0;
+#endif  // ART_USE_MMTK
+  }
+
+  template<PointerSize pointer_size>
   static constexpr ThreadOffset<pointer_size> ThreadLocalObjectsOffset() {
     return ThreadOffsetFromTlsPtr<pointer_size>(OFFSETOF_MEMBER(tls_ptr_sized_values,
                                                                 thread_local_objects));
@@ -1272,25 +1294,64 @@ class Thread {
 #endif  // ART_USE_MMTK
   }
 
+  MmtkBumpPointer GetMmtkBumpPointerValues() const {
+#if ART_USE_MMTK
+    return tlsPtr_.mmtk_default_bump_pointer;
+#else
+    return MmtkBumpPointer {};
+#endif  // ART_USE_MMTK
+  }
+
+  void SetMmtkBumpPointerValues(MmtkBumpPointer bump_pointer) {
+#if ART_USE_MMTK
+    tlsPtr_.mmtk_default_bump_pointer.cursor = bump_pointer.cursor;
+    tlsPtr_.mmtk_default_bump_pointer.limit = bump_pointer.limit;
+#endif  // ART_USE_MMTK
+  }
+
+  size_t GetMmtkRemainingTlabSpace() const {
+#if ART_USE_MMTK
+    return ((uint8_t*) tlsPtr_.mmtk_default_bump_pointer.limit)
+        - ((uint8_t*) tlsPtr_.mmtk_default_bump_pointer.cursor);
+#else
+    return 0;
+#endif  // ART_USE_MMTK
+  }
+
+  // Doesn't check that there is room.
+  mirror::Object* MmtkAllocTlab(size_t bytes);
+
   void ResetQuickAllocEntryPointsForThread();
 
   // Returns the remaining space in the TLAB.
   size_t TlabSize() const {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_end - tlsPtr_.thread_local_pos;
   }
 
   // Returns pos offset from start.
   size_t GetTlabPosOffset() const {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_pos - tlsPtr_.thread_local_start;
   }
 
   // Returns the remaining space in the TLAB if we were to expand it to maximum capacity.
   size_t TlabRemainingCapacity() const {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_limit - tlsPtr_.thread_local_pos;
   }
 
   // Expand the TLAB by a fixed number of bytes. There must be enough capacity to do so.
   void ExpandTlab(size_t bytes) {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     tlsPtr_.thread_local_end += bytes;
     DCHECK_LE(tlsPtr_.thread_local_end, tlsPtr_.thread_local_limit);
   }
@@ -1305,12 +1366,21 @@ class Thread {
   bool HasTlab() const;
   void ResetTlab();
   uint8_t* GetTlabStart() {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_start;
   }
   uint8_t* GetTlabPos() {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_pos;
   }
   uint8_t* GetTlabEnd() {
+#if ART_USE_MMTK
+    DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_end;
   }
   // Remove the suspend trigger for this thread by making the suspend_trigger_ TLS value
@@ -1973,6 +2043,7 @@ class Thread {
                                thread_local_alloc_stack_end(nullptr),
 #if ART_USE_MMTK
                                mmtk_mutator(nullptr),
+                               mmtk_default_bump_pointer(MmtkBumpPointer {}),
 #endif  // ART_USE_MMTK
                                mutator_lock(nullptr),
                                flip_function(nullptr),
@@ -2117,6 +2188,7 @@ class Thread {
 
 #if ART_USE_MMTK
     MmtkMutator mmtk_mutator;
+    MmtkBumpPointer mmtk_default_bump_pointer;
 #endif  // ART_USE_MMTK
 
     // Pointer to the mutator lock.

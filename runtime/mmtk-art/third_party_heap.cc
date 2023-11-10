@@ -28,7 +28,10 @@ namespace art {
 namespace gc {
 namespace third_party_heap {
 
-ThirdPartyHeap::ThirdPartyHeap(size_t initial_size, size_t capacity) {
+ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
+                               size_t capacity,
+                               bool use_tlab)
+                            : use_tlab_(use_tlab) {
   mmtk_set_heap_size(initial_size, capacity);
   mmtk_init(&art_upcalls);
   // We create and start the companion thread in EnableCollection
@@ -51,9 +54,9 @@ void ThirdPartyHeap::BlockThreadForCollection(GcCause cause, Thread* self) {
   Heap* heap = Runtime::Current()->GetHeap();
   {
     MutexLock mu(self, *(heap->gc_complete_lock_));
-    // Set the collector_type_running_ to kCollectorThirdPartyHeap so that
+    // Set the collector_type_running_ to kCollectorTypeThirdPartyHeap so that
     // Heap::WaitForGcToComplete will wait until GC has finished
-    heap->collector_type_running_ = kCollectorThirdPartyHeap;
+    heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
     heap->last_gc_cause_ = cause;
   }
   heap->WaitForGcToComplete(cause, self);
@@ -68,18 +71,37 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               size_t* bytes_allocated,
                                               size_t* usable_size,
                                               size_t* bytes_tl_bulk_allocated) {
-  // Have to round up allocation size in order to make sure that object starting
-  // addresses are aligned
-  alloc_size = RoundUp(alloc_size, kObjectAlignment);
-  AllocationSemantics semantics = alloc_size <= 16384 ? AllocatorDefault : AllocatorLos;
+  AllocationSemantics semantics = (
+    alloc_size < Heap::kMinLargeObjectThreshold ?
+      AllocatorDefault :
+      AllocatorLos
+  );
+
+  MmtkMutator mmtk_mutator = self->GetMmtkMutator();
+  DCHECK(mmtk_mutator != nullptr) << "mmtk_mutator for thread " << self << " is nullptr!";
+
+  bool using_tlab = semantics == AllocatorDefault && use_tlab_;
+  if (using_tlab) {
+    mmtk_set_default_thread_local_cursor_limit(mmtk_mutator, self->GetMmtkBumpPointerValues());
+  }
+
   uint8_t* ret = (uint8_t *) mmtk_alloc(
-    self->GetMmtkMutator(),
+    mmtk_mutator,
     alloc_size,
     kObjectAlignment,
     /* offset= */ 0,
     semantics
   );
-  mmtk_post_alloc(self->GetMmtkMutator(), ret, alloc_size, semantics);
+
+  if (using_tlab) {
+    self->SetMmtkBumpPointerValues(
+      mmtk_get_default_thread_local_cursor_limit(mmtk_mutator)
+    );
+  }
+
+  // XXX(kunals): If we actually add per-object metadata then we need to inline
+  // this call everywhere
+  mmtk_post_alloc(mmtk_mutator, ret, alloc_size, semantics);
   if (LIKELY(ret != nullptr)) {
     *bytes_allocated = alloc_size;
     *usable_size = alloc_size;

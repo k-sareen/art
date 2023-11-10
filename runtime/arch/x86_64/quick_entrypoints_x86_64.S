@@ -922,6 +922,7 @@ END_MACRO
 MACRO1(ALLOC_OBJECT_INITIALIZED_TLAB_FAST_PATH, slowPathLabel)
     movq %gs:THREAD_SELF_OFFSET, %r8                           // r8 = thread
     movl MIRROR_CLASS_OBJECT_SIZE_ALLOC_FAST_PATH_OFFSET(%rdi), %ecx // Load the object size.
+#if !ART_USE_MMTK
     movq THREAD_LOCAL_POS_OFFSET(%r8), %rax
     addq %rax, %rcx                                            // Add size to pos, note that these
                                                                // are both 32 bit ints, overflow
@@ -931,6 +932,13 @@ MACRO1(ALLOC_OBJECT_INITIALIZED_TLAB_FAST_PATH, slowPathLabel)
     ja   RAW_VAR(slowPathLabel)
     movq %rcx, THREAD_LOCAL_POS_OFFSET(%r8)                    // Update thread_local_pos.
     incq THREAD_LOCAL_OBJECTS_OFFSET(%r8)                      // Increase thread_local_objects.
+#else
+    movq MMTK_THREAD_LOCAL_CURSOR_OFFSET(%r8), %rax
+    addq %rax, %rcx
+    cmpq MMTK_THREAD_LOCAL_LIMIT_OFFSET(%r8), %rcx
+    ja   RAW_VAR(slowPathLabel)
+    movq %rcx, MMTK_THREAD_LOCAL_CURSOR_OFFSET(%r8)
+#endif  // !ART_USE_MMTK
                                                                // Store the class pointer in the
                                                                // header.
                                                                // No fence needed for x86.
@@ -947,12 +955,20 @@ MACRO1(ALLOC_ARRAY_TLAB_FAST_PATH_RESOLVED_WITH_SIZE, slowPathLabel)
     movq %gs:THREAD_SELF_OFFSET, %rcx                          // rcx = thread
     // Mask out the unaligned part to make sure we are 8 byte aligned.
     andq LITERAL(OBJECT_ALIGNMENT_MASK_TOGGLED64), %r9
+#if !ART_USE_MMTK
     movq THREAD_LOCAL_POS_OFFSET(%rcx), %rax
     addq %rax, %r9
     cmpq THREAD_LOCAL_END_OFFSET(%rcx), %r9                    // Check if it fits.
     ja   RAW_VAR(slowPathLabel)
     movq %r9, THREAD_LOCAL_POS_OFFSET(%rcx)                    // Update thread_local_pos.
     addq LITERAL(1), THREAD_LOCAL_OBJECTS_OFFSET(%rcx)         // Increase thread_local_objects.
+#else
+    movq MMTK_THREAD_LOCAL_CURSOR_OFFSET(%rcx), %rax
+    addq %rax, %r9
+    cmpq MMTK_THREAD_LOCAL_LIMIT_OFFSET(%rcx), %r9
+    ja   RAW_VAR(slowPathLabel)
+    movq %r9, MMTK_THREAD_LOCAL_CURSOR_OFFSET(%rcx)
+#endif  // !ART_USE_MMTK
                                                                // Store the class pointer in the
                                                                // header.
                                                                // No fence needed for x86.

@@ -429,7 +429,7 @@ Heap::Heap(size_t initial_size,
   UNUSED(kMemMapSpaceName);
   UNUSED(kZygoteSpaceName);
   UNUSED(kRegionSpaceName);
-  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_, capacity));
+  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_, capacity, use_tlab_));
 #else
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (!gUseUserfaultfd) {
@@ -452,12 +452,17 @@ Heap::Heap(size_t initial_size,
   }
 #endif  // ART_USE_MMTK
   verification_.reset(new Verification(this));
+  // TODO(kunals): Max non-LOS alloc bytes
   CHECK_GE(large_object_threshold, kMinLargeObjectThreshold);
   ScopedTrace trace(__FUNCTION__);
   Runtime* const runtime = Runtime::Current();
   // If we aren't the zygote, switch to the default non zygote allocator. This may update the
   // entrypoints.
   const bool is_zygote = runtime->IsZygote();
+#if ART_USE_MMTK
+  // Set the background collector type to be third party heap
+  background_collector_type_ = kCollectorTypeThirdPartyHeap;
+#else
   if (!is_zygote) {
     // Background compaction is currently not supported for command line runs.
     if (background_collector_type_ != foreground_collector_type_) {
@@ -465,15 +470,20 @@ Heap::Heap(size_t initial_size,
       background_collector_type_ = foreground_collector_type_;
     }
   }
+#endif  // ART_USE_MMTK
   ChangeCollector(desired_collector_type_);
+#if !ART_USE_MMTK
   live_bitmap_.reset(new accounting::HeapBitmap(this));
   mark_bitmap_.reset(new accounting::HeapBitmap(this));
+#endif  // !ART_USE_MMTK
 
   // We don't have hspace compaction enabled with CC.
   if (foreground_collector_type_ == kCollectorTypeCC
-      || foreground_collector_type_ == kCollectorTypeCMC) {
+      || foreground_collector_type_ == kCollectorTypeCMC
+      || foreground_collector_type_ == kCollectorTypeThirdPartyHeap) {
     use_homogeneous_space_compaction_for_oom_ = false;
   }
+#if !ART_USE_MMTK
   bool support_homogeneous_space_compaction =
       background_collector_type_ == gc::kCollectorTypeHomogeneousSpaceCompact ||
       use_homogeneous_space_compaction_for_oom_;
@@ -484,6 +494,11 @@ Heap::Heap(size_t initial_size,
   bool separate_non_moving_space = is_zygote ||
       support_homogeneous_space_compaction || IsMovingGc(foreground_collector_type_) ||
       IsMovingGc(background_collector_type_);
+#else
+  // TODO(kunals): Need to refactor this for MMTk -- need to ensure that the
+  // non-moving space is next to Zygote
+  bool separate_non_moving_space = is_zygote || true;
+#endif  // !ART_USE_MMTK
 
   // Requested begin for the alloc space, to follow the mapped image and oat files
   uint8_t* request_begin = nullptr;
@@ -557,10 +572,10 @@ Heap::Heap(size_t initial_size,
                                      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
   */
 
+#if !ART_USE_MMTK
   MemMap main_mem_map_1;
   MemMap main_mem_map_2;
 
-#if !ART_USE_MMTK
   std::string error_str;
   MemMap non_moving_space_mem_map;
   if (separate_non_moving_space) {
@@ -2341,12 +2356,20 @@ void Heap::ChangeCollector(CollectorType collector_type) {
         ChangeAllocator(kUseRosAlloc ? kAllocatorTypeRosAlloc : kAllocatorTypeDlMalloc);
         break;
       }
+      case kCollectorTypeThirdPartyHeap: {
+        if (use_tlab_) {
+          ChangeAllocator(kAllocatorTypeTLAB);
+        }
+        break;
+      }
       default: {
         UNIMPLEMENTED(FATAL);
         UNREACHABLE();
       }
     }
+#if !ART_USE_MMTK
     SetDefaultConcurrentStartBytesLocked();
+#endif  // !ART_USE_MMTK
   }
 }
 

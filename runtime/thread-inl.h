@@ -377,11 +377,28 @@ inline ThreadState Thread::TransitionFromSuspendedToRunnable() {
 }
 
 inline mirror::Object* Thread::AllocTlab(size_t bytes) {
+#if ART_USE_MMTK
+  DCHECK(false) << "Should not use AllocTlab when using MMTk!";
+#endif  // ART_USE_MMTK
   DCHECK_GE(TlabSize(), bytes);
   ++tlsPtr_.thread_local_objects;
   mirror::Object* ret = reinterpret_cast<mirror::Object*>(tlsPtr_.thread_local_pos);
   tlsPtr_.thread_local_pos += bytes;
   return ret;
+}
+
+inline mirror::Object* Thread::MmtkAllocTlab(size_t bytes) {
+#if ART_USE_MMTK
+  DCHECK_GE(GetMmtkRemainingTlabSpace(), bytes);
+  mirror::Object* ret = reinterpret_cast<mirror::Object*>(
+    tlsPtr_.mmtk_default_bump_pointer.cursor
+  );
+  tlsPtr_.mmtk_default_bump_pointer.cursor =
+    ((uint8_t*) tlsPtr_.mmtk_default_bump_pointer.cursor) + bytes;
+  return ret;
+#else
+  return nullptr;
+#endif  // ART_USE_MMTK
 }
 
 inline bool Thread::PushOnThreadLocalAllocationStack(mirror::Object* obj) {

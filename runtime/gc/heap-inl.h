@@ -101,8 +101,25 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     pre_object_allocated();
     ScopedAssertNoThreadSuspension ants("Called PreObjectAllocated, no suspend until alloc");
 
-    obj = tp_heap_->TryToAllocate(self, byte_count, &bytes_allocated,
-                                    &usable_size, &bytes_tl_bulk_allocated);
+    // Have to round up allocation size in order to make sure that object starting
+    // addresses are aligned
+    byte_count = RoundUp(byte_count, kObjectAlignment);
+    bool tlab_alloc_succeeded = false;
+    if (use_tlab_ && byte_count < large_object_threshold_) {
+      if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
+        obj = self->MmtkAllocTlab(byte_count);
+        DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";
+        bytes_allocated = byte_count;
+        usable_size = byte_count;
+        tlab_alloc_succeeded = true;
+      }
+    }
+
+    if (!tlab_alloc_succeeded) {
+      obj = tp_heap_->TryToAllocate(self, byte_count, &bytes_allocated,
+                                      &usable_size, &bytes_tl_bulk_allocated);
+    }
+
     obj->SetClass(klass);
     // XXX(kunals): Is this required?
     no_suspend_pre_fence_visitor(obj, usable_size);

@@ -4073,11 +4073,12 @@ class ReferenceMapVisitor : public StackVisitor {
     for (size_t reg = 0; reg < num_regs; ++reg) {
       mirror::Object* ref = shadow_frame->GetVRegReference(reg);
       if (ref != nullptr) {
-        // mirror::Object* new_ref = ref;
-        // visitor_((mirror::Object**) &(shadow_frame->References()[reg]), reg, this);
-        // if (new_ref != ref) {
-        //   shadow_frame->SetVRegReference(reg, new_ref);
-        // }
+#if ART_USE_MMTK
+      // mirror::Object** slot = reinterpret_cast<mirror::Object**>(
+      //   &(shadow_frame->References()[reg])
+      // );
+      // visitor_(slot, reg, this);
+#endif  // ART_USE_MMTK
         mirror::Object* new_ref = ref;
         visitor_(&new_ref, reg, this);
         if (new_ref != ref) {
@@ -4126,6 +4127,7 @@ class ReferenceMapVisitor : public StackVisitor {
           }
         }
       }
+      // TODO(kunals): Refactor to avoid reusing slot(s) for MMTk
       mirror::Object* new_ref = klass.Ptr();
       visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kMethodDeclaringClass, this);
       if (new_ref != klass) {
@@ -4609,6 +4611,9 @@ void Thread::SetStackEndForStackOverflow() {
 }
 
 void Thread::SetTlab(uint8_t* start, uint8_t* end, uint8_t* limit) {
+#if ART_USE_MMTK
+  DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
   DCHECK_LE(start, end);
   DCHECK_LE(end, limit);
   tlsPtr_.thread_local_start = start;
@@ -4619,7 +4624,7 @@ void Thread::SetTlab(uint8_t* start, uint8_t* end, uint8_t* limit) {
 }
 
 void Thread::ResetTlab() {
-  // Only reset TLAB when not using MMTk. MMTk manages its own TLABs
+  // XXX(kunals): Only reset TLAB when not using MMTk. MMTk manages its own TLABs
 #if !ART_USE_MMTK
   gc::Heap* const heap = Runtime::Current()->GetHeap();
   if (heap->GetHeapSampler().IsEnabled()) {
@@ -4635,6 +4640,9 @@ void Thread::ResetTlab() {
 }
 
 bool Thread::HasTlab() const {
+#if ART_USE_MMTK
+  return true;
+#else
   const bool has_tlab = tlsPtr_.thread_local_pos != nullptr;
   if (has_tlab) {
     DCHECK(tlsPtr_.thread_local_start != nullptr && tlsPtr_.thread_local_end != nullptr);
@@ -4642,9 +4650,13 @@ bool Thread::HasTlab() const {
     DCHECK(tlsPtr_.thread_local_start == nullptr && tlsPtr_.thread_local_end == nullptr);
   }
   return has_tlab;
+#endif  // ART_USE_MMTK
 }
 
 void Thread::AdjustTlab(size_t slide_bytes) {
+#if ART_USE_MMTK
+  DCHECK(false) << "Should not use Tlab when using MMTk!";
+#endif  // ART_USE_MMTK
   if (HasTlab()) {
     tlsPtr_.thread_local_start -= slide_bytes;
     tlsPtr_.thread_local_pos -= slide_bytes;
