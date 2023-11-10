@@ -45,6 +45,14 @@ void ThirdPartyHeap::EnableCollection(Thread* tls) {
   mmtk_initialize_collection(tls);
 }
 
+size_t ThirdPartyHeap::GetTotalMemory() {
+  return mmtk_get_total_bytes();
+}
+
+size_t ThirdPartyHeap::GetFreeMemory() {
+  return mmtk_get_free_bytes();
+}
+
 size_t ThirdPartyHeap::GetBytesAllocated() {
   return mmtk_get_used_bytes();
 }

@@ -52,6 +52,13 @@ class ThirdPartyHeap {
   // initialization has ocurred.
   void EnableCollection(Thread* tls);
 
+  // Return total bytes available to the runtime
+  size_t GetTotalMemory();
+
+  // Return free bytes
+  size_t GetFreeMemory();
+
+  // Return bytes allocated
   size_t GetBytesAllocated();
 
   // Block and suspend mutator thread for GC

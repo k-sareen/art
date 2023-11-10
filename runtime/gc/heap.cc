@@ -4546,8 +4546,8 @@ inline void Heap::CheckGCForNative(Thread* self) {
   size_t current_native_bytes = GetNativeBytes();
 #if ART_USE_MMTK
   if (current_native_bytes + tp_heap_->GetBytesAllocated() >= capacity_) {
-    std::cout << "CheckGCForNative " << current_native_bytes + tp_heap_->GetBytesAllocated()
-      << " >= " << capacity_ << "\n";
+    // std::cout << "CheckGCForNative " << current_native_bytes + tp_heap_->GetBytesAllocated()
+    //   << " >= " << capacity_ << "\n";
     tp_heap_->CollectGarbage(self, kGcCauseForNativeAlloc);
   }
 #else
@@ -4600,8 +4600,8 @@ void Heap::RegisterNativeAllocation(JNIEnv* env, size_t bytes) {
   std::string temp;
   Thread* self = Thread::ForEnv(env);
   self->GetThreadName(temp);
-  std::cout << "RegisterNativeAllocation " << self << " " << temp
-    << " bytes " << bytes << "\n";
+  // std::cout << "RegisterNativeAllocation " << self << " " << temp
+  //   << " bytes " << bytes << "\n";
 
   // Cautiously check for a wrapped negative bytes argument.
   DCHECK(sizeof(size_t) < 8 || bytes < (std::numeric_limits<size_t>::max() / 2));
@@ -4625,8 +4625,8 @@ void Heap::RegisterNativeFree(JNIEnv* env, size_t bytes) {
   std::string temp;
   Thread* self = Thread::ForEnv(env);
   self->GetThreadName(temp);
-  std::cout << "RegisterNativeFree " << self << " " << temp
-    << " bytes " << bytes << "\n";
+  // std::cout << "RegisterNativeFree " << self << " " << temp
+  //   << " bytes " << bytes << "\n";
 
   do {
     allocated = native_bytes_registered_.load(std::memory_order_relaxed);
@@ -4638,8 +4638,21 @@ void Heap::RegisterNativeFree(JNIEnv* env, size_t bytes) {
                                                               allocated - new_freed_bytes));
 }
 
+size_t Heap::GetFreeMemory() const {
+#if ART_USE_MMTK
+  return tp_heap_->GetFreeMemory();
+#else
+  return UnsignedDifference(GetTotalMemory(),
+                            num_bytes_allocated_.load(std::memory_order_relaxed));
+#endif  // ART_USE_MMTK
+}
+
 size_t Heap::GetTotalMemory() const {
+#if ART_USE_MMTK
+  return tp_heap_->GetTotalMemory();
+#else
   return std::max(target_footprint_.load(std::memory_order_relaxed), GetBytesAllocated());
+#endif  // ART_USE_MMTK
 }
 
 void Heap::AddModUnionTable(accounting::ModUnionTable* mod_union_table) {
