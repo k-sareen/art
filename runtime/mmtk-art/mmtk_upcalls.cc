@@ -96,10 +96,23 @@ static void stop_all_mutators() {
   companion->Request(art::StwState::Suspended);
 }
 
-static void resume_mutators() {
-  art::Thread* self = art::Thread::Current();
+REQUIRES(!art::Locks::thread_list_lock_)
+static void resume_mutators(void* tls) {
+  art::Thread* self = reinterpret_cast<art::Thread*>(tls);
+  art::Runtime* runtime = art::Runtime::Current();
+  {
+    art::MutexLock mu(self, *art::Locks::thread_list_lock_);
+
+    // XXX(kunals): After a GC we need to reset the TLAB cursor and limit to 0
+    // to reflect the allocator reset in release_mutator. Fix after
+    // https://github.com/mmtk/mmtk-core/issues/1017
+    runtime->GetThreadList()->ForEach([](art::Thread* thread) {
+      thread->SetMmtkBumpPointerValues(MmtkBumpPointer {});
+    });
+  }
+
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
-    art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+    runtime->GetHeap()->GetThirdPartyHeap();
 
   art::MmtkVmCompanionThread* companion =
     reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());

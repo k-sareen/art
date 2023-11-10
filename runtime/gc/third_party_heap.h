@@ -42,7 +42,9 @@ namespace third_party_heap {
 // API for a ThirdPartyHeap
 class ThirdPartyHeap {
  public:
-  ThirdPartyHeap(size_t initial_size, size_t capacity);
+  ThirdPartyHeap(size_t initial_size,
+                 size_t capacity,
+                 bool use_tlab);
 
   ~ThirdPartyHeap();
 
@@ -92,6 +94,7 @@ class ThirdPartyHeap {
 
  private:
   void* companion_thread_;
+  const bool use_tlab_;
 };
 
 class ThirdPartyHeapRootVisitor : public RootVisitor {

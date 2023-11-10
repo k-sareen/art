@@ -40,8 +40,6 @@ static ALWAYS_INLINE inline mirror::Object* artAllocObjectFromCode(
     Thread* self) REQUIRES_SHARED(Locks::mutator_lock_) {
   ScopedQuickEntrypointChecks sqec(self);
   DCHECK(klass != nullptr);
-  // XXX(kunals): Investigate how to inline MMTk's object allocation fastpath
-  // into the quick_entrypoints
 #if !ART_USE_MMTK
   if (kUseTlabFastPath &&
       !kWithChecks &&
@@ -65,7 +63,18 @@ static ALWAYS_INLINE inline mirror::Object* artAllocObjectFromCode(
     }
   }
 #else
-  UNUSED(kUseTlabFastPath);
+  if (kUseTlabFastPath && !kWithChecks && !kInstrumented) {
+    size_t byte_count = klass->GetObjectSizeAllocFastPath();
+    if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
+      DCHECK_ALIGNED(byte_count, kObjectAlignment);
+      mirror::Object* obj = self->MmtkAllocTlab(byte_count);
+      DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";
+      DCHECK_ALIGNED(obj, kObjectAlignment) << "Object " << obj << " is not aligned!";
+      obj->SetClass(klass);
+      QuasiAtomic::ThreadFenceForConstructor();
+      return obj;
+    }
+  }
 #endif  // !ART_USE_MMTK
   if (kInitialized) {
     return AllocObjectFromCodeInitialized<kInstrumented>(klass, self, allocator_type).Ptr();
@@ -237,7 +246,9 @@ void ResetQuickAllocEntryPoints(QuickEntryPoints* qpoints) {
       return;
     }
     case gc::kAllocatorTypeTLAB: {
+#if !ART_USE_MMTK
       CHECK(kMovingCollector);
+#endif  // !ART_USE_MMTK
       SetQuickAllocEntryPoints_tlab(qpoints, entry_points_instrumented);
       return;
     }
