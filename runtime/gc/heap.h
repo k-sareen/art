@@ -620,10 +620,7 @@ class Heap {
 
   // Returns how much free memory we have until we need to grow the heap to perform an allocation.
   // Similar to GetFreeMemoryUntilGC. Implements java.lang.Runtime.freeMemory.
-  size_t GetFreeMemory() const {
-    return UnsignedDifference(GetTotalMemory(),
-                              num_bytes_allocated_.load(std::memory_order_relaxed));
-  }
+  size_t GetFreeMemory() const;
 
   // Get the space that corresponds to an object's address. Current implementation searches all
   // spaces in turn. If fail_ok is false then failing to find a space will cause an abort.

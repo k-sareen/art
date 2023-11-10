@@ -1304,8 +1304,7 @@ class Thread {
 
   void SetMmtkBumpPointerValues(MmtkBumpPointer bump_pointer) {
 #if ART_USE_MMTK
-    tlsPtr_.mmtk_default_bump_pointer.cursor = bump_pointer.cursor;
-    tlsPtr_.mmtk_default_bump_pointer.limit = bump_pointer.limit;
+    tlsPtr_.mmtk_default_bump_pointer = bump_pointer;
 #endif  // ART_USE_MMTK
   }
 
