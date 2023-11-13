@@ -96,8 +96,12 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   MmtkMutator mmtk_mutator = self->GetMmtkMutator();
   DCHECK(mmtk_mutator != nullptr) << "mmtk_mutator for thread " << self << " is nullptr!";
 
-  bool using_tlab = semantics == AllocatorDefault && use_tlab_;
-  if (using_tlab) {
+  // XXX(kunals): We don't check if the semantics are `AllocatorDefault` since
+  // the NoGC plan does not use a separate non-moving space and hence always
+  // uses the TLAB regardless of object allocation. This may increase the
+  // overhead of this function. Evaluate how many non-moving objects exist and
+  // if there is a perceivable overhead in the allocation rate
+  if (use_tlab_) {
     mmtk_set_default_thread_local_cursor_limit(mmtk_mutator, self->GetMmtkBumpPointerValues());
   }
 
@@ -109,7 +113,7 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
     semantics
   );
 
-  if (using_tlab) {
+  if (use_tlab_) {
     self->SetMmtkBumpPointerValues(
       mmtk_get_default_thread_local_cursor_limit(mmtk_mutator)
     );
