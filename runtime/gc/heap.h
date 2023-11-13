@@ -1165,7 +1165,8 @@ class Heap {
         collector_type == kCollectorTypeCMC ||
         collector_type == kCollectorTypeCCBackground ||
         collector_type == kCollectorTypeCMCBackground ||
-        collector_type == kCollectorTypeHomogeneousSpaceCompact;
+        collector_type == kCollectorTypeHomogeneousSpaceCompact ||
+        collector_type == kCollectorTypeThirdPartyHeap;
   }
   bool ShouldAllocLargeObject(ObjPtr<mirror::Class> c, size_t byte_count) const
       REQUIRES_SHARED(Locks::mutator_lock_);

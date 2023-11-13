@@ -74,16 +74,24 @@ bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
   return mmtk_is_object_in_heap_space(addr);
 }
 
+bool ThirdPartyHeap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
+  return mmtk_is_object_movable(obj.Ptr());
+}
+
 mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               size_t alloc_size,
+                                              bool non_moving,
                                               size_t* bytes_allocated,
                                               size_t* usable_size,
                                               size_t* bytes_tl_bulk_allocated) {
-  AllocationSemantics semantics = (
-    alloc_size < Heap::kMinLargeObjectThreshold ?
-      AllocatorDefault :
-      AllocatorLos
-  );
+  AllocationSemantics semantics = AllocatorDefault;
+  if (non_moving) {
+    semantics = AllocatorNonMoving;
+  }
+  if (alloc_size >= Heap::kMinLargeObjectThreshold) {
+    // Since LOS is non-moving anyway, we don't need to check if `non_moving` is true
+    semantics = AllocatorLos;
+  }
 
   MmtkMutator mmtk_mutator = self->GetMmtkMutator();
   DCHECK(mmtk_mutator != nullptr) << "mmtk_mutator for thread " << self << " is nullptr!";
