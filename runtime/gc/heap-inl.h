@@ -81,18 +81,11 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
   // bytes allocated for the (individual) object.
   size_t bytes_allocated;
   size_t usable_size;
-  size_t new_num_bytes_allocated = 0;
-  bool need_gc = false;
-  uint32_t starting_gc_num;  // o.w. GC number at which we observed need for GC.
   // Bytes allocated that includes bulk thread-local buffer allocations in addition to direct
   // non-TLAB object allocations. Only set for non-thread-local allocation,
   size_t bytes_tl_bulk_allocated = 0u;
 #if ART_USE_MMTK
   {
-    UNUSED(allocator);
-    UNUSED(new_num_bytes_allocated);
-    UNUSED(need_gc);
-    UNUSED(starting_gc_num);
     // Do pre-object allocation. We call the "ScopedAssertNoThreadSuspension" in
     // order to make sure that we are not suspended until we start allocating.
     // Note that `ThirdPartyHeap::BlockThreadForCollection` uses
@@ -104,20 +97,29 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     // Have to round up allocation size in order to make sure that object starting
     // addresses are aligned
     byte_count = RoundUp(byte_count, kObjectAlignment);
-    bool tlab_alloc_succeeded = false;
-    if (use_tlab_ && byte_count < large_object_threshold_) {
-      if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
-        obj = self->MmtkAllocTlab(byte_count);
-        DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";
-        bytes_allocated = byte_count;
-        usable_size = byte_count;
-        tlab_alloc_succeeded = true;
-      }
-    }
 
-    if (!tlab_alloc_succeeded) {
-      obj = tp_heap_->TryToAllocate(self, byte_count, &bytes_allocated,
-                                      &usable_size, &bytes_tl_bulk_allocated);
+    if (allocator == kAllocatorTypeNonMoving) {
+      // XXX(kunals): Perhaps pin object instead of allocating via non-moving space?
+      obj = tp_heap_->TryToAllocate(self, byte_count, /* non_moving= */ true,
+                                      &bytes_allocated, &usable_size,
+                                      &bytes_tl_bulk_allocated);
+    } else {
+      bool tlab_alloc_succeeded = false;
+      if (use_tlab_ && byte_count < large_object_threshold_) {
+        if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
+          obj = self->MmtkAllocTlab(byte_count);
+          DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";
+          bytes_allocated = byte_count;
+          usable_size = byte_count;
+          tlab_alloc_succeeded = true;
+        }
+      }
+
+      if (!tlab_alloc_succeeded) {
+        obj = tp_heap_->TryToAllocate(self, byte_count, /* non_moving= */ false,
+                                        &bytes_allocated, &usable_size,
+                                        &bytes_tl_bulk_allocated);
+      }
     }
 
     obj->SetClass(klass);
@@ -126,6 +128,9 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     QuasiAtomic::ThreadFenceForConstructor();
   }
 #else
+  size_t new_num_bytes_allocated = 0;
+  bool need_gc = false;
+  uint32_t starting_gc_num;  // o.w. GC number at which we observed need for GC.
   {
     // Do the initial pre-alloc
     // TODO: Consider what happens if the allocator is switched while suspended here.

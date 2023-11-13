@@ -1753,9 +1753,17 @@ bool Heap::IsLiveObjectLocked(ObjPtr<mirror::Object> obj,
                               bool search_allocation_stack,
                               bool search_live_stack,
                               bool sorted) {
+  // TODO(kunals): Figure out what is appropriate for MMTk
   if (UNLIKELY(!IsAligned<kObjectAlignment>(obj.Ptr()))) {
     return false;
   }
+#if ART_USE_MMTK
+    UNUSED(search_allocation_stack);
+    UNUSED(search_live_stack);
+    UNUSED(sorted);
+    // TODO(kunals): Cleanup and abstract behind TPH
+    return mmtk_is_object_marked(obj.Ptr());
+#else
   if (bump_pointer_space_ != nullptr && bump_pointer_space_->HasAddress(obj.Ptr())) {
     mirror::Class* klass = obj->GetClass<kVerifyNone>();
     if (obj == klass) {
@@ -1823,6 +1831,7 @@ bool Heap::IsLiveObjectLocked(ObjPtr<mirror::Object> obj,
     }
   }
   return false;
+#endif  // ART_USE_MMTK
 }
 
 std::string Heap::DumpSpaces() const {
@@ -3754,6 +3763,9 @@ void Heap::SetIdealFootprint(size_t target_footprint) {
 }
 
 bool Heap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
+#if ART_USE_MMTK
+  return tp_heap_->IsMovableObject(obj);
+#else
   if (kMovingCollector) {
     space::Space* space = FindContinuousSpaceFromObject(obj.Ptr(), true);
     if (space != nullptr) {
@@ -3762,6 +3774,7 @@ bool Heap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
     }
   }
   return false;
+#endif  // ART_USE_MMTK
 }
 
 collector::GarbageCollector* Heap::FindCollectorByGcType(collector::GcType gc_type) {

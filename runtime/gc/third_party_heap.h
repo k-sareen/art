@@ -70,11 +70,14 @@ class ThirdPartyHeap {
   // that this check does not use the valid-object bit.
   bool IsObjectInHeapSpace(const void* addr) const REQUIRES_SHARED(Locks::mutator_lock_);
 
+  bool IsMovableObject(ObjPtr<mirror::Object> obj) const REQUIRES_SHARED(Locks::mutator_lock_);
+
   // Try to allocate an object of size alloc_size. This function can potentially
   // suspend the mutator for a GC in case there is not enough space to fulfill
   // the allocation request.
   mirror::Object* TryToAllocate(Thread* self,
                                 size_t alloc_size,
+                                bool non_moving,
                                 size_t* bytes_allocated,
                                 size_t* usable_size,
                                 size_t* bytes_tl_bulk_allocated)
