@@ -33,7 +33,12 @@ inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
   // Linear scan through all live objects and call the visitor for each one
   uint8_t* cursor = reinterpret_cast<uint8_t*>(heap_start);
   while (cursor < heap_end) {
-    if (IsAligned<kObjectAlignment>(cursor) && mmtk_is_object_marked(cursor)) {
+    // Skip forwarded objects. We'll find the actual object later in the linear
+    // scan. MMTk will return the correct value for `mmtk_is_object_marked` even
+    // for freshly moved objects
+    if (IsAligned<kObjectAlignment>(cursor) &&
+        mmtk_is_object_marked(cursor) &&
+        !mmtk_is_object_forwarded(cursor)) {
       mirror::Object* object = reinterpret_cast<mirror::Object*>(cursor);
       visitor(object);
       cursor += RoundUp(object->SizeOf(), kObjectAlignment);
