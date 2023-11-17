@@ -46,18 +46,10 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
     auto* root = roots[i];
     auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
 
-    // if (info.GetType() == kRootJavaFrame) {
-    //   *(volatile int*) 0 = 0;
-    // }
-
     buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
-
-    // if (*root != ref.AsMirrorPtr()) {
-    //   *root = ref.AsMirrorPtr();
-    // }
   }
 }
 
