@@ -65,7 +65,8 @@ static ALWAYS_INLINE inline mirror::Object* artAllocObjectFromCode(
 #else
   if (kUseTlabFastPath && !kWithChecks && !kInstrumented) {
     size_t byte_count = klass->GetObjectSizeAllocFastPath();
-    if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
+    if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace() &&
+        byte_count < gc::Heap::kMinLargeObjectThreshold)) {
       DCHECK_ALIGNED(byte_count, kObjectAlignment);
       mirror::Object* obj = self->MmtkAllocTlab(byte_count);
       DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";

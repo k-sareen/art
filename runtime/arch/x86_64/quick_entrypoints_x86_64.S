@@ -1009,11 +1009,13 @@ DEFINE_FUNCTION art_quick_alloc_object_initialized_tlab
     ALLOC_OBJECT_TLAB_SLOW_PATH artAllocObjectFromCodeInitializedTLAB
 END_FUNCTION art_quick_alloc_object_initialized_tlab
 
-MACRO0(COMPUTE_ARRAY_SIZE_UNKNOWN)
+MACRO1(COMPUTE_ARRAY_SIZE_UNKNOWN, slow_path)
+    cmpq LITERAL((MIN_LARGE_OBJECT_THRESHOLD - MIRROR_WIDE_ARRAY_DATA_OFFSET) / 8), %rsi
+    ja RAW_VAR(slow_path)
     movl MIRROR_CLASS_COMPONENT_TYPE_OFFSET(%rdi), %ecx        // Load component type.
     UNPOISON_HEAP_REF ecx
     movl MIRROR_CLASS_OBJECT_PRIMITIVE_TYPE_OFFSET(%rcx), %ecx // Load primitive type.
-    shrq MACRO_LITERAL(PRIMITIVE_TYPE_SIZE_SHIFT_SHIFT), %rcx        // Get component size shift.
+    shrq MACRO_LITERAL(PRIMITIVE_TYPE_SIZE_SHIFT_SHIFT), %rcx  // Get component size shift.
     movq %rsi, %r9
     salq %cl, %r9                                              // Calculate array count shifted.
     // Add array header + alignment rounding.
@@ -1027,35 +1029,43 @@ MACRO0(COMPUTE_ARRAY_SIZE_UNKNOWN)
     addq %rcx, %r9
 END_MACRO
 
-MACRO0(COMPUTE_ARRAY_SIZE_8)
+MACRO1(COMPUTE_ARRAY_SIZE_8, slow_path)
     // RDI: mirror::Class* klass, RSI: int32_t component_count
     // RDX, RCX, R8, R9: free. RAX: return val.
+    cmpq LITERAL((MIN_LARGE_OBJECT_THRESHOLD - MIRROR_INT_ARRAY_DATA_OFFSET)), %rsi
+    ja RAW_VAR(slow_path)
     movq %rsi, %r9
     // Add array header + alignment rounding.
     addq MACRO_LITERAL(MIRROR_INT_ARRAY_DATA_OFFSET + OBJECT_ALIGNMENT_MASK), %r9
 END_MACRO
 
-MACRO0(COMPUTE_ARRAY_SIZE_16)
+MACRO1(COMPUTE_ARRAY_SIZE_16, slow_path)
     // RDI: mirror::Class* klass, RSI: int32_t component_count
     // RDX, RCX, R8, R9: free. RAX: return val.
+    cmpq LITERAL((MIN_LARGE_OBJECT_THRESHOLD - MIRROR_INT_ARRAY_DATA_OFFSET) / 2), %rsi
+    ja RAW_VAR(slow_path)
     movq %rsi, %r9
     salq MACRO_LITERAL(1), %r9
     // Add array header + alignment rounding.
     addq MACRO_LITERAL(MIRROR_INT_ARRAY_DATA_OFFSET + OBJECT_ALIGNMENT_MASK), %r9
 END_MACRO
 
-MACRO0(COMPUTE_ARRAY_SIZE_32)
+MACRO1(COMPUTE_ARRAY_SIZE_32, slow_path)
     // RDI: mirror::Class* klass, RSI: int32_t component_count
     // RDX, RCX, R8, R9: free. RAX: return val.
+    cmpq LITERAL((MIN_LARGE_OBJECT_THRESHOLD - MIRROR_INT_ARRAY_DATA_OFFSET) / 4), %rsi
+    ja RAW_VAR(slow_path)
     movq %rsi, %r9
     salq MACRO_LITERAL(2), %r9
     // Add array header + alignment rounding.
     addq MACRO_LITERAL(MIRROR_INT_ARRAY_DATA_OFFSET + OBJECT_ALIGNMENT_MASK), %r9
 END_MACRO
 
-MACRO0(COMPUTE_ARRAY_SIZE_64)
+MACRO1(COMPUTE_ARRAY_SIZE_64, slow_path)
     // RDI: mirror::Class* klass, RSI: int32_t component_count
     // RDX, RCX, R8, R9: free. RAX: return val.
+    cmpq LITERAL((MIN_LARGE_OBJECT_THRESHOLD - MIRROR_WIDE_ARRAY_DATA_OFFSET) / 8), %rsi
+    ja RAW_VAR(slow_path)
     movq %rsi, %r9
     salq MACRO_LITERAL(3), %r9
     // Add array header + alignment rounding.
@@ -1066,7 +1076,7 @@ MACRO3(GENERATE_ALLOC_ARRAY_TLAB, c_entrypoint, cxx_name, size_setup)
     DEFINE_FUNCTION VAR(c_entrypoint)
     // RDI: mirror::Class* klass, RSI: int32_t component_count
     // RDX, RCX, R8, R9: free. RAX: return val.
-    CALL_MACRO(size_setup)
+    CALL_MACRO(size_setup) .Lslow_path\c_entrypoint
     ALLOC_ARRAY_TLAB_FAST_PATH_RESOLVED_WITH_SIZE .Lslow_path\c_entrypoint
 .Lslow_path\c_entrypoint:
     SETUP_SAVE_REFS_ONLY_FRAME                                 // save ref containing registers for GC
