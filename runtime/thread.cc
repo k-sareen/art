@@ -2678,6 +2678,12 @@ Thread::~Thread() {
     delete[] tlsPtr_.method_trace_buffer;
   }
 
+#if ART_USE_MMTK
+  mmtk_destroy_mutator(tlsPtr_.mmtk_mutator);
+  tlsPtr_.mmtk_mutator = nullptr;
+  tlsPtr_.mmtk_default_bump_pointer = MmtkBumpPointer {};
+#endif  // ART_USE_MMTK
+
   Runtime::Current()->GetHeap()->AssertThreadLocalBuffersAreRevoked(this);
 
   TearDownAlternateSignalStack();
