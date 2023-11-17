@@ -94,6 +94,10 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     pre_object_allocated();
     ScopedAssertNoThreadSuspension ants("Called PreObjectAllocated, no suspend until alloc");
 
+    // Preserve the klass as a root so that it gets updated properly after GC
+    StackHandleScope<1> hs(self);
+    HandleWrapperObjPtr<mirror::Class> h_klass(hs.NewHandleWrapper(&klass));
+
     // Have to round up allocation size in order to make sure that object starting
     // addresses are aligned
     byte_count = RoundUp(byte_count, kObjectAlignment);
