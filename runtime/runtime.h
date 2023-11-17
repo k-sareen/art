@@ -480,7 +480,13 @@ class Runtime {
 
   // Sweep system weaks, the system weak is deleted if the visitor return null. Otherwise, the
   // system weak is updated to be the visitor's returned value.
+#if ART_USE_MMTK
+  // XXX(kunals): We only call this in `process_weak_refs` so we know that we don't have any
+  // race conditions as only one GC worker can execute the work packet
+  void SweepSystemWeaks(IsMarkedVisitor* visitor) NO_THREAD_SAFETY_ANALYSIS;
+#else
   void SweepSystemWeaks(IsMarkedVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
 
   // Walk all reflective objects and visit their targets as well as any method/fields held by the
   // runtime threads that are marked as being reflective.

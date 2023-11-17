@@ -17,6 +17,7 @@
 #include "gc/gc_cause.h"
 #include "gc/third_party_heap.h"
 #include "mmtk_gc_thread.h"
+#include "mmtk_is_marked_visitor.h"
 #include "mmtk_root_visitor.h"
 #include "mmtk_scan_object_visitor.h"
 #include "mmtk_upcalls.h"
@@ -167,6 +168,13 @@ static void scan_all_roots(NodesClosure closure) {
   runtime->VisitRoots(&visitor);
 }
 
+static void sweep_system_weaks(void* tls ATTRIBUTE_UNUSED) {
+  art::Runtime* runtime = art::Runtime::Current();
+  art::gc::third_party_heap::MmtkIsMarkedVisitor visitor;
+  runtime->SweepSystemWeaks(&visitor);
+  runtime->GetThreadList()->SweepInterpreterCaches(&visitor);
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   scan_object,
@@ -179,4 +187,5 @@ ArtUpcalls art_upcalls = {
   get_mmtk_mutator,
   for_all_mutators,
   scan_all_roots,
+  sweep_system_weaks,
 };

@@ -703,7 +703,7 @@ void ThreadList::SuspendAllInternal(Thread* self,
   // The atomic counter for number of threads that need to pass the barrier.
   AtomicInteger pending_threads;
   uint32_t num_ignored = 0;
-  // XXX: Make sure that the pending_threads count is accurately kept when using
+  // XXX(kunals): Make sure that the pending_threads count is accurately kept when using
   // MMTk since MMTk does not register its GC threads
   if (is_self_registered) {
     if (ignore1 != nullptr) {

@@ -73,7 +73,7 @@ class ThreadList {
   // Suspends all threads and gets exclusive access to the mutator lock.
   // If long_suspend is true, then other threads who try to suspend will never timeout.
   // long_suspend is currenly used for hprof since large heaps take a long time.
-  // XXX: Since MMTk doesn't register its GC threads in the thread list, we have
+  // XXX(kunals): Since MMTk doesn't register its GC threads in the thread list, we have
   // to make sure that the `pending_threads` count in `SuspendAllInternal` is
   // kept accurately. This is a hack to achieve the same.
   void SuspendAll(const char* cause, bool long_suspend = false, bool is_self_registered = true)
@@ -170,8 +170,15 @@ class ThreadList {
 
   void VisitReflectiveTargets(ReflectiveValueVisitor* visitor) const REQUIRES(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  // XXX(kunals): We only call this in `process_weak_refs` so we know that we don't have any
+  // race conditions as only one GC worker can execute the work packet
+  void SweepInterpreterCaches(IsMarkedVisitor* visitor) const
+      REQUIRES(!Locks::thread_list_lock_);
+#else
   void SweepInterpreterCaches(IsMarkedVisitor* visitor) const
       REQUIRES(Locks::mutator_lock_, !Locks::thread_list_lock_);
+#endif  // ART_USE_MMTK
 
   // Return a copy of the thread list.
   std::list<Thread*> GetList() REQUIRES(Locks::thread_list_lock_) {

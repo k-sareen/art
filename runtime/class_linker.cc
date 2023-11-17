@@ -2402,6 +2402,7 @@ void ClassLinker::VisitClassRoots(RootVisitor* visitor, VisitRootFlags flags) {
       // tolerate double updates.
       if (!heap->IsPerformingUffdCompaction()) {
         for (const ClassLoaderData& data : class_loaders_) {
+          // TODO(kunals): Fix slot reuse here
           GcRoot<mirror::Object> root(GcRoot<mirror::Object>(self->DecodeJObject(data.weak_root)));
           root.VisitRoot(visitor, RootInfo(kRootVMInternal));
         }

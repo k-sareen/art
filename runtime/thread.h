@@ -762,7 +762,13 @@ class Thread {
   }
 
   // This is done by GC using a checkpoint (or in a stop-the-world pause).
+#if ART_USE_MMTK
+  // XXX(kunals): We only call this in `process_weak_refs` so we know that we don't have any
+  // race conditions as only one GC worker can execute the work packet
+  void SweepInterpreterCache(IsMarkedVisitor* visitor) NO_THREAD_SAFETY_ANALYSIS;
+#else
   void SweepInterpreterCache(IsMarkedVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
 
   void VisitRoots(RootVisitor* visitor, VisitRootFlags flags)
       REQUIRES_SHARED(Locks::mutator_lock_);
