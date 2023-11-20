@@ -133,6 +133,41 @@ static constexpr bool kUseRosAlloc = true;
 // If true, use thread-local allocation stack.
 static constexpr bool kUseThreadLocalAllocationStack = true;
 
+class PerfCounter {
+ public:
+  std::string name_;
+  uint64_t initial_value_;
+  uint64_t prev_value_;
+  uint64_t current_gc_start_value_;
+  uint64_t current_gc_end_value_;
+  uint64_t count_total_;
+  uint64_t count_stw_;
+  std::vector<uint64_t> current_gc_pause_values_;
+
+  PerfCounter(std::string perf_event_name);
+
+  void Start();
+  void Stop();
+
+  uint64_t ReadCounter();
+
+  uint64_t GetTotalCount() {
+    return count_total_;
+  }
+
+  uint64_t GetOtherCount() {
+    return count_total_ - count_stw_;
+  }
+
+  uint64_t GetStwCount() {
+    return count_stw_;
+  }
+
+ private:
+  int fd_;
+  bool running_;
+};
+
 class Heap {
  public:
   // How much we grow the TLAB if we can do it.
@@ -463,12 +498,20 @@ class Heap {
   void CalculatePostGcWeightedAllocatedBytes();
   uint64_t GetTotalGcCpuTime();
 
+  uint64_t GetHarnessBeginStartTime() const {
+    return harness_begin_start_time_ns_;
+  }
+
   uint64_t GetProcessCpuStartTime() const {
     return process_cpu_start_time_ns_;
   }
 
   uint64_t GetPostGCLastProcessCpuTime() const {
     return post_gc_last_process_cpu_time_ns_;
+  }
+
+  bool GetInsideHarness() const {
+    return inside_harness_;
   }
 
   // Set target ideal heap utilization ratio, implements
@@ -776,6 +819,14 @@ class Heap {
       REQUIRES(!*gc_complete_lock_);
   void ResetGcPerformanceInfo() REQUIRES(!*gc_complete_lock_);
 
+  void HarnessBegin()
+    REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
+  void HarnessEnd() REQUIRES(!*gc_complete_lock_);
+
+  bool HaveDumpedGcPerformanceInfo() {
+    return dumped_gc_performance_info_;
+  }
+
   // Thread pool. Create either the given number of threads, or as per the
   // values of conc_gc_threads_ and parallel_gc_threads_.
   void CreateThreadPool(size_t num_threads = 0);
@@ -1001,6 +1052,11 @@ class Heap {
   void TraceHeapSize(size_t heap_size);
 
   bool AddHeapTask(gc::HeapTask* task);
+
+  void PerfCounterCreate(std::string perf_event_name);
+  std::vector<PerfCounter*> GetPerfCounters() {
+    return perf_counters_;
+  }
 
   third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
 
@@ -1716,6 +1772,12 @@ class Heap {
   // emit region info before and after each GC cycle.
   bool dump_region_info_before_gc_;
   bool dump_region_info_after_gc_;
+
+  bool inside_harness_;
+  bool dumped_gc_performance_info_;
+  uint64_t harness_begin_start_time_ns_;
+
+  std::vector<PerfCounter*> perf_counters_;
 
   // Boot image spaces.
   std::vector<space::ImageSpace*> boot_image_spaces_;

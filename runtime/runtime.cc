@@ -15,6 +15,7 @@
  */
 
 #include "runtime.h"
+#include "harness.h"
 
 #include <utility>
 
@@ -1128,6 +1129,13 @@ void Runtime::InitNonZygoteOrPostFork(
         break;
     }
   }
+
+  LOG(DEBUG) << "Creating perf counters";
+  GetHeap()->PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
+  LOG(DEBUG) << "Finished creating perf counters";
 
   if (is_child_zygote) {
     // If creating a child-zygote we only initialize native bridge. The rest of
@@ -3557,3 +3565,11 @@ void Runtime::AddExtraBootDexFiles(const std::string& filename,
 }
 
 }  // namespace art
+
+JNIEXPORT void JVM_HarnessBegin(void) {
+  art::Runtime::Current()->GetHeap()->HarnessBegin();
+}
+
+JNIEXPORT void JVM_HarnessEnd(void) {
+  art::Runtime::Current()->GetHeap()->HarnessEnd();
+}

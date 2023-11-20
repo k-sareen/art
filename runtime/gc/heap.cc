@@ -16,6 +16,9 @@
 
 #include "heap.h"
 
+#include <fcntl.h>
+#include <linux/perf_event.h>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include "android-base/thread_annotations.h"
@@ -24,6 +27,10 @@
 #endif
 #include <memory>
 #include <random>
+#include <string>
+#include <sstream>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <vector>
@@ -143,6 +150,11 @@ void DisableHeapSamplerCallback(void* disable_ptr,
 }  // namespace
 #endif
 
+static int perf_event_open(perf_event_attr* attr, pid_t pid, int cpu, int group_fd,
+                           unsigned long flags) {
+  return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
+}
+
 namespace gc {
 
 DEFINE_RUNTIME_DEBUG_FLAG(Heap, kStressCollectorTransition);
@@ -186,7 +198,7 @@ static constexpr double kMinFreeHeapAfterGcForAlloc = 0.01;
 // For deterministic compilation, we need the heap to be at a well-known address.
 static constexpr uint32_t kAllocSpaceBeginForDeterministicAoT = 0x40000000;
 // Dump the rosalloc stats on SIGQUIT.
-static constexpr bool kDumpRosAllocStatsOnSigQuit = false;
+// static constexpr bool kDumpRosAllocStatsOnSigQuit = false;
 
 static const char* kRegionSpaceName = "main space (region space)";
 
@@ -257,6 +269,116 @@ static void VerifyBootImagesContiguity(const std::vector<gc::space::ImageSpace*>
     boot_image_size += reservation_size;
     i += image_count;
   }
+}
+
+PerfCounter::PerfCounter(std::string perf_event_name)
+    : name_(perf_event_name),
+      initial_value_(0),
+      prev_value_(0),
+      current_gc_start_value_(0),
+      current_gc_end_value_(0),
+      count_total_(0),
+      count_stw_(0),
+      fd_(-1),
+      running_(false) {
+  perf_event_attr pe;
+  memset(&pe, 0, sizeof(pe));
+
+  if (perf_event_name == "PERF_COUNT_SW_TASK_CLOCK") {
+    pe.type = PERF_TYPE_SOFTWARE;
+    pe.config = PERF_COUNT_SW_TASK_CLOCK;
+  } else if (perf_event_name == "PERF_COUNT_SW_CPU_CLOCK") {
+    pe.type = PERF_TYPE_SOFTWARE;
+    pe.config = PERF_COUNT_SW_CPU_CLOCK;
+  } else if (perf_event_name == "PERF_COUNT_SW_PAGE_FAULTS") {
+    pe.type = PERF_TYPE_SOFTWARE;
+    pe.config = PERF_COUNT_SW_PAGE_FAULTS;
+  } else if (perf_event_name == "PERF_COUNT_SW_PAGE_FAULTS_MIN") {
+    pe.type = PERF_TYPE_SOFTWARE;
+    pe.config = PERF_COUNT_SW_PAGE_FAULTS_MIN;
+  } else if (perf_event_name == "PERF_COUNT_HW_CPU_CYCLES") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_CPU_CYCLES;
+  } else if (perf_event_name == "PERF_COUNT_HW_INSTRUCTIONS") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_INSTRUCTIONS;
+  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_MISSES") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_CACHE_MISSES;
+  } else if (perf_event_name == "PERF_COUNT_HW_BRANCH_MISSES") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_BRANCH_MISSES;
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_FRONTEND") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_STALLED_CYCLES_FRONTEND;
+  } else if (perf_event_name == "PERF_COUNT_HW_STALLED_CYCLES_BACKEND") {
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.config = PERF_COUNT_HW_STALLED_CYCLES_BACKEND;
+  } else if (perf_event_name == "PERF_COUNT_HW_CACHE_L1D:REFILL") {
+    // See system/extras/simpleperf/event_type_table.h
+    pe.type = PERF_TYPE_RAW;
+    pe.config = 0x3;
+  } else {
+    LOG(WARNING) << "Unknown performance counter " << perf_event_name
+      << "! Using PERF_COUNT_SW_TASK_CLOCK instead";
+    pe.type = PERF_TYPE_SOFTWARE;
+    pe.config = PERF_COUNT_SW_TASK_CLOCK;
+    name_ = "PERF_COUNT_SW_TASK_CLOCK";
+  }
+
+  LOG(INFO) << "Created performance counter " << name_;
+
+  pe.size = PERF_ATTR_SIZE_VER1;
+  pe.exclude_user = 0;
+  pe.exclude_kernel = 0;
+  pe.exclude_hv = 0;
+  pe.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+  pe.disabled = 1;
+  pe.inherit = 1;
+
+  int fd = perf_event_open(&pe, 0 /* pid */, -1 /* cpu */, -1 /* group_fd */, 0 /* flags */);
+  if (fd == -1) {
+    LOG(WARNING) << "Error opening event " << perf_event_name;
+  } else {
+    LOG(DEBUG) << "Opened event fd_ = " << fd;
+  }
+
+  fd_ = fd;
+}
+
+void PerfCounter::Start() {
+  running_ = true;
+  ioctl(fd_, PERF_EVENT_IOC_RESET, 0);
+  ioctl(fd_, PERF_EVENT_IOC_ENABLE, 0);
+}
+
+void PerfCounter::Stop() {
+  running_ = false;
+  ioctl(fd_, PERF_EVENT_IOC_DISABLE, 0);
+}
+
+uint64_t PerfCounter::ReadCounter() {
+  if (running_) {
+    uint64_t values[3];
+    memset(values, 0, sizeof(values));
+    ssize_t ret = read(fd_, values, sizeof(values));
+    if (ret < (ssize_t) sizeof(values)) {
+      LOG(WARNING) << "Read failed for perf counter " << name_;
+      return 0;
+    } else {
+      if (values[1] != values[2]) {
+        LOG(WARNING) << "Multiplexed counters for " << name_ << "\n  "
+          << "Counter total time enabled " << values[1] << "\n  "
+          << "Counter total time running " << values[2];
+        return 0;
+      } else {
+        LOG(DEBUG) << "Counter value for " << name_ << " = " << values[0];
+      }
+      return values[0];
+    }
+  }
+
+  return 0;
 }
 
 Heap::Heap(size_t initial_size,
@@ -415,6 +537,9 @@ Heap::Heap(size_t initial_size,
       gc_disabled_for_shutdown_(false),
       dump_region_info_before_gc_(dump_region_info_before_gc),
       dump_region_info_after_gc_(dump_region_info_after_gc),
+      inside_harness_(false),
+      dumped_gc_performance_info_(false),
+      harness_begin_start_time_ns_(0u),
       boot_image_spaces_(),
       boot_images_start_address_(0u),
       boot_images_size_(0u),
@@ -878,7 +1003,18 @@ Heap::Heap(size_t initial_size,
     GetHeapSampler().DisableHeapSampler();
   }
 
+  perf_counters_.clear();
+
+  // If we are using NoGC then clear and don't release the entire bump pointer
+  // space. This means that each page in the heap has been touched at least
+  // once and hence the mutator should not get page faults when allocating.
+  // This can drastically improve the performance of the mutator
+  if (collector_type_ == kCollectorTypeNoGC) {
+    bump_pointer_space_->ClearAndDontRelease();
+  }
+
   instrumentation::Instrumentation* const instrumentation = runtime->GetInstrumentation();
+
   if (gc_stress_mode_) {
     backtrace_lock_ = new Mutex("GC complete lock");
   }
@@ -888,6 +1024,10 @@ Heap::Heap(size_t initial_size,
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() exiting";
   }
+}
+
+void Heap::PerfCounterCreate(std::string perf_event_name) {
+  perf_counters_.push_back(new PerfCounter(perf_event_name));
 }
 
 MemMap Heap::MapAnonymousPreferredAddress(const char* name,
@@ -1295,73 +1435,66 @@ uint64_t Heap::GetTotalGcCpuTime() {
   return sum;
 }
 
-void Heap::DumpGcPerformanceInfo(std::ostream& os) {
-  // Dump cumulative timings.
-  os << "Dumping cumulative Gc timings\n";
-  uint64_t total_duration = 0;
-  // Dump cumulative loggers for each GC type.
+static double ns_to_ms(uint64_t val) {
+  return (((double) val) / 1e6);
+}
+
+static std::string ns_to_ms_string(uint64_t val) {
+  std::stringstream s;
+  double ms = ns_to_ms(val);
+  s << std::fixed << std::setprecision(2) << ms;
+  return s.str();
+}
+
+void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
+  uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
+
+  std::cout << "============================ Tabulate Statistics ============================\n";
+
   uint64_t total_paused_time = 0;
   for (auto* collector : garbage_collectors_) {
-    total_duration += collector->GetCumulativeTimings().GetTotalNs();
     total_paused_time += collector->GetTotalPausedTimeNs();
-    collector->DumpPerformanceInfo(os);
   }
-  if (total_duration != 0) {
-    const double total_seconds = total_duration / 1.0e9;
-    const double total_cpu_seconds = GetTotalGcCpuTime() / 1.0e9;
-    os << "Total time spent in GC: " << PrettyDuration(total_duration) << "\n";
-    os << "Mean GC size throughput: "
-       << PrettySize(GetBytesFreedEver() / total_seconds) << "/s"
-       << " per cpu-time: "
-       << PrettySize(GetBytesFreedEver() / total_cpu_seconds) << "/s\n";
-    os << "Mean GC object throughput: "
-       << (GetObjectsFreedEver() / total_seconds) << " objects/s\n";
-  }
-  uint64_t total_objects_allocated = GetObjectsAllocatedEver();
-  os << "Total number of allocations " << total_objects_allocated << "\n";
-  os << "Total bytes allocated " << PrettySize(GetBytesAllocatedEver()) << "\n";
-  os << "Total bytes freed " << PrettySize(GetBytesFreedEver()) << "\n";
-  os << "Free memory " << PrettySize(GetFreeMemory()) << "\n";
-  os << "Free memory until GC " << PrettySize(GetFreeMemoryUntilGC()) << "\n";
-  os << "Free memory until OOME " << PrettySize(GetFreeMemoryUntilOOME()) << "\n";
-  os << "Total memory " << PrettySize(GetTotalMemory()) << "\n";
-  os << "Max memory " << PrettySize(GetMaxMemory()) << "\n";
-  if (HasZygoteSpace()) {
-    os << "Zygote space size " << PrettySize(zygote_space_->Size()) << "\n";
-  }
-  os << "Total mutator paused time: " << PrettyDuration(total_paused_time) << "\n";
-  os << "Total time waiting for GC to complete: " << PrettyDuration(total_wait_time_) << "\n";
-  os << "Total GC count: " << GetGcCount() << "\n";
-  os << "Total GC time: " << PrettyDuration(GetGcTime()) << "\n";
-  os << "Total blocking GC count: " << GetBlockingGcCount() << "\n";
-  os << "Total blocking GC time: " << PrettyDuration(GetBlockingGcTime()) << "\n";
-  os << "Total pre-OOME GC count: " << GetPreOomeGcCount() << "\n";
-  {
-    MutexLock mu(Thread::Current(), *gc_complete_lock_);
-    if (gc_count_rate_histogram_.SampleSize() > 0U) {
-      os << "Histogram of GC count per " << NsToMs(kGcCountRateHistogramWindowDuration) << " ms: ";
-      gc_count_rate_histogram_.DumpBins(os);
-      os << "\n";
-    }
-    if (blocking_gc_count_rate_histogram_.SampleSize() > 0U) {
-      os << "Histogram of blocking GC count per "
-         << NsToMs(kGcCountRateHistogramWindowDuration) << " ms: ";
-      blocking_gc_count_rate_histogram_.DumpBins(os);
-      os << "\n";
+
+  uint64_t total_gc_count = GetGcCount();
+  uint64_t major_gc_count = total_gc_count;
+  if (use_generational_cc_) {
+    major_gc_count = concurrent_copying_collector_->GetCumulativeTimings().GetIterations();
+    if ((total_gc_count - major_gc_count) != young_concurrent_copying_collector_->GetCumulativeTimings().GetIterations()) {
+      LOG(WARNING) << "The total number of GCs != major GCs + minor GCs!\n";
     }
   }
 
-  if (kDumpRosAllocStatsOnSigQuit && rosalloc_space_ != nullptr) {
-    rosalloc_space_->DumpStats(os);
+  std::string table_headers = "GC\tmajorGC\ttime\ttime.other\ttime.stw";
+  for (PerfCounter* perf_counter : perf_counters_) {
+    table_headers += "\t" + perf_counter->name_ + ".other"
+      + "\t" + perf_counter->name_ + ".stw";
   }
 
-  os << "Native bytes total: " << GetNativeBytes()
-     << " registered: " << native_bytes_registered_.load(std::memory_order_relaxed) << "\n";
+  std::cout << table_headers + "\n";
 
-  os << "Total native bytes at last GC: "
-     << old_native_bytes_allocated_.load(std::memory_order_relaxed) << "\n";
+  std::string table_values = "";
+  table_values += std::to_string(total_gc_count)
+    + "\t" + std::to_string(major_gc_count)
+    + "\t" + ns_to_ms_string(total_time)
+    + "\t" + ns_to_ms_string(total_time - total_paused_time)
+    + "\t" + ns_to_ms_string(total_paused_time);
 
-  BaseMutex::DumpAll(os);
+  for (PerfCounter* perf_counter : perf_counters_) {
+    table_values += "\t" + ns_to_ms_string(perf_counter->GetOtherCount())
+      + "\t" + ns_to_ms_string(perf_counter->GetStwCount());
+  }
+
+  std::cout << table_values + "\n";
+  std::cout << "Total time: " << ns_to_ms_string(total_time) << " ms\n";
+  std::cout << "-------------------------- End Tabulate Statistics --------------------------\n";
+
+  LOG(INFO) << "Number of GCs for each collector:\n";
+  for (auto* collector : garbage_collectors_) {
+    LOG(INFO) << "  " << collector->GetName()
+      << " ran " << collector->GetCumulativeTimings().GetIterations()
+      << " times\n";
+  }
 }
 
 void Heap::ResetGcPerformanceInfo() {
@@ -1392,6 +1525,51 @@ void Heap::ResetGcPerformanceInfo() {
     gc_count_rate_histogram_.Reset();
     blocking_gc_count_rate_histogram_.Reset();
   }
+}
+
+void Heap::HarnessBegin() {
+  inside_harness_ = true;
+  dumped_gc_performance_info_ = false;
+#if ART_USE_MMTK
+  mmtk_harness_begin(Thread::Current());
+#else
+  if (gc_plan_.back() != collector::kGcTypeNoGC) {
+    LOG(INFO) << "Performing a GC with " << gc_plan_.back()
+      << " before HarnessBegin\n";
+    CollectGarbage(/* clear_soft_references = */ false, kGcCauseExplicit);
+    LOG(INFO) << "Finished GC before HarnessBegin\n";
+  } else {
+    LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
+  }
+
+  harness_begin_start_time_ns_ = NanoTime();
+
+  LOG(INFO) << "Starting perf counters";
+  for (PerfCounter* perf_counter : perf_counters_) {
+    perf_counter->initial_value_ = perf_counter->ReadCounter();
+    perf_counter->prev_value_ = perf_counter->initial_value_;
+    perf_counter->Start();
+  }
+
+  ResetGcPerformanceInfo();
+#endif  // ART_USE_MMTK
+}
+
+void Heap::HarnessEnd() {
+#if ART_USE_MMTK
+  mmtk_harness_end();
+#else
+  LOG(INFO) << "Stopping perf counters";
+  for (PerfCounter* perf_counter : perf_counters_) {
+    uint64_t current_value = perf_counter->ReadCounter();
+    perf_counter->count_total_ = (current_value - perf_counter->initial_value_);
+    perf_counter->Stop();
+  }
+
+  DumpGcPerformanceInfo(LOG_STREAM(INFO));
+#endif  // ART_USE_MMTK
+  inside_harness_ = false;
+  dumped_gc_performance_info_ = true;
 }
 
 uint64_t Heap::GetGcCount() const {
