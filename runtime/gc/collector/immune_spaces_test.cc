@@ -67,12 +67,14 @@ class ImmuneSpacesTest : public CommonArtTest {
   ImmuneSpacesTest() {}
 
   void ReserveBitmaps() {
+    const size_t page_size = MemMap::GetPageSize();
+
     // Create a bunch of fake bitmaps since these are required to create image spaces. The bitmaps
     // do not need to cover the image spaces though.
     for (size_t i = 0; i < kMaxBitmaps; ++i) {
       accounting::ContinuousSpaceBitmap bitmap(
           accounting::ContinuousSpaceBitmap::Create(
-              "bitmap", reinterpret_cast<uint8_t*>(static_cast<size_t>(gPageSize)), gPageSize));
+              "bitmap", reinterpret_cast<uint8_t*>(static_cast<size_t>(page_size)), page_size));
       CHECK(bitmap.IsValid());
       live_bitmaps_.push_back(std::move(bitmap));
     }
@@ -82,8 +84,8 @@ class ImmuneSpacesTest : public CommonArtTest {
     // If the image is aligned to the current runtime page size, it will already
     // be naturally aligned. On the other hand, MayAnonymousAligned() requires
     // that the requested alignment is higher.
-    DCHECK_LE(gPageSize, kElfSegmentAlignment);
-    if (gPageSize == kElfSegmentAlignment) {
+    DCHECK_LE(MemMap::GetPageSize(), kElfSegmentAlignment);
+    if (MemMap::GetPageSize() == kElfSegmentAlignment) {
       return MemMap::MapAnonymous("reserve",
                                   image_size,
                                   PROT_READ | PROT_WRITE,

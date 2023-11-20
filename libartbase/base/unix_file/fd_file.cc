@@ -498,8 +498,8 @@ bool FdFile::Copy(FdFile* input_file, int64_t offset, int64_t size) {
   if (lseek(input_file->Fd(), off, SEEK_SET) != off) {
     return false;
   }
-  const size_t max_buffer_size = 4 * ::art::gPageSize;
-  const size_t buffer_size = std::min<uint64_t>(size, max_buffer_size);
+  constexpr size_t kMaxBufferSize = 16 * ::art::KB;
+  const size_t buffer_size = std::min<uint64_t>(size, kMaxBufferSize);
   art::UniqueCPtr<void> buffer(malloc(buffer_size));
   if (buffer == nullptr) {
     errno = ENOMEM;

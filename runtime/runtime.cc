@@ -206,6 +206,12 @@ static constexpr double kLowMemoryMaxLoadFactor = 0.8;
 static constexpr double kNormalMinLoadFactor = 0.4;
 static constexpr double kNormalMaxLoadFactor = 0.7;
 
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+// Declare the constant as ALWAYS_HIDDEN to ensure it isn't visible from outside libart.so.
+const size_t PageSize::value_ ALWAYS_HIDDEN = GetPageSizeSlow();
+PageSize gPageSize ALWAYS_HIDDEN;
+#endif
+
 Runtime* Runtime::instance_ = nullptr;
 
 struct TraceConfig {
@@ -548,6 +554,12 @@ Runtime::~Runtime() {
   // instance. We rely on a small initialization order issue in Runtime::Start() that requires
   // elements of WellKnownClasses to be null, see b/65500943.
   WellKnownClasses::Clear();
+
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+  // This is added to ensure no test is able to access gPageSize prior to initializing Runtime just
+  // because a Runtime instance was created (and subsequently destroyed) by another test.
+  gPageSize.DisallowAccess();
+#endif
 }
 
 struct AbortState {
@@ -1491,6 +1503,10 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
   // (b/30160149): protect subprocesses from modifications to LD_LIBRARY_PATH, etc.
   // Take a snapshot of the environment at the time the runtime was created, for use by Exec, etc.
   env_snapshot_.TakeSnapshot();
+
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+  gPageSize.AllowAccess();
+#endif
 
   using Opt = RuntimeArgumentMap;
   Opt runtime_options(std::move(runtime_options_in));

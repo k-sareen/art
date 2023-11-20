@@ -38,7 +38,7 @@ void VisualizeDexLayout(dex_ir::Header* header,
                         size_t dex_file_index,
                         ProfileCompilationInfo* profile_info);
 
-void ShowDexSectionStatistics(dex_ir::Header* header, size_t dex_file_index);
+void ShowDexSectionStatistics(dex_ir::Header* header, size_t dex_file_index, size_t page_size);
 
 }  // namespace art
 

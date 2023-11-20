@@ -51,15 +51,16 @@ class CommonCompilerTestImpl::CodeAndMetadata {
   CodeAndMetadata(ArrayRef<const uint8_t> code,
                   ArrayRef<const uint8_t> vmap_table,
                   InstructionSet instruction_set) {
+    const size_t page_size = MemMap::GetPageSize();
     const uint32_t code_size = code.size();
     CHECK_NE(code_size, 0u);
     const uint32_t vmap_table_offset = vmap_table.empty() ? 0u
         : sizeof(OatQuickMethodHeader) + vmap_table.size();
     OatQuickMethodHeader method_header(vmap_table_offset);
     const size_t code_alignment = GetInstructionSetCodeAlignment(instruction_set);
-    DCHECK_ALIGNED_PARAM(static_cast<size_t>(gPageSize), code_alignment);
+    DCHECK_ALIGNED_PARAM(page_size, code_alignment);
     const uint32_t code_offset = RoundUp(vmap_table.size() + sizeof(method_header), code_alignment);
-    const uint32_t capacity = RoundUp(code_offset + code_size, gPageSize);
+    const uint32_t capacity = RoundUp(code_offset + code_size, page_size);
 
     // Create a memfd handle with sufficient capacity.
     android::base::unique_fd mem_fd(art::memfd_create_compat("test code", /*flags=*/ 0));

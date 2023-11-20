@@ -36,7 +36,7 @@ class TestFaultHandler final : public FaultHandler {
         map_error_(),
         target_map_(MemMap::MapAnonymous("test-305-mmap",
                                          /* addr */ nullptr,
-                                         /* byte_count */ gPageSize,
+                                         /* byte_count */ MemMap::GetPageSize(),
                                          /* prot */ PROT_NONE,
                                          /* low_4gb */ false,
                                          /* reuse */ false,

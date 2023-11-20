@@ -31,6 +31,7 @@
 
 #include <android-base/logging.h>
 
+#include "base/mem_map.h"
 #include "dex_ir.h"
 #include "dexlayout.h"
 #include "profile/profile_compilation_info.h"
@@ -49,7 +50,8 @@ class Dumper {
   explicit Dumper(dex_ir::Header* header)
       : out_file_(nullptr),
         sorted_sections_(
-            dex_ir::GetSortedDexFileSections(header, dex_ir::SortDirection::kSortDescending)) { }
+            dex_ir::GetSortedDexFileSections(header, dex_ir::SortDirection::kSortDescending)),
+        page_size_(MemMap::GetPageSize()) {}
 
   bool OpenAndPrintHeader(size_t dex_index) {
     // Open the file and emit the gnuplot prologue.
@@ -70,7 +72,7 @@ class Dumper {
         if (printed_one) {
           fprintf(out_file_, ", ");
         }
-        fprintf(out_file_, "\"%s\" %" PRIuPTR, s.name.c_str(), s.offset / gPageSize);
+        fprintf(out_file_, "\"%s\" %" PRIuPTR, s.name.c_str(), s.offset / page_size_);
         printed_one = true;
       }
     }
@@ -98,8 +100,8 @@ class Dumper {
   }
 
   void DumpAddressRange(uint32_t from, uint32_t size, int class_index) {
-    const uint32_t low_page = from / gPageSize;
-    const uint32_t high_page = (size > 0) ? (from + size - 1) / gPageSize : low_page;
+    const uint32_t low_page = from / page_size_;
+    const uint32_t high_page = (size > 0) ? (from + size - 1) / page_size_ : low_page;
     const uint32_t size_delta = high_page - low_page;
     fprintf(out_file_, "%d %d %d 0 %d\n", low_page, class_index, size_delta, GetColor(from));
   }
@@ -234,6 +236,7 @@ class Dumper {
 
   FILE* out_file_;
   std::vector<dex_ir::DexFileSection> sorted_sections_;
+  const size_t page_size_;
 
   DISALLOW_COPY_AND_ASSIGN(Dumper);
 };
@@ -316,7 +319,7 @@ static uint32_t FindNextByteAfterSection(dex_ir::Header* header,
 /*
  * Dumps the offset and size of sections within the file.
  */
-void ShowDexSectionStatistics(dex_ir::Header* header, size_t dex_file_index) {
+void ShowDexSectionStatistics(dex_ir::Header* header, size_t dex_file_index, size_t page_size) {
   // Compute the (multidex) class file name).
   fprintf(stdout, "%s (%d bytes)\n",
           MultidexName("classes", dex_file_index, ".dex").c_str(),
@@ -336,7 +339,7 @@ void ShowDexSectionStatistics(dex_ir::Header* header, size_t dex_file_index) {
             file_section.offset,
             file_section.size,
             bytes,
-            RoundUp(bytes, gPageSize) / gPageSize,
+            RoundUp(bytes, page_size) / page_size,
             100 * bytes / header->FileSize());
   }
   fprintf(stdout, "\n");

@@ -82,8 +82,9 @@ bool OpenProcFiles(pid_t pid, /*out*/ ProcFiles& files, /*out*/ std::string& err
   return true;
 }
 
-void DumpPageInfo(uint64_t virtual_page_index, ProcFiles& proc_files, std::ostream& os) {
-  const uint64_t virtual_page_addr = virtual_page_index * gPageSize;
+void DumpPageInfo(uint64_t virtual_page_index, ProcFiles& proc_files, std::ostream& os,
+                  size_t page_size) {
+  const uint64_t virtual_page_addr = virtual_page_index * page_size;
   os << "Virtual page index: " << virtual_page_index << "\n";
   os << "Virtual page addr: " << virtual_page_addr << "\n";
 
@@ -117,7 +118,7 @@ void DumpPageInfo(uint64_t virtual_page_index, ProcFiles& proc_files, std::ostre
   os << "kpageflags: " << page_flags << "\n";
 
   if (page_count != 0) {
-    std::vector<uint8_t> page_contents(gPageSize);
+    std::vector<uint8_t> page_contents(page_size);
     if (!proc_files.mem.PreadFully(page_contents.data(), page_contents.size(), virtual_page_addr)) {
       os << "Failed to read page contents\n";
       return;
@@ -150,13 +151,14 @@ struct MapPageCounts {
 bool GetMapPageCounts(ProcFiles& proc_files,
                       const android::procinfo::MapInfo& map_info,
                       MapPageCounts& map_page_counts,
-                      std::string& error_msg) {
+                      std::string& error_msg,
+                      size_t page_size) {
   map_page_counts.name = map_info.name;
   map_page_counts.start = map_info.start;
   map_page_counts.end = map_info.end;
-  std::vector<uint8_t> page_contents(gPageSize);
-  for (uint64_t begin = map_info.start; begin < map_info.end; begin += gPageSize) {
-    const size_t virtual_page_index = begin / gPageSize;
+  std::vector<uint8_t> page_contents(page_size);
+  for (uint64_t begin = map_info.start; begin < map_info.end; begin += page_size) {
+    const size_t virtual_page_index = begin / page_size;
     uint64_t page_frame_number = -1;
     if (!GetPageFrameNumber(proc_files.pagemap, virtual_page_index, page_frame_number, error_msg)) {
       return false;
@@ -201,7 +203,7 @@ bool GetMapPageCounts(ProcFiles& proc_files,
   return true;
 }
 
-void CountZeroPages(pid_t pid, ProcFiles& proc_files, std::ostream& os) {
+void CountZeroPages(pid_t pid, ProcFiles& proc_files, std::ostream& os, size_t page_size) {
   std::vector<android::procinfo::MapInfo> proc_maps;
   if (!android::procinfo::ReadProcessMaps(pid, &proc_maps)) {
     os << "Could not read process maps for " << pid;
@@ -213,7 +215,7 @@ void CountZeroPages(pid_t pid, ProcFiles& proc_files, std::ostream& os) {
   for (const android::procinfo::MapInfo& map_info : proc_maps) {
     MapPageCounts map_page_counts;
     std::string error_msg;
-    if (!GetMapPageCounts(proc_files, map_info, map_page_counts, error_msg)) {
+    if (!GetMapPageCounts(proc_files, map_info, map_page_counts, error_msg, page_size)) {
       os << "Error getting map page counts for: " << map_info.name << "\n" << error_msg << "\n\n";
       continue;
     }
@@ -304,7 +306,8 @@ void CountZeroPages(pid_t pid, ProcFiles& proc_files, std::ostream& os) {
 int PageInfo(std::ostream& os,
              pid_t pid,
              bool count_zero_pages,
-             std::optional<uint64_t> virtual_page_index) {
+             std::optional<uint64_t> virtual_page_index,
+             size_t page_size) {
   ProcFiles proc_files;
   std::string error_msg;
   if (!OpenProcFiles(pid, proc_files, error_msg)) {
@@ -312,10 +315,10 @@ int PageInfo(std::ostream& os,
     return EXIT_FAILURE;
   }
   if (virtual_page_index != std::nullopt) {
-    DumpPageInfo(virtual_page_index.value(), proc_files, os);
+    DumpPageInfo(virtual_page_index.value(), proc_files, os, page_size);
   }
   if (count_zero_pages) {
-    CountZeroPages(pid, proc_files, os);
+    CountZeroPages(pid, proc_files, os, page_size);
   }
   return EXIT_SUCCESS;
 }
@@ -416,7 +419,8 @@ struct PageInfoMain : public CmdlineMain<PageInfoArgs> {
     CHECK(args_->os_ != nullptr);
 
     return PageInfo(
-               *args_->os_, args_->pid_, args_->count_zero_pages_, args_->virtual_page_index_) ==
+               *args_->os_, args_->pid_, args_->count_zero_pages_, args_->virtual_page_index_,
+               MemMap::GetPageSize()) ==
            EXIT_SUCCESS;
   }
 

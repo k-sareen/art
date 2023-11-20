@@ -2218,7 +2218,7 @@ bool DexLayout::ProcessDexFile(const char* file_name,
   }
 
   if (options_.show_section_statistics_) {
-    ShowDexSectionStatistics(header_, dex_file_index);
+    ShowDexSectionStatistics(header_, dex_file_index, page_size_);
     return true;
   }
 

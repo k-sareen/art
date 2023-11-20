@@ -22,6 +22,7 @@
 #include "base/array_ref.h"
 #include "base/bit_utils.h"
 #include "base/leb128.h"
+#include "base/mem_map.h"
 #include "dwarf/writer.h"
 
 // liblzma.
@@ -98,6 +99,8 @@ void XzCompress(ArrayRef<const uint8_t> src,
 }
 
 void XzDecompress(ArrayRef<const uint8_t> src, std::vector<uint8_t>* dst) {
+  const size_t page_size = MemMap::GetPageSize();
+
   XzInitCrc();
   std::unique_ptr<CXzUnpacker> state(new CXzUnpacker());
   ISzAlloc alloc;
@@ -109,7 +112,7 @@ void XzDecompress(ArrayRef<const uint8_t> src, std::vector<uint8_t>* dst) {
   size_t dst_offset = 0;
   ECoderStatus status;
   do {
-    dst->resize(RoundUp(dst_offset + gPageSize / 4, gPageSize));
+    dst->resize(RoundUp(dst_offset + page_size / 4, page_size));
     size_t src_remaining = src.size() - src_offset;
     size_t dst_remaining = dst->size() - dst_offset;
     int return_val = XzUnpacker_Code(state.get(),

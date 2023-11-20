@@ -173,7 +173,7 @@ void SpaceBitmap<kAlignment>::ClearRange(const mirror::Object* begin, const mirr
   const uintptr_t start_index = OffsetToIndex(begin_offset);
   const uintptr_t end_index = OffsetToIndex(end_offset);
   ZeroAndReleaseMemory(reinterpret_cast<uint8_t*>(&bitmap_begin_[start_index]),
-                      (end_index - start_index) * sizeof(*bitmap_begin_));
+                       (end_index - start_index) * sizeof(*bitmap_begin_));
 }
 
 template<size_t kAlignment>

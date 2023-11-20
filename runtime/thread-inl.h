@@ -40,6 +40,13 @@ inline Thread* Thread::ForEnv(JNIEnv* env) {
   return full_env->GetSelf();
 }
 
+inline size_t Thread::GetStackOverflowProtectedSize() {
+  // The kMemoryToolStackGuardSizeScale is expected to be 1 when ASan is not enabled.
+  // As the function is always inlined, in those cases each function call should turn
+  // into a simple reference to gPageSize.
+  return kMemoryToolStackGuardSizeScale * gPageSize;
+}
+
 inline ObjPtr<mirror::Object> Thread::DecodeJObject(jobject obj) const {
   if (obj == nullptr) {
     return nullptr;

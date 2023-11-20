@@ -29,6 +29,7 @@
 #include <set>
 #include <unordered_map>
 
+#include "base/mem_map.h"
 #include "dex/compact_dex_level.h"
 #include "dex_container.h"
 #include "dex/dex_file_layout.h"
@@ -111,7 +112,8 @@ class DexLayout {
       : options_(options),
         info_(info),
         out_file_(out_file),
-        header_(header) { }
+        header_(header),
+        page_size_(MemMap::GetPageSize()) { }
 
   int ProcessFile(const char* file_name);
   bool ProcessDexFile(const char* file_name,
@@ -194,6 +196,7 @@ class DexLayout {
   ProfileCompilationInfo* info_;
   FILE* out_file_;
   dex_ir::Header* header_;
+  const size_t page_size_;
   DexLayoutSections dex_sections_;
   // Layout hotness information is only calculated when dexlayout is enabled.
   DexLayoutHotnessInfo layout_hotness_info_;

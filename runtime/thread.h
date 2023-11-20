@@ -285,6 +285,11 @@ class Thread {
   // Get the thread from the JNI environment.
   static Thread* ForEnv(JNIEnv* env);
 
+  // For implicit overflow checks we reserve an extra piece of memory at the bottom of the stack
+  // (lowest memory). The higher portion of the memory is protected against reads and the lower is
+  // available for use while throwing the StackOverflow exception.
+  ALWAYS_INLINE static size_t GetStackOverflowProtectedSize();
+
   // On a runnable thread, check for pending thread suspension request and handle if pending.
   void AllowThreadSuspension() REQUIRES_SHARED(Locks::mutator_lock_);
 

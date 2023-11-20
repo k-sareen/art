@@ -89,6 +89,9 @@ std::ostream& operator<<(std::ostream& os, const Maps& mem_maps) {
 }
 
 std::mutex* MemMap::mem_maps_lock_ = nullptr;
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+size_t MemMap::page_size_ = 0;
+#endif
 
 #if USE_ART_LOW_4G_ALLOCATOR
 // Handling mem_map in 32b address range for 64b architectures that do not support MAP_32BIT.
@@ -103,7 +106,7 @@ static constexpr uintptr_t LOW_MEM_START = 64 * KB;
 // ART_BASE_ADDR      = 0001XXXXXXXXXXXXXXX
 // ----------------------------------------
 //                    = 0000111111111111111
-// & ~(gPageSize - 1) =~0000000000000001111
+// & ~(page_size - 1) =~0000000000000001111
 // ----------------------------------------
 // mask               = 0000111111111110000
 // & random data      = YYYYYYYYYYYYYYYYYYY
@@ -118,7 +121,7 @@ static constexpr uintptr_t LOW_MEM_START = 64 * KB;
 
 // Function is standalone so it can be tested somewhat in mem_map_test.cc.
 #ifdef __BIONIC__
-uintptr_t CreateStartPos(uint64_t input) {
+uintptr_t CreateStartPos(uint64_t input, size_t page_size) {
   CHECK_NE(0, ART_BASE_ADDRESS);
 
   // Start with all bits below highest bit in ART_BASE_ADDRESS.
@@ -126,26 +129,26 @@ uintptr_t CreateStartPos(uint64_t input) {
   constexpr uintptr_t mask_ones = (1 << (31 - leading_zeros)) - 1;
 
   // Lowest (usually 12) bits are not used, as aligned by page size.
-  const uintptr_t mask = mask_ones & ~(gPageSize - 1);
+  const uintptr_t mask = mask_ones & ~(page_size - 1);
 
   // Mask input data.
   return (input & mask) + LOW_MEM_START;
 }
 #endif
 
-static uintptr_t GenerateNextMemPos() {
+static uintptr_t GenerateNextMemPos(size_t page_size) {
 #ifdef __BIONIC__
   uint64_t random_data;
   arc4random_buf(&random_data, sizeof(random_data));
-  return CreateStartPos(random_data);
+  return CreateStartPos(random_data, page_size);
 #else
+  UNUSED(page_size);
   // No arc4random on host, see above.
   return LOW_MEM_START;
 #endif
 }
 
-// Initialize linear scan to random position.
-uintptr_t MemMap::next_mem_pos_ = GenerateNextMemPos();
+uintptr_t MemMap::next_mem_pos_;
 #endif
 
 // Return true if the address range is contained in a single memory map by either reading
@@ -236,7 +239,7 @@ bool MemMap::CheckReservation(uint8_t* expected_ptr,
     *error_msg = StringPrintf("Invalid reservation for %s", name);
     return false;
   }
-  DCHECK_ALIGNED_PARAM(reservation.Begin(), gPageSize);
+  DCHECK_ALIGNED_PARAM(reservation.Begin(), GetPageSize());
   if (reservation.Begin() != expected_ptr) {
     *error_msg = StringPrintf("Bad image reservation start for %s: %p instead of %p",
                               name,
@@ -317,7 +320,7 @@ MemMap MemMap::MapAnonymous(const char* name,
     *error_msg = "Empty MemMap requested.";
     return Invalid();
   }
-  size_t page_aligned_byte_count = RoundUp(byte_count, gPageSize);
+  size_t page_aligned_byte_count = RoundUp(byte_count, GetPageSize());
 
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
   if (reuse) {
@@ -393,15 +396,15 @@ MemMap MemMap::MapAnonymousAligned(const char* name,
                                    size_t alignment,
                                    /*out=*/std::string* error_msg) {
   DCHECK(IsPowerOfTwo(alignment));
-  DCHECK_GT(alignment, gPageSize);
+  DCHECK_GT(alignment, GetPageSize());
 
-  // Allocate extra 'alignment - gPageSize' bytes so that the mapping can be aligned.
+  // Allocate extra 'alignment - GetPageSize()' bytes so that the mapping can be aligned.
   MemMap ret = MapAnonymous(name,
                             /*addr=*/nullptr,
                             // AlignBy requires the size to be page-aligned, so
                             // rounding it here. It is corrected afterwards with
                             // SetSize after AlignBy.
-                            RoundUp(byte_count, gPageSize) + alignment - gPageSize,
+                            RoundUp(byte_count, GetPageSize()) + alignment - GetPageSize(),
                             prot,
                             low_4gb,
                             /*reuse=*/false,
@@ -420,7 +423,7 @@ MemMap MemMap::MapPlaceholder(const char* name, uint8_t* addr, size_t byte_count
   if (byte_count == 0) {
     return Invalid();
   }
-  const size_t page_aligned_byte_count = RoundUp(byte_count, gPageSize);
+  const size_t page_aligned_byte_count = RoundUp(byte_count, GetPageSize());
   return MemMap(name, addr, byte_count, addr, page_aligned_byte_count, 0, /* reuse= */ true);
 }
 
@@ -547,10 +550,10 @@ MemMap MemMap::MapFileAtAddress(uint8_t* expected_ptr,
     return Invalid();
   }
   // Adjust 'offset' to be page-aligned as required by mmap.
-  int page_offset = start % gPageSize;
+  int page_offset = start % GetPageSize();
   off_t page_aligned_offset = start - page_offset;
   // Adjust 'byte_count' to be page-aligned as we will map this anyway.
-  size_t page_aligned_byte_count = RoundUp(byte_count + page_offset, gPageSize);
+  size_t page_aligned_byte_count = RoundUp(byte_count + page_offset, GetPageSize());
   // The 'expected_ptr' is modified (if specified, ie non-null) to be page aligned to the file but
   // not necessarily to virtual memory. mmap will page align 'expected' for us.
   uint8_t* page_aligned_expected =
@@ -558,7 +561,7 @@ MemMap MemMap::MapFileAtAddress(uint8_t* expected_ptr,
 
   size_t redzone_size = 0;
   if (kRunningOnMemoryTool && kMemoryToolAddsRedzones && expected_ptr == nullptr) {
-    redzone_size = gPageSize;
+    redzone_size = GetPageSize();
     page_aligned_byte_count += redzone_size;
   }
 
@@ -753,10 +756,10 @@ MemMap MemMap::RemapAtEnd(uint8_t* new_end,
   DCHECK_GE(new_end, Begin());
   DCHECK_LE(new_end, End());
   DCHECK_LE(begin_ + size_, reinterpret_cast<uint8_t*>(base_begin_) + base_size_);
-  DCHECK_ALIGNED_PARAM(begin_, gPageSize);
-  DCHECK_ALIGNED_PARAM(base_begin_, gPageSize);
-  DCHECK_ALIGNED_PARAM(reinterpret_cast<uint8_t*>(base_begin_) + base_size_, gPageSize);
-  DCHECK_ALIGNED_PARAM(new_end, gPageSize);
+  DCHECK_ALIGNED_PARAM(begin_, GetPageSize());
+  DCHECK_ALIGNED_PARAM(base_begin_, GetPageSize());
+  DCHECK_ALIGNED_PARAM(reinterpret_cast<uint8_t*>(base_begin_) + base_size_, GetPageSize());
+  DCHECK_ALIGNED_PARAM(new_end, GetPageSize());
   uint8_t* old_end = begin_ + size_;
   uint8_t* old_base_end = reinterpret_cast<uint8_t*>(base_begin_) + base_size_;
   uint8_t* new_base_end = new_end;
@@ -771,7 +774,7 @@ MemMap MemMap::RemapAtEnd(uint8_t* new_end,
   uint8_t* tail_base_begin = new_base_end;
   size_t tail_base_size = old_base_end - new_base_end;
   DCHECK_EQ(tail_base_begin + tail_base_size, old_base_end);
-  DCHECK_ALIGNED_PARAM(tail_base_size, gPageSize);
+  DCHECK_ALIGNED_PARAM(tail_base_size, GetPageSize());
 
   MEMORY_TOOL_MAKE_UNDEFINED(tail_base_begin, tail_base_size);
   // Note: Do not explicitly unmap the tail region, mmap() with MAP_FIXED automatically
@@ -810,7 +813,7 @@ MemMap MemMap::RemapAtEnd(uint8_t* new_end,
 MemMap MemMap::TakeReservedMemory(size_t byte_count, bool reuse) {
   uint8_t* begin = Begin();
   ReleaseReservedMemory(byte_count);  // Performs necessary DCHECK()s on this reservation.
-  size_t base_size = RoundUp(byte_count, gPageSize);
+  size_t base_size = RoundUp(byte_count, GetPageSize());
   return MemMap(name_, begin, byte_count, begin, base_size, prot_, reuse);
 }
 
@@ -822,13 +825,13 @@ void MemMap::ReleaseReservedMemory(size_t byte_count) {
   DCHECK_EQ(redzone_size_, 0u);
   DCHECK_EQ(begin_, base_begin_);
   DCHECK_EQ(size_, base_size_);
-  DCHECK_ALIGNED_PARAM(begin_, gPageSize);
-  DCHECK_ALIGNED_PARAM(size_, gPageSize);
+  DCHECK_ALIGNED_PARAM(begin_, GetPageSize());
+  DCHECK_ALIGNED_PARAM(size_, GetPageSize());
 
   // Check and round up the `byte_count`.
   DCHECK_NE(byte_count, 0u);
   DCHECK_LE(byte_count, size_);
-  byte_count = RoundUp(byte_count, gPageSize);
+  byte_count = RoundUp(byte_count, GetPageSize());
 
   if (byte_count == size_) {
     Invalidate();
@@ -943,7 +946,7 @@ void MemMap::DumpMapsLocked(std::ostream& os, bool terse) {
     size_t num_gaps = 0;
     size_t num = 1u;
     size_t size = map->BaseSize();
-    CHECK_ALIGNED_PARAM(size, gPageSize);
+    CHECK_ALIGNED_PARAM(size, GetPageSize());
     void* end = map->BaseEnd();
     while (it != maps_end &&
         it->second->GetProtect() == map->GetProtect() &&
@@ -951,24 +954,24 @@ void MemMap::DumpMapsLocked(std::ostream& os, bool terse) {
         (it->second->BaseBegin() == end || num_gaps < kMaxGaps)) {
       if (it->second->BaseBegin() != end) {
         ++num_gaps;
-        os << "+0x" << std::hex << (size / gPageSize) << "P";
+        os << "+0x" << std::hex << (size / GetPageSize()) << "P";
         if (num != 1u) {
           os << "(" << std::dec << num << ")";
         }
         size_t gap =
             reinterpret_cast<uintptr_t>(it->second->BaseBegin()) - reinterpret_cast<uintptr_t>(end);
-        CHECK_ALIGNED_PARAM(gap, gPageSize);
-        os << "~0x" << std::hex << (gap / gPageSize) << "P";
+        CHECK_ALIGNED_PARAM(gap, GetPageSize());
+        os << "~0x" << std::hex << (gap / GetPageSize()) << "P";
         num = 0u;
         size = 0u;
       }
-      CHECK_ALIGNED_PARAM(it->second->BaseSize(), gPageSize);
+      CHECK_ALIGNED_PARAM(it->second->BaseSize(), GetPageSize());
       ++num;
       size += it->second->BaseSize();
       end = it->second->BaseEnd();
       ++it;
     }
-    os << "+0x" << std::hex << (size / gPageSize) << "P";
+    os << "+0x" << std::hex << (size / GetPageSize()) << "P";
     if (num != 1u) {
       os << "(" << std::dec << num << ")";
     }
@@ -1009,12 +1012,19 @@ void MemMap::Init() {
     return;
   }
 
-  CHECK_GE(gPageSize, kMinPageSize);
-  CHECK_LE(gPageSize, kMaxPageSize);
-
   mem_maps_lock_ = new std::mutex();
   // Not for thread safety, but for the annotation that gMaps is GUARDED_BY(mem_maps_lock_).
   std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+  page_size_ = GetPageSizeSlow();
+#endif
+  CHECK_GE(GetPageSize(), kMinPageSize);
+  CHECK_LE(GetPageSize(), kMaxPageSize);
+#if USE_ART_LOW_4G_ALLOCATOR
+  // Initialize linear scan to random position.
+  CHECK_EQ(next_mem_pos_, 0u);
+  next_mem_pos_ = GenerateNextMemPos(GetPageSize());
+#endif
   DCHECK(gMaps == nullptr);
   gMaps = new Maps;
 
@@ -1035,6 +1045,9 @@ void MemMap::Shutdown() {
     delete gMaps;
     gMaps = nullptr;
   }
+#if USE_ART_LOW_4G_ALLOCATOR
+  next_mem_pos_ = 0u;
+#endif
   delete mem_maps_lock_;
   mem_maps_lock_ = nullptr;
 }
@@ -1042,7 +1055,7 @@ void MemMap::Shutdown() {
 void MemMap::SetSize(size_t new_size) {
   CHECK_LE(new_size, size_);
   size_t new_base_size = RoundUp(new_size + static_cast<size_t>(PointerDiff(Begin(), BaseBegin())),
-                                 gPageSize);
+                                 GetPageSize());
   if (new_base_size == base_size_) {
     size_ = new_size;
     return;
@@ -1071,7 +1084,7 @@ void* MemMap::MapInternalArtLow4GBAllocator(size_t length,
   bool first_run = true;
 
   std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-  for (uintptr_t ptr = next_mem_pos_; ptr < 4 * GB; ptr += gPageSize) {
+  for (uintptr_t ptr = next_mem_pos_; ptr < 4 * GB; ptr += GetPageSize()) {
     // Use gMaps as an optimization to skip over large maps.
     // Find the first map which is address > ptr.
     auto it = gMaps->upper_bound(reinterpret_cast<void*>(ptr));
@@ -1080,7 +1093,7 @@ void* MemMap::MapInternalArtLow4GBAllocator(size_t length,
       --before_it;
       // Start at the end of the map before the upper bound.
       ptr = std::max(ptr, reinterpret_cast<uintptr_t>(before_it->second->BaseEnd()));
-      CHECK_ALIGNED_PARAM(ptr, gPageSize);
+      CHECK_ALIGNED_PARAM(ptr, GetPageSize());
     }
     while (it != gMaps->end()) {
       // How much space do we have until the next map?
@@ -1091,7 +1104,7 @@ void* MemMap::MapInternalArtLow4GBAllocator(size_t length,
       }
       // Otherwise, skip to the end of the map.
       ptr = reinterpret_cast<uintptr_t>(it->second->BaseEnd());
-      CHECK_ALIGNED_PARAM(ptr, gPageSize);
+      CHECK_ALIGNED_PARAM(ptr, GetPageSize());
       ++it;
     }
 
@@ -1106,7 +1119,7 @@ void* MemMap::MapInternalArtLow4GBAllocator(size_t length,
       // Not enough memory until 4GB.
       if (first_run) {
         // Try another time from the bottom;
-        ptr = LOW_MEM_START - gPageSize;
+        ptr = LOW_MEM_START - GetPageSize();
         first_run = false;
         continue;
       } else {
@@ -1119,8 +1132,8 @@ void* MemMap::MapInternalArtLow4GBAllocator(size_t length,
 
     // Check pages are free.
     bool safe = true;
-    for (tail_ptr = ptr; tail_ptr < ptr + length; tail_ptr += gPageSize) {
-      if (msync(reinterpret_cast<void*>(tail_ptr), gPageSize, 0) == 0) {
+    for (tail_ptr = ptr; tail_ptr < ptr + length; tail_ptr += GetPageSize()) {
+      if (msync(reinterpret_cast<void*>(tail_ptr), GetPageSize(), 0) == 0) {
         safe = false;
         break;
       } else {
@@ -1176,7 +1189,7 @@ void* MemMap::MapInternal(void* addr,
 #else
   UNUSED(low_4gb);
 #endif
-  DCHECK_ALIGNED_PARAM(length, gPageSize);
+  DCHECK_ALIGNED_PARAM(length, GetPageSize());
   // TODO:
   // A page allocator would be a useful abstraction here, as
   // 1) It is doubtful that MAP_32BIT on x86_64 is doing the right job for us
@@ -1235,11 +1248,11 @@ void MemMap::TryReadable() {
   CHECK_NE(prot_ & PROT_READ, 0);
   volatile uint8_t* begin = reinterpret_cast<volatile uint8_t*>(base_begin_);
   volatile uint8_t* end = begin + base_size_;
-  DCHECK(IsAlignedParam(begin, gPageSize));
-  DCHECK(IsAlignedParam(end, gPageSize));
+  DCHECK(IsAlignedParam(begin, GetPageSize()));
+  DCHECK(IsAlignedParam(end, GetPageSize()));
   // Read the first byte of each page. Use volatile to prevent the compiler from optimizing away the
   // reads.
-  for (volatile uint8_t* ptr = begin; ptr < end; ptr += gPageSize) {
+  for (volatile uint8_t* ptr = begin; ptr < end; ptr += GetPageSize()) {
     // This read could fault if protection wasn't set correctly.
     uint8_t value = *ptr;
     UNUSED(value);
@@ -1251,9 +1264,9 @@ static void inline RawClearMemory(uint8_t* begin, uint8_t* end) {
 }
 
 #if defined(__linux__)
-static inline void ClearMemory(uint8_t* page_begin, size_t size, bool resident) {
-  DCHECK(IsAlignedParam(page_begin, gPageSize));
-  DCHECK(IsAlignedParam(page_begin + size, gPageSize));
+static inline void ClearMemory(uint8_t* page_begin, size_t size, bool resident, size_t page_size) {
+  DCHECK(IsAlignedParam(page_begin, page_size));
+  DCHECK(IsAlignedParam(page_begin + size, page_size));
   if (resident) {
     RawClearMemory(page_begin, page_begin + size);
     // Note we check madvise return value against -1, as it seems old kernels
@@ -1275,8 +1288,8 @@ void ZeroMemory(void* address, size_t length, bool release_eagerly) {
   }
   uint8_t* const mem_begin = reinterpret_cast<uint8_t*>(address);
   uint8_t* const mem_end = mem_begin + length;
-  uint8_t* const page_begin = AlignUp(mem_begin, gPageSize);
-  uint8_t* const page_end = AlignDown(mem_end, gPageSize);
+  uint8_t* const page_begin = AlignUp(mem_begin, MemMap::GetPageSize());
+  uint8_t* const page_end = AlignDown(mem_end, MemMap::GetPageSize());
   if (!kMadviseZeroes || page_begin >= page_end) {
     // No possible area to madvise.
     RawClearMemory(mem_begin, mem_end);
@@ -1296,24 +1309,24 @@ void ZeroMemory(void* address, size_t length, bool release_eagerly) {
 // mincore() is linux-specific syscall.
 #if defined(__linux__)
   if (!release_eagerly) {
-    size_t vec_len = (page_end - page_begin) / gPageSize;
+    size_t vec_len = (page_end - page_begin) / MemMap::GetPageSize();
     std::unique_ptr<unsigned char[]> vec(new unsigned char[vec_len]);
     if (mincore(page_begin, page_end - page_begin, vec.get()) == 0) {
       uint8_t* current_page = page_begin;
-      size_t current_size = gPageSize;
+      size_t current_size = MemMap::GetPageSize();
       uint32_t old_state = vec[0] & 0x1;
       for (size_t i = 1; i < vec_len; ++i) {
         uint32_t new_state = vec[i] & 0x1;
         if (old_state == new_state) {
-          current_size += gPageSize;
+          current_size += MemMap::GetPageSize();
         } else {
-          ClearMemory(current_page, current_size, old_state);
+          ClearMemory(current_page, current_size, old_state, MemMap::GetPageSize());
           current_page = current_page + current_size;
-          current_size = gPageSize;
+          current_size = MemMap::GetPageSize();
           old_state = new_state;
         }
       }
-      ClearMemory(current_page, current_size, old_state);
+      ClearMemory(current_page, current_size, old_state, MemMap::GetPageSize());
       return;
     }
     static bool logged_about_mincore = false;
@@ -1334,8 +1347,8 @@ void ZeroMemory(void* address, size_t length, bool release_eagerly) {
 void MemMap::AlignBy(size_t alignment, bool align_both_ends) {
   CHECK_EQ(begin_, base_begin_) << "Unsupported";
   CHECK_EQ(size_, base_size_) << "Unsupported";
-  CHECK_GT(alignment, static_cast<size_t>(gPageSize));
-  CHECK_ALIGNED_PARAM(alignment, gPageSize);
+  CHECK_GT(alignment, static_cast<size_t>(GetPageSize()));
+  CHECK_ALIGNED_PARAM(alignment, GetPageSize());
   CHECK(!reuse_);
   if (IsAlignedParam(reinterpret_cast<uintptr_t>(base_begin_), alignment) &&
       (!align_both_ends || IsAlignedParam(base_size_, alignment))) {

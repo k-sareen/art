@@ -258,6 +258,7 @@ JitCodeCache* JitCodeCache::Create(bool used_only_for_profile_data,
 JitCodeCache::JitCodeCache()
     : is_weak_access_enabled_(true),
       inline_cache_cond_("Jit inline cache condition variable", *Locks::jit_lock_),
+      reserved_capacity_(GetInitialCapacity() * kReservedCapacityMultiplier),
       zygote_map_(&shared_region_),
       lock_cond_("Jit code cache condition variable", *Locks::jit_lock_),
       collection_in_progress_(false),

@@ -96,12 +96,13 @@ using ::android::base::ParseBoolResult;
 namespace art {
 
 static bool HaveMremapDontunmap() {
-  void* old = mmap(nullptr, gPageSize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+  const size_t page_size = GetPageSizeSlow();
+  void* old = mmap(nullptr, page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
   CHECK_NE(old, MAP_FAILED);
-  void* addr = mremap(old, gPageSize, gPageSize, MREMAP_MAYMOVE | MREMAP_DONTUNMAP, nullptr);
-  CHECK_EQ(munmap(old, gPageSize), 0);
+  void* addr = mremap(old, page_size, page_size, MREMAP_MAYMOVE | MREMAP_DONTUNMAP, nullptr);
+  CHECK_EQ(munmap(old, page_size), 0);
   if (addr != MAP_FAILED) {
-    CHECK_EQ(munmap(addr, gPageSize), 0);
+    CHECK_EQ(munmap(addr, page_size), 0);
     return true;
   } else {
     return false;
@@ -467,7 +468,7 @@ MarkCompact::MarkCompact(Heap* heap)
     DCHECK_EQ(total, info_map_.Size());
   }
 
-  size_t moving_space_alignment = BestPageTableAlignment(moving_space_size);
+  size_t moving_space_alignment = Heap::BestPageTableAlignment(moving_space_size);
   // The moving space is created at a fixed address, which is expected to be
   // PMD-size aligned.
   if (!IsAlignedParam(bump_pointer_space_->Begin(), moving_space_alignment)) {
@@ -550,8 +551,8 @@ MarkCompact::MarkCompact(Heap* heap)
 void MarkCompact::AddLinearAllocSpaceData(uint8_t* begin, size_t len) {
   DCHECK_ALIGNED_PARAM(begin, gPageSize);
   DCHECK_ALIGNED_PARAM(len, gPageSize);
-  DCHECK_GE(len, gPMDSize);
-  size_t alignment = BestPageTableAlignment(len);
+  DCHECK_GE(len, Heap::GetPMDSize());
+  size_t alignment = Heap::BestPageTableAlignment(len);
   bool is_shared = false;
   // We use MAP_SHARED on non-zygote processes for leveraging userfaultfd's minor-fault feature.
   if (map_linear_alloc_shared_) {

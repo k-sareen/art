@@ -31,6 +31,7 @@
 #include "android-base/stringprintf.h"
 #include "android-base/strings.h"
 
+#include "base/mem_map.h"
 #include "base/stl_util.h"
 #include "bit_utils.h"
 #include "os.h"
@@ -89,9 +90,10 @@ int CacheFlush(uintptr_t start, uintptr_t limit) {
   return r;
 }
 
-bool TouchAndFlushCacheLinesWithinPage(uintptr_t start, uintptr_t limit, size_t attempts) {
+bool TouchAndFlushCacheLinesWithinPage(uintptr_t start, uintptr_t limit, size_t attempts,
+                                       size_t page_size) {
   CHECK_LT(start, limit);
-  CHECK_EQ(RoundDown(start, gPageSize), RoundDown(limit - 1, gPageSize)) << "range spans pages";
+  CHECK_EQ(RoundDown(start, page_size), RoundDown(limit - 1, page_size)) << "range spans pages";
   // Declare a volatile variable so the compiler does not elide reads from the page being touched.
   [[maybe_unused]] volatile uint8_t v = 0;
   for (size_t i = 0; i < attempts; ++i) {
@@ -130,6 +132,8 @@ bool FlushCpuCaches(void* begin, void* end) {
   // (2) fault handling that allows flushing/invalidation to continue after
   //     a missing page has been faulted in.
 
+  const size_t page_size = MemMap::GetPageSize();
+
   uintptr_t start = reinterpret_cast<uintptr_t>(begin);
   const uintptr_t limit = reinterpret_cast<uintptr_t>(end);
   if (LIKELY(CacheFlush(start, limit) == 0)) {
@@ -139,14 +143,14 @@ bool FlushCpuCaches(void* begin, void* end) {
   // A rare failure has occurred implying that part of the range (begin, end] has been swapped
   // out. Retry flushing but this time grouping cache-line flushes on individual pages and
   // touching each page before flushing.
-  uintptr_t next_page = RoundUp(start + 1, gPageSize);
+  uintptr_t next_page = RoundUp(start + 1, page_size);
   while (start < limit) {
     uintptr_t boundary = std::min(next_page, limit);
-    if (!TouchAndFlushCacheLinesWithinPage(start, boundary, kMaxFlushAttempts)) {
+    if (!TouchAndFlushCacheLinesWithinPage(start, boundary, kMaxFlushAttempts, page_size)) {
       return false;
     }
     start = boundary;
-    next_page += gPageSize;
+    next_page += page_size;
   }
   return true;
 }
@@ -366,8 +370,9 @@ bool IsAddressKnownBackedByFileOrShared(const void* addr) {
   // We use the Linux pagemap interface for knowing if an address is backed
   // by a file or is shared. See:
   // https://www.kernel.org/doc/Documentation/vm/pagemap.txt
-  uintptr_t vmstart = reinterpret_cast<uintptr_t>(AlignDown(addr, gPageSize));
-  off_t index = (vmstart / gPageSize) * sizeof(uint64_t);
+  const size_t page_size = MemMap::GetPageSize();
+  uintptr_t vmstart = reinterpret_cast<uintptr_t>(AlignDown(addr, page_size));
+  off_t index = (vmstart / page_size) * sizeof(uint64_t);
   android::base::unique_fd pagemap(open("/proc/self/pagemap", O_RDONLY | O_CLOEXEC));
   if (pagemap == -1) {
     return false;

@@ -111,13 +111,14 @@ void CommonCompilerDriverTest::SetUp() {
 
   // Note: We cannot use MemMap because some tests tear down the Runtime and destroy
   // the gMaps, so when destroying the MemMap, the test would crash.
-  inaccessible_page_ = mmap(nullptr, gPageSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  const size_t page_size = MemMap::GetPageSize();
+  inaccessible_page_ = mmap(nullptr, page_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   CHECK(inaccessible_page_ != MAP_FAILED) << strerror(errno);
 }
 
 void CommonCompilerDriverTest::TearDown() {
   if (inaccessible_page_ != nullptr) {
-    munmap(inaccessible_page_, gPageSize);
+    munmap(inaccessible_page_, MemMap::GetPageSize());
     inaccessible_page_ = nullptr;
   }
   image_reservation_.Reset();

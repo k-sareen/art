@@ -17,12 +17,79 @@
 #ifndef ART_RUNTIME_RUNTIME_GLOBALS_H_
 #define ART_RUNTIME_RUNTIME_GLOBALS_H_
 
+#include <android-base/logging.h>
+
 #include "base/globals.h"
 
 namespace art {
 
 // Size of Dex virtual registers.
 static constexpr size_t kVRegSize = 4;
+
+#ifdef ART_PAGE_SIZE_AGNOSTIC
+// Accessor for the page size constant local to the libart.
+//
+// The value is only available after the Runtime initialization started - to ensure there is no
+// static initialization order issues where initialization of other values is dependent on the page
+// size. In those cases, GetPageSizeSlow() should be used.
+struct PageSize {
+  PageSize()
+    : is_initialized_(true), is_access_allowed_(false) {}
+
+  ALWAYS_INLINE operator size_t() const {
+    DCHECK(is_initialized_ && is_access_allowed_);
+    return value_;
+  }
+
+ private:
+  friend class Runtime;
+
+  void AllowAccess() {
+    SetAccessAllowed(true);
+  }
+
+  void DisallowAccess() {
+    SetAccessAllowed(false);
+  }
+
+  void SetAccessAllowed(bool is_allowed) {
+    // is_initialized_ is set to true when the page size value is initialized during the static
+    // initialization. This CHECK is added as an auxiliary way to help catching incorrect use of
+    // the method.
+    CHECK(is_initialized_);
+    is_access_allowed_ = is_allowed;
+  }
+
+  // The page size value.
+  //
+  // It is declared as a static constant value to ensure compiler recognizes that it doesn't change
+  // once it is initialized.
+  //
+  // It is declared as "hidden" i.e. local to the libart, to ensure:
+  //  - no other library can access it, so no static initialization dependency from other libraries
+  //    is possible;
+  //  - the variable can be addressed via offset from the program counter, instead of the global
+  //    offset table which would've added another level of indirection.
+  static const size_t value_ ALWAYS_HIDDEN;
+
+  // There are two flags in the accessor which help to ensure the value is accessed only after the
+  // static initialization is complete.
+  //
+  // is_initialized_ is used to assert the page size value is indeed initialized when the value
+  // access is allowed and when it is accessed.
+  //
+  // is_access_allowed_ is used to ensure the value is only accessed after Runtime initialization
+  // started.
+  const bool is_initialized_;
+  bool is_access_allowed_;
+};
+
+// gPageSize should only be used within libart. For most of the other cases MemMap::GetPageSize()
+// or GetPageSizeSlow() should be used. See also the comment for GetPageSizeSlow().
+extern PageSize gPageSize ALWAYS_HIDDEN;
+#else
+static constexpr size_t gPageSize = kMinPageSize;
+#endif
 
 // Returns whether the given memory offset can be used for generating
 // an implicit null check.

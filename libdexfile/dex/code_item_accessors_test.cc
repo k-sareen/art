@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include "base/mem_map.h"
 #include "dex_file_loader.h"
 #include "gtest/gtest.h"
 
@@ -28,7 +29,7 @@ namespace art {
 class CodeItemAccessorsTest : public testing::Test {};
 
 std::unique_ptr<const DexFile> CreateFakeDex(bool compact_dex, std::vector<uint8_t>* data) {
-  data->resize(gPageSize);
+  data->resize(MemMap::GetPageSize());
   if (compact_dex) {
     CompactDexFile::Header* header =
         const_cast<CompactDexFile::Header*>(CompactDexFile::Header::At(data->data()));

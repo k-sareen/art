@@ -123,4 +123,8 @@ template<typename T> ART_FRIEND_TEST(test_set_name, individual_test)
 #define EXPORT
 #endif
 
+// Some global variables shouldn't be visible outside libraries declaring them.
+// The attribute allows hiding them, so preventing direct access.
+#define ALWAYS_HIDDEN __attribute__((visibility("hidden")))
+
 #endif  // ART_LIBARTBASE_BASE_MACROS_H_

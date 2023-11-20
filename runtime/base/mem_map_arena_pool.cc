@@ -28,6 +28,7 @@
 #include "base/arena_allocator-inl.h"
 #include "base/mem_map.h"
 #include "base/systrace.h"
+#include "runtime_globals.h"
 
 namespace art {
 
