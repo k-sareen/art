@@ -918,6 +918,3759 @@ void Riscv64Assembler::Rev8(XRegister rd, XRegister rs1) {
 
 /////////////////////////////// RV64 "Zbb" Instructions  END //////////////////////////////
 
+/////////////////////////////// RVV "VSet" Instructions  START ////////////////////////////
+
+void Riscv64Assembler::VSetvli(XRegister rd, XRegister rs1, uint32_t vtypei) {
+  DCHECK(IsUint<11>(vtypei));
+  EmitI(vtypei, rs1, enum_cast<uint32_t>(VAIEncoding::kOPCFG), rd, 0x57);
+}
+
+void Riscv64Assembler::VSetivli(XRegister rd, uint32_t uimm, uint32_t vtypei) {
+  DCHECK(IsUint<10>(vtypei));
+  DCHECK(IsUint<5>(uimm));
+  EmitI((~0U << 10 | vtypei), uimm, enum_cast<uint32_t>(VAIEncoding::kOPCFG), rd, 0x57);
+}
+
+void Riscv64Assembler::VSetvl(XRegister rd, XRegister rs1, XRegister rs2) {
+  EmitR(0x40, rs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPCFG), rd, 0x57);
+}
+
+/////////////////////////////// RVV "VSet" Instructions  END //////////////////////////////
+
+/////////////////////////////// RVV Load/Store Instructions  START ////////////////////////////
+
+void Riscv64Assembler::VLe8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSe8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSe16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSe32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSe64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLm(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01011, rs1, enum_cast<uint32_t>(VectorWidth::kMask), vd, 0x7);
+}
+
+void Riscv64Assembler::VSm(VRegister vs3, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01011, rs1, enum_cast<uint32_t>(VectorWidth::kMask), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLe8ff(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b10000, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe16ff(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b10000, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe32ff(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b10000, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLe64ff(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b10000, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLse8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLse16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLse32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLse64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSse8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSse16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSse32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSse64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLoxei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSoxei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLseg2e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e8(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e16(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e32(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e64(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSseg2e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg2e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg2e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg2e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg3e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg3e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg3e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg3e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg4e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg4e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg4e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg4e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg5e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg5e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg5e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg5e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg6e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg6e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg6e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg6e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg7e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg7e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg7e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg7e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg8e8(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg8e16(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg8e32(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSseg8e64(VRegister vs3, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b00000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLseg2e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg2e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg3e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg4e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg5e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg6e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg7e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e8ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e16ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e32ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLseg8e64ff(VRegister vd, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, vm);
+  EmitR(funct7, 0b10000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg2e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg2e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg2e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg2e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg3e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg3e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg3e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg3e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg4e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg4e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg4e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg4e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg5e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg5e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg5e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg5e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg6e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg6e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg6e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg6e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg7e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg7e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg7e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg7e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg8e8(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg8e16(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg8e32(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLsseg8e64(VRegister vd, XRegister rs1, XRegister rs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSsseg2e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg2e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg2e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg2e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg3e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg3e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg3e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg3e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg4e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg4e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg4e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg4e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg5e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg5e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg5e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg5e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg6e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg6e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg6e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg6e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg7e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg7e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg7e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg7e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg8e8(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg8e16(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg8e32(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSsseg8e64(VRegister vs3, XRegister rs1, XRegister rs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kStrided, vm);
+  EmitR(funct7, rs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLuxseg2ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg2ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg2ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg2ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg3ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg3ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg3ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg3ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg4ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg4ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg4ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg4ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg5ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg5ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg5ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg5ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg6ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg6ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg6ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg6ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg7ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg7ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg7ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg7ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg8ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg8ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg8ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLuxseg8ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSuxseg2ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg2ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg2ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg2ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg3ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg3ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg3ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg3ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg4ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg4ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg4ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg4ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg5ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg5ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg5ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg5ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg6ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg6ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg6ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg6ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg7ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg7ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg7ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg7ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg8ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg8ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg8ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSuxseg8ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedUnordered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VLoxseg2ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg2ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg2ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg2ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg3ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg3ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg3ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg3ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg4ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg4ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg4ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg4ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg5ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg5ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg5ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg5ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg6ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg6ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg6ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg6ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg7ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg7ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg7ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg7ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg8ei8(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg8ei16(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg8ei32(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VLoxseg8ei64(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VSoxseg2ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg2ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg2ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg2ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg3ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg3ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg3ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg3ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k3, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg4ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg4ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg4ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg4ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg5ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg5ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg5ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg5ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k5, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg6ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg6ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg6ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg6ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k6, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg7ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg7ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg7ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg7ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k7, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg8ei8(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k8), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg8ei16(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k16), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg8ei32(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k32), vs3, 0x27);
+}
+
+void Riscv64Assembler::VSoxseg8ei64(VRegister vs3, XRegister rs1, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kIndexedOrdered, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VectorWidth::k64), vs3, 0x27);
+}
+
+void Riscv64Assembler::VL1re8(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VL1re16(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VL1re32(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VL1re64(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VL2re8(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 2), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VL2re16(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 2), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VL2re32(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 2), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VL2re64(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 2), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VL4re8(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 4), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VL4re16(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 4), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VL4re32(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 4), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VL4re64(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 4), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VL8re8(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 8), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k8), vd, 0x7);
+}
+
+void Riscv64Assembler::VL8re16(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 8), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k16), vd, 0x7);
+}
+
+void Riscv64Assembler::VL8re32(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 8), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k32), vd, 0x7);
+}
+
+void Riscv64Assembler::VL8re64(VRegister vd, XRegister rs1) {
+  DCHECK_EQ((enum_cast<uint32_t>(vd) % 8), 0U);
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::k64), vd, 0x7);
+}
+
+void Riscv64Assembler::VL1r(VRegister vd, XRegister rs1) { VL1re8(vd, rs1); }
+
+void Riscv64Assembler::VL2r(VRegister vd, XRegister rs1) { VL2re8(vd, rs1); }
+
+void Riscv64Assembler::VL4r(VRegister vd, XRegister rs1) { VL4re8(vd, rs1); }
+
+void Riscv64Assembler::VL8r(VRegister vd, XRegister rs1) { VL8re8(vd, rs1); }
+
+void Riscv64Assembler::VS1r(VRegister vs3, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k1, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::kWholeR), vs3, 0x27);
+}
+
+void Riscv64Assembler::VS2r(VRegister vs3, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k2, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::kWholeR), vs3, 0x27);
+}
+
+void Riscv64Assembler::VS4r(VRegister vs3, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k4, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::kWholeR), vs3, 0x27);
+}
+
+void Riscv64Assembler::VS8r(VRegister vs3, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVMemF7(Nf::k8, 0x0, MemAddressMode::kUnitStride, VM::kUnmasked);
+  EmitR(funct7, 0b01000u, rs1, enum_cast<uint32_t>(VectorWidth::kWholeR), vs3, 0x27);
+}
+
+/////////////////////////////// RVV Load/Store Instructions  END //////////////////////////////
+
+/////////////////////////////// RVV Arithmetic Instructions  START ////////////////////////////
+
+void Riscv64Assembler::VAdd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAdd_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAdd_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSub_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VRsub_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VRsub_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000011, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNeg_v(VRegister vd, VRegister vs2) { VRsub_vx(vd, vs2, Zero); }
+
+void Riscv64Assembler::VMinu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMinu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMin_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMin_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMaxu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMaxu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMax_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMax_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAnd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAnd_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAnd_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VOr_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VOr_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VOr_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VXor_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VXor_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VXor_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001011, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNot_v(VRegister vd, VRegister vs2, VM vm) { VXor_vi(vd, vs2, -1, vm); }
+
+void Riscv64Assembler::VRgather_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRgather_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VRgather_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001100, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlideup_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlideup_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001110, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VRgatherei16_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlidedown_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlidedown_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001111, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VAdc_vvm(VRegister vd, VRegister vs2, VRegister vs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kV0_t);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAdc_vxm(VRegister vd, VRegister vs2, XRegister rs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kV0_t);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAdc_vim(VRegister vd, VRegister vs2, int32_t imm5) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kV0_t);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vvm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kV0_t);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vxm(VRegister vd, VRegister vs2, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kV0_t);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vim(VRegister vd, VRegister vs2, int32_t imm5) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kV0_t);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vv(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vx(VRegister vd, VRegister vs2, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kUnmasked);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadc_vi(VRegister vd, VRegister vs2, int32_t imm5) {
+  const uint32_t funct7 = EncodeRVVF7(0b010001, VM::kUnmasked);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSbc_vvm(VRegister vd, VRegister vs2, VRegister vs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, VM::kV0_t);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSbc_vxm(VRegister vd, VRegister vs2, XRegister rs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, VM::kV0_t);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsbc_vvm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010011, VM::kV0_t);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsbc_vxm(VRegister vd, VRegister vs2, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010011, VM::kV0_t);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsbc_vv(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010011, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsbc_vx(VRegister vd, VRegister vs2, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010011, VM::kUnmasked);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMerge_vvm(VRegister vd, VRegister vs2, VRegister vs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kV0_t);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMerge_vxm(VRegister vd, VRegister vs2, XRegister rs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kV0_t);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMerge_vim(VRegister vd, VRegister vs2, int32_t imm5) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kV0_t);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMv_vv(VRegister vd, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kUnmasked);
+  EmitR(funct7, V0, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMv_vx(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kUnmasked);
+  EmitR(funct7, V0, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMv_vi(VRegister vd, int32_t imm5) {
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kUnmasked);
+  EmitR(funct7, V0, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMseq_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMseq_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMseq_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011000, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsne_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsne_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsne_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011001, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsltu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsltu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgtu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMsltu_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMslt_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMslt_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgt_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMslt_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMsleu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsleu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsleu_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011100, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgeu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMsleu_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMsltu_vi(VRegister vd, VRegister vs2, int32_t aimm5, VM vm) {
+  CHECK(IsUint<4>(aimm5 - 1)) << "Should be between [1, 16]" << aimm5;
+  VMsleu_vi(vd, vs2, aimm5 - 1, vm);
+}
+
+void Riscv64Assembler::VMsle_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsle_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsle_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011101, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsge_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMsle_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMslt_vi(VRegister vd, VRegister vs2, int32_t aimm5, VM vm) {
+  VMsle_vi(vd, vs2, aimm5 - 1, vm);
+}
+
+void Riscv64Assembler::VMsgtu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgtu_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011110, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgeu_vi(VRegister vd, VRegister vs2, int32_t aimm5, VM vm) {
+  CHECK(IsUint<4>(aimm5 - 1)) << "Should be between [1, 16]" << aimm5;
+  VMsgtu_vi(vd, vs2, aimm5 - 1, vm);
+}
+
+void Riscv64Assembler::VMsgt_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsgt_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011111, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsge_vi(VRegister vd, VRegister vs2, int32_t aimm5, VM vm) {
+  VMsgt_vi(vd, vs2, aimm5 - 1, vm);
+}
+
+void Riscv64Assembler::VSaddu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSaddu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSaddu_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSadd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSadd_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSadd_vi(VRegister vd, VRegister vs2, int32_t imm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, EncodeInt5(imm5), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsubu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsubu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsub_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSll_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSll_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSll_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100101, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSmul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSmul_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::Vmv1r_v(VRegister vd, VRegister vs2) {
+  const uint32_t funct7 = EncodeRVVF7(0b100111, VM::kUnmasked);
+  EmitR(
+      funct7, vs2, enum_cast<uint32_t>(Nf::k1), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::Vmv2r_v(VRegister vd, VRegister vs2) {
+  DCHECK_EQ(enum_cast<uint32_t>(vd) % 2, 0u);
+  DCHECK_EQ(enum_cast<uint32_t>(vs2) % 2, 0u);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, VM::kUnmasked);
+  EmitR(
+      funct7, vs2, enum_cast<uint32_t>(Nf::k2), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::Vmv4r_v(VRegister vd, VRegister vs2) {
+  DCHECK_EQ(enum_cast<uint32_t>(vd) % 4, 0u);
+  DCHECK_EQ(enum_cast<uint32_t>(vs2) % 4, 0u);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, VM::kUnmasked);
+  EmitR(
+      funct7, vs2, enum_cast<uint32_t>(Nf::k4), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::Vmv8r_v(VRegister vd, VRegister vs2) {
+  DCHECK_EQ(enum_cast<uint32_t>(vd) % 8, 0u);
+  DCHECK_EQ(enum_cast<uint32_t>(vs2) % 8, 0u);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, VM::kUnmasked);
+  EmitR(
+      funct7, vs2, enum_cast<uint32_t>(Nf::k8), enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSrl_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSrl_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSrl_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101000, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSra_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSra_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSra_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsrl_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsrl_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsrl_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101010, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsra_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsra_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSsra_vi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNsrl_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNsrl_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNsrl_wi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101100, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNcvt_x_x_w(VRegister vd, VRegister vs2, VM vm) {
+  VNsrl_wx(vd, vs2, Zero, vm);
+}
+
+void Riscv64Assembler::VNsra_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNsra_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNsra_wi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclipu_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclipu_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclipu_wi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101110, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclip_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclip_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPIVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNclip_wi(VRegister vd, VRegister vs2, uint32_t uimm5, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, uimm5, enum_cast<uint32_t>(VAIEncoding::kOPIVI), vd, 0x57);
+}
+
+void Riscv64Assembler::VWredsumu_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b110000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWredsum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b110001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPIVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedsum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedand_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedor_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedxor_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedminu_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedmin_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedmaxu_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRedmax_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAaddu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAaddu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAadd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAadd_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAsubu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAsubu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VAsub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VAsub_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlide1up_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VSlide1down_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VCompress_vm(VRegister vd, VRegister vs2, VRegister vs1) {
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMandn_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011000, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMand_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011001, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMmv_m(VRegister vd, VRegister vs2) { VMand_mm(vd, vs2, vs2); }
+
+void Riscv64Assembler::VMor_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011010, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMxor_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011011, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMclr_m(VRegister vd) { VMxor_mm(vd, vd, vd); }
+
+void Riscv64Assembler::VMorn_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011100, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMnand_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011101, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMnot_m(VRegister vd, VRegister vs2) { VMnand_mm(vd, vs2, vs2); }
+
+void Riscv64Assembler::VMnor_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011110, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMxnor_mm(VRegister vd, VRegister vs2, VRegister vs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b011111, VM::kUnmasked);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMset_m(VRegister vd) { VMxnor_mm(vd, vd, vd); }
+
+void Riscv64Assembler::VDivu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VDivu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VDiv_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VDiv_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VRemu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRemu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VRem_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VRem_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulhu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulhu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMul_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulhsu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulhsu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulh_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMulh_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadd_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMadd_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNmsub_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNmsub_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMacc_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VNmsac_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VNmsac_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWaddu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWaddu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWcvtu_x_x_v(VRegister vd, VRegister vs, VM vm) {
+  VWaddu_vx(vd, vs, Zero, vm);
+}
+
+void Riscv64Assembler::VWadd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWadd_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110001, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWcvt_x_x_v(VRegister vd, VRegister vs, VM vm) {
+  VWadd_vx(vd, vs, Zero, vm);
+}
+
+void Riscv64Assembler::VWsubu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsubu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsub_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWaddu_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWaddu_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b110100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWadd_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWadd_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b110101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsubu_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsubu_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b110110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsub_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWsub_wx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b110111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmulu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmulu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111000, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmulsu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmulsu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111010, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmul_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111011, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmaccu_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmaccu_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111100, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmacc_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111101, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmaccus_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111110, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmaccsu_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VWmaccsu_vx(VRegister vd, XRegister rs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111111, vm);
+  EmitR(funct7, vs2, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VFadd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFadd_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFredusum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsub_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000010, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFredosum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmin_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmin_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFredmin_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmax_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmax_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b000110, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFredmax_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b000111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsgnj_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsgnj_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsgnjn_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsgnjn_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001001, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFneg_v(VRegister vd, VRegister vs) { VFsgnjn_vv(vd, vs, vs); }
+
+void Riscv64Assembler::VFsgnjx_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsgnjx_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001010, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFabs_v(VRegister vd, VRegister vs) { VFsgnjx_vv(vd, vs, vs); }
+
+void Riscv64Assembler::VFslide1up_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b001110, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFslide1down_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b001111, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmerge_vfm(VRegister vd, VRegister vs2, FRegister fs1) {
+  DCHECK(vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kV0_t);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmv_v_f(VRegister vd, FRegister fs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010111, VM::kUnmasked);
+  EmitR(funct7, V0, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfeq_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfeq_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfle_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfle_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011001, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfge_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMfle_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMflt_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMflt_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011011, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfgt_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  VMflt_vv(vd, vs1, vs2, vm);
+}
+
+void Riscv64Assembler::VMfne_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfne_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfgt_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011101, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMfge_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b011111, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFdiv_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFdiv_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFrdiv_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100001, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmul_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFrsub_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b100111, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmadd_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmadd_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmadd_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmadd_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101001, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmsub_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmsub_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101010, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmsub_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmsub_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101011, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmacc_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmacc_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101101, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmsac_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmsac_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101110, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmsac_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFnmsac_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b101111, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwadd_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwadd_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwredusum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b110001, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwsub_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110010, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwsub_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110010, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwredosum_vs(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b110011, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwadd_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwadd_wf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwsub_wv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  const uint32_t funct7 = EncodeRVVF7(0b110110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwsub_wf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b110110, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111000, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmul_vf(VRegister vd, VRegister vs2, FRegister fs1, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111000, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111100, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmacc_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111100, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwnmacc_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111101, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwnmacc_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111101, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmsac_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111110, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwmsac_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111110, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwnmsac_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs1);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111111, vm);
+  EmitR(funct7, vs2, vs1, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwnmsac_vf(VRegister vd, FRegister fs1, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b111111, vm);
+  EmitR(funct7, vs2, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VMv_s_x(VRegister vd, XRegister rs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kUnmasked);
+  EmitR(funct7, 0b00000, rs1, enum_cast<uint32_t>(VAIEncoding::kOPMVX), vd, 0x57);
+}
+
+void Riscv64Assembler::VMv_x_s(XRegister rd, VRegister vs2) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kUnmasked);
+  EmitR(funct7, vs2, 0b00000, enum_cast<uint32_t>(VAIEncoding::kOPMVV), rd, 0x57);
+}
+
+void Riscv64Assembler::VCpop_m(XRegister rd, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, vm);
+  EmitR(funct7, vs2, 0b10000, enum_cast<uint32_t>(VAIEncoding::kOPMVV), rd, 0x57);
+}
+
+void Riscv64Assembler::VFirst_m(XRegister rd, VRegister vs2, VM vm) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, vm);
+  EmitR(funct7, vs2, 0b10001, enum_cast<uint32_t>(VAIEncoding::kOPMVV), rd, 0x57);
+}
+
+void Riscv64Assembler::VZext_vf8(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00010, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSext_vf8(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00011, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VZext_vf4(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00100, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSext_vf4(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00101, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VZext_vf2(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00110, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VSext_vf2(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00111, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmv_s_f(VRegister vd, FRegister fs1) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kUnmasked);
+  EmitR(funct7, 0b00000, fs1, enum_cast<uint32_t>(VAIEncoding::kOPFVF), vd, 0x57);
+}
+
+void Riscv64Assembler::VFmv_f_s(FRegister fd, VRegister vs2) {
+  const uint32_t funct7 = EncodeRVVF7(0b010000, VM::kUnmasked);
+  EmitR(funct7, vs2, 0b00000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), fd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_xu_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_x_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00001, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_f_xu_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00010, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_f_x_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00011, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_rtz_xu_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00110, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFcvt_rtz_x_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b00111, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_xu_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_x_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01001, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_f_xu_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01010, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_f_x_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01011, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_f_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01100, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_rtz_xu_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01110, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFwcvt_rtz_x_f_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b01111, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_xu_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_x_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10001, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_f_xu_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10010, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_f_x_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10011, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_f_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10100, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_rod_f_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10101, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_rtz_xu_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10110, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFncvt_rtz_x_f_w(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010010, vm);
+  EmitR(funct7, vs2, 0b10111, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFsqrt_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010011, vm);
+  EmitR(funct7, vs2, 0b00000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFrsqrt7_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010011, vm);
+  EmitR(funct7, vs2, 0b00100, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFrec7_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010011, vm);
+  EmitR(funct7, vs2, 0b00101, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VFclass_v(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010011, vm);
+  EmitR(funct7, vs2, 0b10000, enum_cast<uint32_t>(VAIEncoding::kOPFVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsbf_m(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010100, vm);
+  EmitR(funct7, vs2, 0b00001, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsof_m(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010100, vm);
+  EmitR(funct7, vs2, 0b00010, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VMsif_m(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010100, vm);
+  EmitR(funct7, vs2, 0b00011, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VIota_m(VRegister vd, VRegister vs2, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  DCHECK(vd != vs2);
+  const uint32_t funct7 = EncodeRVVF7(0b010100, vm);
+  EmitR(funct7, vs2, 0b10000, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+void Riscv64Assembler::VId_v(VRegister vd, VM vm) {
+  DCHECK_IMPLIES(vm == VM::kV0_t, vd != V0);
+  const uint32_t funct7 = EncodeRVVF7(0b010100, vm);
+  EmitR(funct7, V0, 0b10001, enum_cast<uint32_t>(VAIEncoding::kOPMVV), vd, 0x57);
+}
+
+/////////////////////////////// RVV Arithmetic Instructions  END   /////////////////////////////
+
 ////////////////////////////// RV64 MACRO Instructions  START ///////////////////////////////
 
 // Pseudo instructions
