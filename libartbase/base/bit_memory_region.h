@@ -23,6 +23,7 @@
 #include "memory_tool.h"
 
 #include <array>
+#include <cstdint>
 
 namespace art {
 
@@ -30,10 +31,16 @@ namespace art {
 // abstracting away the bit start offset to avoid needing passing as an argument everywhere.
 class BitMemoryRegion final : public ValueObject {
  public:
+  // Ensure all loads are naturally-aligned by aligning down the region's data pointer according to
+  // the largest data type that will be loaded via LoadBits (as StackMap BitTable uses over 8
+  // varints in the header, this is uint64_t).
+  using MaxSingleLoadType = uint64_t;
+  static constexpr size_t kMaxSingleLoadBytes = sizeof(MaxSingleLoadType);
+
   BitMemoryRegion() = default;
   ALWAYS_INLINE BitMemoryRegion(uint8_t* data, ssize_t bit_start, size_t bit_size) {
     // Normalize the data pointer. Note that bit_start may be negative.
-    data_ = AlignDown(data + (bit_start >> kBitsPerByteLog2), gPageSize);
+    data_ = AlignDown(data + (bit_start >> kBitsPerByteLog2), kMaxSingleLoadBytes);
     bit_start_ = bit_start + kBitsPerByte * (data - data_);
     bit_size_ = bit_size;
   }
@@ -103,6 +110,7 @@ class BitMemoryRegion final : public ValueObject {
   ALWAYS_INLINE Result LoadBits(size_t bit_offset, size_t bit_length) const {
     static_assert(std::is_integral_v<Result>, "Result must be integral");
     static_assert(std::is_unsigned_v<Result>, "Result must be unsigned");
+    static_assert(sizeof(Result) <= kMaxSingleLoadBytes);
     DCHECK(IsAligned<sizeof(Result)>(data_));
     DCHECK_LE(bit_offset, bit_size_);
     DCHECK_LE(bit_length, bit_size_ - bit_offset);
@@ -316,7 +324,7 @@ class BitMemoryRegion final : public ValueObject {
     }
   }
 
-  uint8_t* data_ = nullptr;  // The pointer is page aligned.
+  uint8_t* data_ = nullptr;  // The pointer is aligned down to kMaxSingleLoadBytes.
   size_t bit_start_ = 0;
   size_t bit_size_ = 0;
 };
@@ -398,7 +406,8 @@ class BitMemoryReader {
   // This requires fewer bit-reads compared to indidually storing the varints.
   template<size_t N>
   ALWAYS_INLINE std::array<uint32_t, N> ReadInterleavedVarints() {
-    static_assert(N * kVarintBits <= sizeof(uint64_t) * kBitsPerByte, "N too big");
+    static_assert(N * kVarintBits <= BitMemoryRegion::kMaxSingleLoadBytes * kBitsPerByte,
+                  "N too big");
     std::array<uint32_t, N> values;
     // StackMap BitTable uses over 8 varints in the header, so we need uint64_t.
     uint64_t data = ReadBits<uint64_t>(N * kVarintBits);
