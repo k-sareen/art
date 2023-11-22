@@ -1147,6 +1147,7 @@ ART_QUICK_ALLOC_OBJECT_ROSALLOC art_quick_alloc_object_initialized_rosalloc, art
 #if !((THREAD_LOCAL_POS_OFFSET + 4 == THREAD_LOCAL_END_OFFSET) && (THREAD_LOCAL_POS_OFFSET % 8 == 0))
 #error "Thread::thread_local_pos/end must be consecutive and are 8 byte aligned for performance"
 #endif
+#if !ART_USE_MMTK
     ldrd   r12, r3, [rSELF, #THREAD_LOCAL_POS_OFFSET]
     sub    r12, r3, r12                                       // Compute the remaining buf size.
     ldr    r3, [r0, #MIRROR_CLASS_OBJECT_SIZE_ALLOC_FAST_PATH_OFFSET]  // Load the object size (r3).
@@ -1185,6 +1186,40 @@ ART_QUICK_ALLOC_OBJECT_ROSALLOC art_quick_alloc_object_initialized_rosalloc, art
     POISON_HEAP_REF r0
     str    r0, [r2, #MIRROR_OBJECT_CLASS_OFFSET]              // Store the class pointer.
     mov    r0, r2
+#else
+    ldrd   r12, r3, [rSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET] // Load cursor and limit in r12, r3 resp.
+    sub    r3, r3, r12                                        // Compute the remaining buf size.
+    ldr    r2, [r0, #MIRROR_CLASS_OBJECT_SIZE_ALLOC_FAST_PATH_OFFSET]  // Load the object size (r3).
+    cmp    r2, r3                                             // Check if it fits.
+    // If the class is not yet visibly initialized, or it is finalizable,
+    // the object size will be very large to force the branch below to be taken.
+    //
+    // See Class::SetStatus() in class.cc for more details.
+    bhi    \slowPathLabel
+    // "Point of no slow path". Won't go to the slow path from here on. OK to clobber r0 and r1.
+    add    r1, r2, r12
+    str    r1, [rSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET]      // Store new thread_local_pos.
+    // After this "STR" the object is published to the thread local allocation stack,
+    // and it will be observable from a runtime internal (eg. Heap::VisitObjects) point of view.
+    // It is not yet visible to the running (user) compiled code until after the return.
+    //
+    // To avoid the memory barrier prior to the "STR", a trick is employed, by differentiating
+    // the state of the object. It can be either:
+    // 1) A partially valid object, with a null class pointer
+    //       (because the initial state of TLAB buffers is all 0s/nulls).
+    // 2) A fully valid object, with a valid class pointer pointing to a real class.
+    // Other states are not allowed.
+    //
+    // An object that is invalid only temporarily, and will eventually become valid.
+    // The internal runtime code simply checks if the object is not null or is partial and then
+    // ignores it.
+    //
+    // (Note: The actual check is done by checking that the object's class pointer is non-null.
+    // Also, unlike rosalloc, the object can never be observed as null).
+    POISON_HEAP_REF r0
+    str    r0, [r12, #MIRROR_OBJECT_CLASS_OFFSET]              // Store the class pointer.
+    mov    r0, r12
+#endif  // !ART_USE_MMTK
     // No barrier. The class is already observably initialized (otherwise the fast
     // path size check above would fail) and new-instance allocations are protected
     // from publishing by the compiler which inserts its own StoreStore barrier.
@@ -1231,6 +1266,7 @@ GENERATE_ALLOC_OBJECT_RESOLVED_TLAB art_quick_alloc_object_initialized_tlab, art
 #if !((THREAD_LOCAL_POS_OFFSET + 4 == THREAD_LOCAL_END_OFFSET) && (THREAD_LOCAL_POS_OFFSET % 8 == 0))
 #error "Thread::thread_local_pos/end must be consecutive and are 8 byte aligned for performance"
 #endif
+#if !ART_USE_MMTK
     ldrd   r3, r12, [rSELF, #THREAD_LOCAL_POS_OFFSET]
     sub    r12, r12, r3                                       // Compute the remaining buf size.
     cmp    r2, r12                                            // Check if the total_size fits.
@@ -1243,6 +1279,17 @@ GENERATE_ALLOC_OBJECT_RESOLVED_TLAB art_quick_alloc_object_initialized_tlab, art
     ldr    r2, [rSELF, #THREAD_LOCAL_OBJECTS_OFFSET]          // Increment thread_local_objects.
     add    r2, r2, #1
     str    r2, [rSELF, #THREAD_LOCAL_OBJECTS_OFFSET]
+#else
+    ldrd   r3, r12, [rSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET] // Load cursor and limit in r3, r12 resp.
+    sub    r12, r12, r3                                       // Compute the remaining buf size.
+    cmp    r2, r12                                            // Check if the total_size fits.
+    // The array class is always initialized here. Unlike new-instance,
+    // this does not act as a double test.
+    bhi    \slowPathLabel
+    // "Point of no slow path". Won't go to the slow path from here on. OK to clobber r0 and r1.
+    add    r2, r2, r3
+    str    r2, [rSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET]      // Store new mmtk_thread_local_cursor.
+#endif  // !ART_USE_MMTK
     POISON_HEAP_REF r0
     str    r0, [r3, #MIRROR_OBJECT_CLASS_OFFSET]              // Store the class pointer.
     str    r1, [r3, #MIRROR_ARRAY_LENGTH_OFFSET]              // Store the array length.

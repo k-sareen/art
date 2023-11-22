@@ -1450,6 +1450,7 @@ ART_QUICK_ALLOC_OBJECT_ROSALLOC art_quick_alloc_object_initialized_rosalloc, \
 // If isInitialized=1 then the compiler assumes the object's class has already been initialized.
 // If isInitialized=0 the compiler can only assume it's been at least resolved.
 .macro ALLOC_OBJECT_TLAB_FAST_PATH_RESOLVED slowPathLabel isInitialized
+#if !ART_USE_MMTK
     ldr    x4, [xSELF, #THREAD_LOCAL_POS_OFFSET]
     ldr    x5, [xSELF, #THREAD_LOCAL_END_OFFSET]
     ldr    w7, [x0, #MIRROR_CLASS_OBJECT_SIZE_ALLOC_FAST_PATH_OFFSET]  // Load the object size (x7).
@@ -1467,6 +1468,22 @@ ART_QUICK_ALLOC_OBJECT_ROSALLOC art_quick_alloc_object_initialized_rosalloc, \
     ldr    x5, [xSELF, #THREAD_LOCAL_OBJECTS_OFFSET]          // Increment thread_local_objects.
     add    x5, x5, #1
     str    x5, [xSELF, #THREAD_LOCAL_OBJECTS_OFFSET]
+#else
+    ldr    x4, [xSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET]
+    ldr    x5, [xSELF, #MMTK_THREAD_LOCAL_LIMIT_OFFSET]
+    ldr    w7, [x0, #MIRROR_CLASS_OBJECT_SIZE_ALLOC_FAST_PATH_OFFSET]  // Load the object size (x7).
+    add    x6, x4, x7                                         // Add object size to tlab cursor.
+    cmp    x6, x5                                             // Check if it fits, overflow works
+                                                              // since the tlab cursor and limit
+                                                              // are 32 bit values.
+
+    // If the class is not yet visibly initialized, or it is finalizable,
+    // the object size will be very large to force the branch below to be taken.
+    //
+    // See Class::SetStatus() in class.cc for more details.
+    bhi    \slowPathLabel
+    str    x6, [xSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET]      // Store new mmtk_thread_local_cursor.
+#endif !ART_USE_MMTK
     POISON_HEAP_REF w0
     str    w0, [x4, #MIRROR_OBJECT_CLASS_OFFSET]              // Store the class pointer.
     mov    x0, x4
@@ -1520,6 +1537,7 @@ GENERATE_ALLOC_OBJECT_RESOLVED_TLAB \
     cmp    \xTemp1, #MIN_LARGE_OBJECT_THRESHOLD               // Possibly a large object, go slow
     bhs    \slowPathLabel                                     // path.
 
+#if !ART_USE_MMTK
     ldr    \xTemp0, [xSELF, #THREAD_LOCAL_POS_OFFSET]         // Check tlab for space, note that
                                                               // we use (end - begin) to handle
                                                               // negative size arrays. It is
@@ -1542,6 +1560,27 @@ GENERATE_ALLOC_OBJECT_RESOLVED_TLAB \
     ldr    \xTemp0, [xSELF, #THREAD_LOCAL_OBJECTS_OFFSET]     // Increment thread_local_objects.
     add    \xTemp0, \xTemp0, #1
     str    \xTemp0, [xSELF, #THREAD_LOCAL_OBJECTS_OFFSET]
+#else
+    ldr    \xTemp0, [xSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET] // Check tlab for space, note that
+                                                              // we use (end - begin) to handle
+                                                              // negative size arrays. It is
+                                                              // assumed that a negative size will
+                                                              // always be greater unsigned than
+                                                              // region size.
+    ldr    \xTemp2, [xSELF, #MMTK_THREAD_LOCAL_LIMIT_OFFSET]
+    sub    \xTemp2, \xTemp2, \xTemp0
+    cmp    \xTemp1, \xTemp2
+
+    // The array class is always initialized here. Unlike new-instance,
+    // this does not act as a double test.
+    bhi    \slowPathLabel
+    // "Point of no slow path". Won't go to the slow path from here on. OK to clobber x0 and x1.
+                                                              // Move old thread local cursor to
+                                                              // x0 for the return value.
+    mov    x0, \xTemp0
+    add    \xTemp0, \xTemp0, \xTemp1
+    str    \xTemp0, [xSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET] // Store new mmtk_thread_local_cursor.
+#endif  // !ART_USE_MMTK
     POISON_HEAP_REF \wClass
     str    \wClass, [x0, #MIRROR_OBJECT_CLASS_OFFSET]         // Store the class pointer.
     str    \wCount, [x0, #MIRROR_ARRAY_LENGTH_OFFSET]         // Store the array length.
