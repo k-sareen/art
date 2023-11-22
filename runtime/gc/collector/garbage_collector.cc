@@ -42,6 +42,50 @@ namespace art {
 namespace gc {
 namespace collector {
 
+namespace {
+
+// Report a GC metric via the ATrace interface.
+void TraceGCMetric(const char* name, int64_t value) {
+  // ART's interface with systrace (through libartpalette) only supports
+  // reporting 32-bit (signed) integer values at the moment. Upon
+  // underflows/overflows, clamp metric values at `int32_t` min/max limits and
+  // report these events via a corresponding underflow/overflow counter; also
+  // log a warning about the first underflow/overflow occurrence.
+  //
+  // TODO(b/300015145): Consider extending libarpalette to allow reporting this
+  // value as a 64-bit (signed) integer (instead of a 32-bit (signed) integer).
+  // Note that this is likely unnecessary at the moment (November 2023) for any
+  // size-related GC metric, given the maximum theoretical size of a managed
+  // heap (4 GiB).
+  if (UNLIKELY(value < std::numeric_limits<int32_t>::min())) {
+    ATraceIntegerValue(name, std::numeric_limits<int32_t>::min());
+    std::string underflow_counter_name = std::string(name) + " int32_t underflow";
+    ATraceIntegerValue(underflow_counter_name.c_str(), 1);
+    static bool int32_underflow_reported = false;
+    if (!int32_underflow_reported) {
+      LOG(WARNING) << "GC Metric \"" << name << "\" with value " << value
+                   << " causing a 32-bit integer underflow";
+      int32_underflow_reported = true;
+    }
+    return;
+  }
+  if (UNLIKELY(value > std::numeric_limits<int32_t>::max())) {
+    ATraceIntegerValue(name, std::numeric_limits<int32_t>::max());
+    std::string overflow_counter_name = std::string(name) + " int32_t overflow";
+    ATraceIntegerValue(overflow_counter_name.c_str(), 1);
+    static bool int32_overflow_reported = false;
+    if (!int32_overflow_reported) {
+      LOG(WARNING) << "GC Metric \"" << name << "\" with value " << value
+                   << " causing a 32-bit integer overflow";
+      int32_overflow_reported = true;
+    }
+    return;
+  }
+  ATraceIntegerValue(name, value);
+}
+
+}  // namespace
+
 Iteration::Iteration()
     : duration_ns_(0), timings_("GC iteration timing logger", true, VLOG_IS_ON(heap)) {
   Reset(kGcCauseBackground, false);  // Reset to some place holder values.
@@ -225,6 +269,12 @@ void GarbageCollector::Run(GcCause gc_cause, bool clear_soft_references) {
     gc_duration_->Add(NsToMs(current_iteration->GetDurationNs()));
     gc_duration_delta_->Add(NsToMs(current_iteration->GetDurationNs()));
   }
+
+  // Report some metrics via the ATrace interface, to surface them in Perfetto.
+  TraceGCMetric("freed_normal_object_bytes", current_iteration->GetFreedBytes());
+  TraceGCMetric("freed_large_object_bytes", current_iteration->GetFreedLargeObjectBytes());
+  TraceGCMetric("freed_bytes", freed_bytes);
+
   is_transaction_active_ = false;
 }
 
