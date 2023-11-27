@@ -36,23 +36,24 @@ namespace third_party_heap {
 
 class MmtkScanObjectVisitor {
  public:
-  MmtkScanObjectVisitor(void (*closure)(void* edge)) : closure_(closure) {}
+  MmtkScanObjectVisitor(ScanObjectClosure closure) : closure_(closure) {}
 
   void operator()(ObjPtr<mirror::Object> obj, MemberOffset offset, bool /* is_static */) const ALWAYS_INLINE
-      REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
+      NO_THREAD_SAFETY_ANALYSIS {
     mirror::HeapReference<mirror::Object>* field = obj->GetFieldObjectReferenceAddr<kVerifyNone>(offset);
     void* slot = reinterpret_cast<void*>(field);
-    closure_(slot);
+    closure_.invoke(slot);
   }
 
-  void operator()(ObjPtr<mirror::Class> klass ATTRIBUTE_UNUSED, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
-      REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
+  void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
+      NO_THREAD_SAFETY_ANALYSIS {
     void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
-    // collector_->DelayReferenceReferent(klass, ref);
-    closure_(referent_slot);
+    closure_.invoke(referent_slot);
   }
 
-  // TODO(kunals): Investigate why VisitRoot() is required for scanning object references
+  // XXX(kunals): VisitRoot() is required while scanning object references as
+  // ART finds roots such as ClassLoaders, DexCaches, etc. during object
+  // scanning as opposed to registering them in the VM when they are created
   void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
     if (!root->IsNull()) {
@@ -62,11 +63,11 @@ class MmtkScanObjectVisitor {
 
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
-    closure_(reinterpret_cast<void*>(root));
+    closure_.invoke(reinterpret_cast<void*>(root));
   }
 
  private:
-  void (*closure_)(void* edge);
+  ScanObjectClosure closure_;
 };
 
 }  // namespace third_party_heap
