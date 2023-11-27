@@ -42,9 +42,13 @@ inline uint32_t InternTable::Utf8String::Hash(uint32_t utf16_length, const char*
 
 ALWAYS_INLINE
 inline size_t InternTable::StringHash::operator()(const GcRoot<mirror::String>& root) const {
+  // XXX(kunals): We only call this with a single GC worker in MMTk, hence we do
+  // not need to check if the mutator lock is held by the current thread
+#if !ART_USE_MMTK
   if (kIsDebugBuild) {
     Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
   }
+#endif  // !ART_USE_MMTK
   ObjPtr<mirror::String> s = root.Read<kWithoutReadBarrier>();
   int32_t hash = s->GetStoredHashCode();
   DCHECK_EQ(hash, s->ComputeHashCode());
@@ -55,18 +59,26 @@ inline size_t InternTable::StringHash::operator()(const GcRoot<mirror::String>& 
 ALWAYS_INLINE
 inline bool InternTable::StringEquals::operator()(const GcRoot<mirror::String>& a,
                                                   const GcRoot<mirror::String>& b) const {
+  // XXX(kunals): We only call this with a single GC worker in MMTk, hence we do
+  // not need to check if the mutator lock is held by the current thread
+#if !ART_USE_MMTK
   if (kIsDebugBuild) {
     Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
   }
+#endif  // !ART_USE_MMTK
   return a.Read<kWithoutReadBarrier>()->Equals(b.Read<kWithoutReadBarrier>());
 }
 
 ALWAYS_INLINE
 inline bool InternTable::StringEquals::operator()(const GcRoot<mirror::String>& a,
                                                   const Utf8String& b) const {
+  // XXX(kunals): We only call this with a single GC worker in MMTk, hence we do
+  // not need to check if the mutator lock is held by the current thread
+#if !ART_USE_MMTK
   if (kIsDebugBuild) {
     Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
   }
+#endif  // !ART_USE_MMTK
   ObjPtr<mirror::String> a_string = a.Read<kWithoutReadBarrier>();
   uint32_t a_length = static_cast<uint32_t>(a_string->GetLength());
   if (a_length != b.GetUtf16Length()) {

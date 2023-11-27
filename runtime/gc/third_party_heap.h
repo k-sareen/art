@@ -96,6 +96,10 @@ class ThirdPartyHeap {
   // Collect dead objects in heap
   collector::GcType CollectGarbage(Thread* self, GcCause gc_cause);
 
+  void DelayReferenceReferent(ObjPtr<mirror::Class> klass,
+                              ObjPtr<mirror::Reference> reference)
+      NO_THREAD_SAFETY_ANALYSIS;
+
   void FinishGC(Thread* self);
 
   void* GetCompanionThread() {

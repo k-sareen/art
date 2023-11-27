@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "gc/reference_processor.h"
 #include "gc/third_party_heap.h"
 #include "mmtk-art/mmtk_gc_thread.h"
 #include "mmtk-art/mmtk_upcalls.h"
@@ -138,6 +139,12 @@ collector::GcType ThirdPartyHeap::CollectGarbage(Thread* self, GcCause cause) {
     /* exhaustive= */ true
   );
   return collector::kGcTypeFull;
+}
+
+void ThirdPartyHeap::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
+                                            ObjPtr<mirror::Reference> reference) {
+  Heap* heap = Runtime::Current()->GetHeap();
+  heap->GetReferenceProcessor()->DelayReferenceReferentTPH(klass, reference);
 }
 
 void ThirdPartyHeap::FinishGC(Thread* self) {

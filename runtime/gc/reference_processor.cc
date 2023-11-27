@@ -185,6 +185,17 @@ uint32_t ReferenceProcessor::ForwardSoftReferences(TimingLogger* timings) {
   return non_null_refs;
 }
 
+// Forward SoftReferences. Can be done before we disable Reference access. Only
+// invoked if we are not clearing SoftReferences.
+uint32_t ReferenceProcessor::ForwardSoftReferencesTPH(MarkObjectVisitor* visitor) {
+#if ART_USE_MMTK
+  // We used to argue that we should be smarter about doing this conditionally, but it's unclear
+  // that's actually better than the more predictable strategy of basically only clearing
+  // SoftReferences just before we would otherwise run out of memory.
+  return soft_reference_queue_.ForwardSoftReferences(visitor);
+#endif  // ART_USE_MMTK
+}
+
 void ReferenceProcessor::Setup(Thread* self,
                                collector::GarbageCollector* collector,
                                bool concurrent,
@@ -200,6 +211,7 @@ void ReferenceProcessor::Setup(Thread* self,
 // Process reference class instances and schedule finalizations.
 // We advance rp_state_ to signal partial completion for the benefit of GetReferent.
 void ReferenceProcessor::ProcessReferences(Thread* self, TimingLogger* timings) {
+#if !ART_USE_MMTK
   TimingLogger::ScopedTiming t(concurrent_ ? __FUNCTION__ : "(Paused)ProcessReferences", timings);
   if (!clear_soft_references_) {
     // Forward any additional SoftReferences we discovered late, now that reference access has been
@@ -310,6 +322,117 @@ void ReferenceProcessor::ProcessReferences(Thread* self, TimingLogger* timings) 
       DisableSlowPath(self);
     }
   }
+#else
+  UNUSED(self);
+  UNUSED(timings);
+#endif  // !ART_USE_MMTK
+}
+
+// Process reference class instances and schedule finalizations.
+// We advance rp_state_ to signal partial completion for the benefit of GetReferent.
+void ReferenceProcessor::ProcessReferencesTPH(Thread* self,
+                                              RefProcessingPhase phase,
+                                              MarkObjectVisitor* mark_object_visitor,
+                                              IsMarkedVisitor* is_marked_visitor,
+                                              bool clear_soft_references) {
+#if ART_USE_MMTK
+  switch (phase) {
+    case ForwardSoft:
+      {
+        MutexLock mu(self, *Locks::reference_processor_lock_);
+        rp_state_ = RpState::kStarting;
+        concurrent_ = false;
+        clear_soft_references_ = clear_soft_references;
+      }
+      if (!clear_soft_references_) {
+        // Forward any additional SoftReferences we discovered late, now that reference access has been
+        // inhibited.
+        while (!soft_reference_queue_.IsEmpty()) {
+          ForwardSoftReferencesTPH(mark_object_visitor);
+        }
+      }
+      break;
+    case ClearSoftWeak:
+      {
+        MutexLock mu(self, *Locks::reference_processor_lock_);
+        DCHECK(rp_state_ == RpState::kStarting);
+        rp_state_ = RpState::kInitMarkingDone;
+        condition_.Broadcast(self);
+      }
+      if (kIsDebugBuild && Runtime::Current()->IsActiveTransaction()) {
+        // In transaction mode, we shouldn't enqueue any Reference to the queues.
+        // See DelayReferenceReferent().
+        DCHECK(soft_reference_queue_.IsEmpty());
+        DCHECK(weak_reference_queue_.IsEmpty());
+        DCHECK(finalizer_reference_queue_.IsEmpty());
+        DCHECK(phantom_reference_queue_.IsEmpty());
+      }
+      // Clear all remaining soft and weak references with white referents.
+      // This misses references only reachable through finalizers.
+      soft_reference_queue_.ClearWhiteReferencesTPH(&cleared_references_, is_marked_visitor);
+      weak_reference_queue_.ClearWhiteReferencesTPH(&cleared_references_, is_marked_visitor);
+      // Defer PhantomReference processing until we've finished marking through finalizers.
+      {
+        // TODO: Capture mark state of some system weaks here. If the referent was marked here,
+        // then it is now safe to return, since it can only refer to marked objects. If it becomes
+        // marked below, that is no longer guaranteed.
+        MutexLock mu(self, *Locks::reference_processor_lock_);
+        rp_state_ = RpState::kInitClearingDone;
+        // At this point, all mutator-accessible data is marked (black). Objects enqueued for
+        // finalization will only be made available to the mutator via CollectClearedReferences after
+        // we're fully done marking. Soft and WeakReferences accessible to the mutator have been
+        // processed and refer only to black objects.  Thus there is no danger of the mutator getting
+        // access to non-black objects.  Weak reference processing is still nominally suspended,
+        // But many kinds of references, including all java.lang.ref ones, are handled normally from
+        // here on. See GetReferent().
+      }
+      break;
+    case EnqueueFinalizer:
+      // Preserve all white objects with finalize methods and schedule them for finalization.
+      finalizer_reference_queue_.EnqueueFinalizerReferencesTPH(&cleared_references_,
+                                                               mark_object_visitor,
+                                                               is_marked_visitor);
+      break;
+    case ClearFinalSoftWeakAndPhantom:
+      // Process all soft and weak references with white referents, where the references are reachable
+      // only from finalizers. It is unclear that there is any way to do this without slightly
+      // violating some language spec. We choose to apply normal Reference processing rules for these.
+      // This exposes the following issues:
+      // 1) In the case of an unmarked referent, we may end up enqueuing an "unreachable" reference.
+      //    This appears unavoidable, since we need to clear the reference for safety, unless we
+      //    mark the referent and undo finalization decisions for objects we encounter during marking.
+      //    (Some versions of the RI seem to do something along these lines.)
+      //    Or we could clear the reference without enqueuing it, which also seems strange and
+      //    unhelpful.
+      // 2) In the case of a marked referent, we will preserve a reference to objects that may have
+      //    been enqueued for finalization. Again fixing this would seem to involve at least undoing
+      //    previous finalization / reference clearing decisions. (This would also mean than an object
+      //    containing both a strong and a WeakReference to the same referent could see the
+      //    WeakReference cleared.)
+      // The treatment in (2) is potentially quite dangerous, since Reference.get() can e.g. return a
+      // finalized object containing pointers to native objects that have already been deallocated.
+      // But it can be argued that this is just an instance of the broader rule that it is not safe
+      // for finalizers to access otherwise inaccessible finalizable objects.
+      soft_reference_queue_.ClearWhiteReferencesTPH(&cleared_references_,
+                                                    is_marked_visitor,
+                                                    /*report_cleared=*/ true);
+      weak_reference_queue_.ClearWhiteReferencesTPH(&cleared_references_,
+                                                    is_marked_visitor,
+                                                    /*report_cleared=*/ true);
+
+      // Clear all phantom references with white referents. It's fine to do this just once here.
+      phantom_reference_queue_.ClearWhiteReferencesTPH(&cleared_references_, is_marked_visitor);
+
+      // At this point all reference queues other than the cleared references should be empty.
+      DCHECK(soft_reference_queue_.IsEmpty());
+      DCHECK(weak_reference_queue_.IsEmpty());
+      DCHECK(finalizer_reference_queue_.IsEmpty());
+      DCHECK(phantom_reference_queue_.IsEmpty());
+      break;
+    default:
+      LOG(WARNING) << "Unknown reference processing phase!";
+  }
+#endif  // ART_USE_MMTK
 }
 
 // Process the "referent" field in a java.lang.ref.Reference.  If the referent has not yet been
@@ -317,6 +440,7 @@ void ReferenceProcessor::ProcessReferences(Thread* self, TimingLogger* timings) 
 void ReferenceProcessor::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
                                                 ObjPtr<mirror::Reference> ref,
                                                 collector::GarbageCollector* collector) {
+#if !ART_USE_MMTK
   // klass can be the class of the old object if the visitor already updated the class of ref.
   DCHECK(klass != nullptr);
   DCHECK(klass->IsTypeOfReferenceClass());
@@ -350,6 +474,36 @@ void ReferenceProcessor::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
                  << klass->GetAccessFlags();
     }
   }
+#else
+  UNUSED(klass);
+  UNUSED(ref);
+  UNUSED(collector);
+#endif  // !ART_USE_MMTK
+}
+
+// Process the "referent" field in a java.lang.ref.Reference.  If the referent has not yet been
+// marked, put it on the appropriate list in the heap for later processing.
+void ReferenceProcessor::DelayReferenceReferentTPH(ObjPtr<mirror::Class> klass,
+                                                   ObjPtr<mirror::Reference> ref) {
+#if ART_USE_MMTK
+  DCHECK(klass->IsTypeOfReferenceClass());
+  Thread* self = Thread::Current();
+  // TODO: Remove these locks, and use atomic stacks for storing references?
+  // We need to check that the references haven't already been enqueued since we can end up
+  // scanning the same reference multiple times due to dirty cards.
+  if (klass->IsSoftReferenceClass()) {
+    soft_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+  } else if (klass->IsWeakReferenceClass()) {
+    weak_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+  } else if (klass->IsFinalizerReferenceClass()) {
+    finalizer_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+  } else if (klass->IsPhantomReferenceClass()) {
+    phantom_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+  } else {
+    LOG(FATAL) << "Invalid reference type " << klass->PrettyClass() << " " << std::hex
+               << klass->GetAccessFlags();
+  }
+#endif  // ART_USE_MMTK
 }
 
 void ReferenceProcessor::UpdateRoots(IsMarkedVisitor* visitor) {

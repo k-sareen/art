@@ -15,9 +15,12 @@
  */
 
 #include "gc/gc_cause.h"
+#include "gc/reference_processor.h"
 #include "gc/third_party_heap.h"
+#include "jni/java_vm_ext.h"
 #include "mmtk_gc_thread.h"
 #include "mmtk_is_marked_visitor.h"
+#include "mmtk_mark_object_visitor.h"
 #include "mmtk_root_visitor.h"
 #include "mmtk_scan_object_visitor.h"
 #include "mmtk_upcalls.h"
@@ -110,13 +113,28 @@ static void resume_mutators(void* tls) {
     });
   }
 
-  art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
-    runtime->GetHeap()->GetThirdPartyHeap();
+  art::gc::Heap* heap = runtime->GetHeap();
+  art::gc::third_party_heap::ThirdPartyHeap* tp_heap = heap->GetThirdPartyHeap();
 
   art::MmtkVmCompanionThread* companion =
     reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
   companion->Request(art::StwState::Resumed);
   tp_heap->FinishGC(self);
+
+  // Collect cleared references.
+  art::SelfDeletingTask* clear =
+    heap->GetReferenceProcessor()->CollectClearedReferences(self);
+  // Actually enqueue all cleared references. Do this after the GC has
+  // officially finished since otherwise we can deadlock.
+  clear->Run(self);
+  clear->Finalize();
+
+  // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
+  // deadlocks in case the JNI_OnUnload function does allocations.
+  {
+    art::ScopedObjectAccess soa(self);
+    soa.Vm()->UnloadNativeLibraries();
+  }
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
@@ -166,11 +184,33 @@ static void scan_all_roots(NodesClosure closure) {
   runtime->VisitRoots(&visitor);
 }
 
-static void sweep_system_weaks(void* tls ATTRIBUTE_UNUSED) {
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void process_references(void* tls,
+                               TraceObjectClosure closure,
+                               RefProcessingPhase phase,
+                               bool clear_soft_references) {
+  art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::Runtime* runtime = art::Runtime::Current();
-  art::gc::third_party_heap::MmtkIsMarkedVisitor visitor;
-  runtime->SweepSystemWeaks(&visitor);
-  runtime->GetThreadList()->SweepInterpreterCaches(&visitor);
+
+  // Process references
+  art::gc::third_party_heap::MmtkIsMarkedVisitor is_marked_visitor;
+  art::gc::third_party_heap::MmtkMarkObjectVisitor mark_object_visitor(closure);
+  art::gc::ReferenceProcessor* rp = runtime->GetHeap()->GetReferenceProcessor();
+  rp->ProcessReferencesTPH(self,
+                           phase,
+                           &mark_object_visitor,
+                           &is_marked_visitor,
+                           clear_soft_references);
+}
+
+static void sweep_system_weaks() {
+  art::Runtime* runtime = art::Runtime::Current();
+  art::gc::third_party_heap::MmtkIsMarkedVisitor is_marked_visitor;
+
+  runtime->SweepSystemWeaks(&is_marked_visitor);
+  runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
+  runtime->BroadcastForNewSystemWeaks();
+  runtime->GetClassLinker()->CleanupClassLoaders();
 }
 
 ArtUpcalls art_upcalls = {
@@ -185,5 +225,6 @@ ArtUpcalls art_upcalls = {
   get_mmtk_mutator,
   for_all_mutators,
   scan_all_roots,
+  process_references,
   sweep_system_weaks,
 };
