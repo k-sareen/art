@@ -89,6 +89,10 @@ class ReferenceQueue {
   FinalizerStats EnqueueFinalizerReferences(ReferenceQueue* cleared_references,
                                   collector::GarbageCollector* collector)
       REQUIRES_SHARED(Locks::mutator_lock_);
+  FinalizerStats EnqueueFinalizerReferencesTPH(ReferenceQueue* cleared_references,
+                                  MarkObjectVisitor* mark_object_visitor,
+                                  IsMarkedVisitor* is_marked_visitor)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!*cleared_references->lock_);
 
   // Walks the reference list marking and dequeuing any references subject to the reference
   // clearing policy.  References with a black referent are removed from the list.  References
@@ -105,6 +109,12 @@ class ReferenceQueue {
                             collector::GarbageCollector* collector,
                             bool report_cleared = false)
       REQUIRES_SHARED(Locks::mutator_lock_);
+  // Unlink the reference list clearing references objects with white referents. Cleared references
+  // registered to a reference queue are scheduled for appending by the heap worker thread.
+  void ClearWhiteReferencesTPH(ReferenceQueue* cleared_references,
+                               IsMarkedVisitor* visitor,
+                               bool report_cleared = false)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!*cleared_references->lock_);
 
   void Dump(std::ostream& os) const REQUIRES_SHARED(Locks::mutator_lock_);
   size_t GetLength() const REQUIRES_SHARED(Locks::mutator_lock_);

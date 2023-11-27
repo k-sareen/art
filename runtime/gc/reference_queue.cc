@@ -74,6 +74,7 @@ ObjPtr<mirror::Reference> ReferenceQueue::DequeuePendingReference() {
 
 // This must be called whenever DequeuePendingReference is called.
 void ReferenceQueue::DisableReadBarrierForReference(ObjPtr<mirror::Reference> ref) {
+#if !ART_USE_MMTK
   Heap* heap = Runtime::Current()->GetHeap();
   if (kUseBakerReadBarrier && heap->CurrentCollectorType() == kCollectorTypeCC &&
       heap->ConcurrentCopyingCollector()->IsActive()) {
@@ -99,6 +100,9 @@ void ReferenceQueue::DisableReadBarrierForReference(ObjPtr<mirror::Reference> re
       }
     }
   }
+#else
+  UNUSED(ref);
+#endif  // !ART_USE_MMTK
 }
 
 void ReferenceQueue::Dump(std::ostream& os) const {
@@ -133,6 +137,7 @@ size_t ReferenceQueue::GetLength() const {
 void ReferenceQueue::ClearWhiteReferences(ReferenceQueue* cleared_references,
                                           collector::GarbageCollector* collector,
                                           bool report_cleared) {
+#if !ART_USE_MMTK
   while (!IsEmpty()) {
     ObjPtr<mirror::Reference> ref = DequeuePendingReference();
     mirror::HeapReference<mirror::Object>* referent_addr = ref->GetReferentReferenceAddr();
@@ -160,10 +165,68 @@ void ReferenceQueue::ClearWhiteReferences(ReferenceQueue* cleared_references,
     // transaction mode will trigger the read barrier.
     DisableReadBarrierForReference(ref);
   }
+#else
+  UNUSED(cleared_references);
+  UNUSED(collector);
+  UNUSED(report_cleared);
+#endif  // !ART_USE_MMTK
+}
+
+#if ART_USE_MMTK
+static bool MmtkIsNullOrMarkedHeapReference(mirror::HeapReference<mirror::Object>* object,
+                                            IsMarkedVisitor* visitor) NO_THREAD_SAFETY_ANALYSIS {
+  mirror::Object* obj = object->AsMirrorPtr();
+  if (obj == nullptr) {
+    return true;
+  }
+
+  mirror::Object* new_obj = visitor->IsMarked(obj);
+  if (new_obj == nullptr) {
+    return false;
+  }
+
+  if (new_obj != obj) {
+    // Write barrier is not necessary since it still points to the same object, just at a different
+    // address.
+    object->Assign(new_obj);
+  }
+
+  return true;
+}
+#endif  // ART_USE_MMTK
+
+void ReferenceQueue::ClearWhiteReferencesTPH(ReferenceQueue* cleared_references,
+                                             IsMarkedVisitor* visitor,
+                                             bool report_cleared) {
+#if ART_USE_MMTK
+  while (!IsEmpty()) {
+    ObjPtr<mirror::Reference> ref = DequeuePendingReference();
+    mirror::HeapReference<mirror::Object>* referent_addr = ref->GetReferentReferenceAddr();
+    if (!MmtkIsNullOrMarkedHeapReference(referent_addr, visitor)) {
+      // Referent is white, clear it.
+      if (Runtime::Current()->IsActiveTransaction()) {
+        ref->ClearReferent<true>();
+      } else {
+        ref->ClearReferent<false>();
+      }
+      cleared_references->AtomicEnqueueIfNotEnqueued(Thread::Current(), ref);
+      if (report_cleared) {
+        static bool already_reported = false;
+        if (!already_reported) {
+          // TODO: Maybe do this only if the queue is non-null?
+          LOG(WARNING)
+              << "Cleared Reference was only reachable from finalizer (only reported once)";
+          already_reported = true;
+        }
+      }
+    }
+  }
+#endif  // ART_USE_MMTK
 }
 
 FinalizerStats ReferenceQueue::EnqueueFinalizerReferences(ReferenceQueue* cleared_references,
                                                 collector::GarbageCollector* collector) {
+#if !ART_USE_MMTK
   uint32_t num_refs(0), num_enqueued(0);
   while (!IsEmpty()) {
     ObjPtr<mirror::FinalizerReference> ref = DequeuePendingReference()->AsFinalizerReference();
@@ -189,6 +252,39 @@ FinalizerStats ReferenceQueue::EnqueueFinalizerReferences(ReferenceQueue* cleare
     DisableReadBarrierForReference(ref->AsReference());
   }
   return FinalizerStats(num_refs, num_enqueued);
+#else
+  UNUSED(cleared_references);
+  UNUSED(collector);
+  return FinalizerStats(/* num_refs= */ 0, /* num_enqueued= */ 0);
+#endif  // !ART_USE_MMTK
+}
+
+FinalizerStats ReferenceQueue::EnqueueFinalizerReferencesTPH(ReferenceQueue* cleared_references,
+                                                             MarkObjectVisitor* mark_object_visitor,
+                                                             IsMarkedVisitor* is_marked_visitor) {
+#if ART_USE_MMTK
+  uint32_t num_refs(0), num_enqueued(0);
+  while (!IsEmpty()) {
+    ObjPtr<mirror::FinalizerReference> ref = DequeuePendingReference()->AsFinalizerReference();
+    ++num_refs;
+    mirror::HeapReference<mirror::Object>* referent_addr = ref->GetReferentReferenceAddr();
+    if (!MmtkIsNullOrMarkedHeapReference(referent_addr, is_marked_visitor)) {
+      ObjPtr<mirror::Object> forward_address =
+          mark_object_visitor->MarkObject(referent_addr->AsMirrorPtr());
+      // Move the updated referent to the zombie field.
+      if (Runtime::Current()->IsActiveTransaction()) {
+        ref->SetZombie<true>(forward_address);
+        ref->ClearReferent<true>();
+      } else {
+        ref->SetZombie<false>(forward_address);
+        ref->ClearReferent<false>();
+      }
+      cleared_references->AtomicEnqueueIfNotEnqueued(Thread::Current(), ref);
+      ++num_enqueued;
+    }
+  }
+  return FinalizerStats(num_refs, num_enqueued);
+#endif  // ART_USE_MMTK
 }
 
 uint32_t ReferenceQueue::ForwardSoftReferences(MarkObjectVisitor* visitor) {

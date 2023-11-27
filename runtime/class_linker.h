@@ -707,9 +707,15 @@ class ClassLinker {
   void DropFindArrayClassCache() REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Clean up class loaders, this needs to happen after JNI weak globals are cleared.
+#if ART_USE_MMTK
+  // XXX(kunals): We only call this in `process_weak_refs` so we know that we don't have any
+  // race conditions as only one GC worker can execute the work packet
+  void CleanupClassLoaders() NO_THREAD_SAFETY_ANALYSIS;
+#else
   void CleanupClassLoaders()
       REQUIRES(!Locks::classlinker_classes_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
 
   // Unlike GetOrCreateAllocatorForClassLoader, GetAllocatorForClassLoader asserts that the
   // allocator for this class loader is already created.

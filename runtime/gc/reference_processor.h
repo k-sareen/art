@@ -19,6 +19,7 @@
 
 #include "base/locks.h"
 #include "jni.h"
+#include "mmtk.h"
 #include "reference_queue.h"
 #include "runtime_globals.h"
 
@@ -61,6 +62,16 @@ class ReferenceProcessor {
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(Locks::heap_bitmap_lock_)
       REQUIRES(!Locks::reference_processor_lock_);
+  // Enqueue all types of java.lang.ref.References, and mark through finalizers.
+  // Assumes there is no concurrent mutator-driven marking, i.e. all potentially
+  // mutator-accessible objects should be marked before this.
+  void ProcessReferencesTPH(Thread* self,
+                            RefProcessingPhase phase,
+                            MarkObjectVisitor* mark_object_visitor,
+                            IsMarkedVisitor* is_marked_visitor,
+                            bool clear_soft_references)
+      REQUIRES_SHARED(Locks::mutator_lock_)
+      REQUIRES(!Locks::reference_processor_lock_);
 
   // The slow path bool is contained in the reference class object, can only be set once
   // Only allow setting this with mutators suspended so that we can avoid using a lock in the
@@ -78,6 +89,9 @@ class ReferenceProcessor {
                               ObjPtr<mirror::Reference> ref,
                               collector::GarbageCollector* collector)
       REQUIRES_SHARED(Locks::mutator_lock_);
+  void DelayReferenceReferentTPH(ObjPtr<mirror::Class> klass,
+                                 ObjPtr<mirror::Reference> ref)
+      REQUIRES_SHARED(Locks::mutator_lock_);
   void UpdateRoots(IsMarkedVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
   // Make a circular list with reference if it is not enqueued. Uses the finalizer queue lock.
@@ -89,6 +103,8 @@ class ReferenceProcessor {
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::reference_processor_lock_);
   uint32_t ForwardSoftReferences(TimingLogger* timings)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+  uint32_t ForwardSoftReferencesTPH(MarkObjectVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:
