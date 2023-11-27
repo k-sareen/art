@@ -4618,7 +4618,7 @@ void Thread::SetStackEndForStackOverflow() {
 
 void Thread::SetTlab(uint8_t* start, uint8_t* end, uint8_t* limit) {
 #if ART_USE_MMTK
-  DCHECK(false) << "Should not use Tlab when using MMTk!";
+  DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
   DCHECK_LE(start, end);
   DCHECK_LE(end, limit);
@@ -4661,7 +4661,7 @@ bool Thread::HasTlab() const {
 
 void Thread::AdjustTlab(size_t slide_bytes) {
 #if ART_USE_MMTK
-  DCHECK(false) << "Should not use Tlab when using MMTk!";
+  DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
   if (HasTlab()) {
     tlsPtr_.thread_local_start -= slide_bytes;

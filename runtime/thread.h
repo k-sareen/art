@@ -1331,7 +1331,7 @@ class Thread {
   // Returns the remaining space in the TLAB.
   size_t TlabSize() const {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_end - tlsPtr_.thread_local_pos;
   }
@@ -1339,7 +1339,7 @@ class Thread {
   // Returns pos offset from start.
   size_t GetTlabPosOffset() const {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_pos - tlsPtr_.thread_local_start;
   }
@@ -1347,7 +1347,7 @@ class Thread {
   // Returns the remaining space in the TLAB if we were to expand it to maximum capacity.
   size_t TlabRemainingCapacity() const {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_limit - tlsPtr_.thread_local_pos;
   }
@@ -1355,7 +1355,7 @@ class Thread {
   // Expand the TLAB by a fixed number of bytes. There must be enough capacity to do so.
   void ExpandTlab(size_t bytes) {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     tlsPtr_.thread_local_end += bytes;
     DCHECK_LE(tlsPtr_.thread_local_end, tlsPtr_.thread_local_limit);
@@ -1372,19 +1372,19 @@ class Thread {
   void ResetTlab();
   uint8_t* GetTlabStart() {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_start;
   }
   uint8_t* GetTlabPos() {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_pos;
   }
   uint8_t* GetTlabEnd() {
 #if ART_USE_MMTK
-    DCHECK(false) << "Should not use Tlab when using MMTk!";
+    DCHECK(false) << "Should not use TLAB when using MMTk!";
 #endif  // ART_USE_MMTK
     return tlsPtr_.thread_local_end;
   }
