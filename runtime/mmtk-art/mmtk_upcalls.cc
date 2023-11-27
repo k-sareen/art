@@ -26,8 +26,6 @@
 #include "thread.h"
 #include "thread_list.h"
 
-#include <iostream>
-
 namespace art {
 class Thread;
 }  // namespace art
@@ -41,7 +39,7 @@ static size_t size_of(void* object) {
   return obj->SizeOf();
 }
 
-static void scan_object(void* object, void (*closure)(void* edge)) {
+static void scan_object(void* object, ScanObjectClosure closure) {
   art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
   // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
   // state and causing segfaults
@@ -65,7 +63,7 @@ static void block_for_gc(void* tls) {
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
-  // tp_heap->BlockThreadForCollection calls Heap::WaitForGcToComplete internally
+  // ThirdPartyHeap::BlockThreadForCollection calls Heap::WaitForGcToComplete internally
   PERFORM_SUSPENDING_OPERATION(self, tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
 #undef PERFORM_SUSPENDING_OPERATION
 }
