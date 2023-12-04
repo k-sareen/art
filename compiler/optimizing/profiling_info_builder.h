@@ -24,6 +24,7 @@ namespace art HIDDEN {
 
 class CodeGenerator;
 class CompilerOptions;
+class HInliner;
 class InlineCache;
 class ProfilingInfo;
 
@@ -42,8 +43,13 @@ class ProfilingInfoBuilder : public HGraphDelegateVisitor {
   static constexpr const char* kProfilingInfoBuilderPassName =
       "profiling_info_builder";
 
-  static InlineCache* GetInlineCache(ProfilingInfo* info, HInvoke* invoke);
+  static InlineCache* GetInlineCache(ProfilingInfo* info,
+                                     const CompilerOptions& compiler_options,
+                                     HInvoke* invoke);
   static bool IsInlineCacheUseful(HInvoke* invoke, CodeGenerator* codegen);
+  static uint32_t EncodeInlinedDexPc(
+      const HInliner* inliner, const CompilerOptions& compiler_options, HInvoke* invoke)
+      REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:
   void VisitInvokeVirtual(HInvokeVirtual* invoke) override;
@@ -52,7 +58,7 @@ class ProfilingInfoBuilder : public HGraphDelegateVisitor {
   void HandleInvoke(HInvoke* invoke);
 
   CodeGenerator* codegen_;
-  [[maybe_unused]] const CompilerOptions& compiler_options_;
+  const CompilerOptions& compiler_options_;
   std::vector<uint32_t> inline_caches_;
 
   DISALLOW_COPY_AND_ASSIGN(ProfilingInfoBuilder);

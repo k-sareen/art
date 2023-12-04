@@ -407,6 +407,10 @@ class DeoptimizeStackVisitor final : public StackVisitor {
     return bottom_shadow_frame_;
   }
 
+  const std::vector<uint32_t>& GetDexPcs() const {
+    return dex_pcs_;
+  }
+
   void FinishStackWalk() REQUIRES_SHARED(Locks::mutator_lock_) {
     // This is the upcall, or the next full frame in single-frame deopt, or the
     // code isn't deoptimizeable. We remember the frame and last pc so that we
@@ -515,11 +519,14 @@ class DeoptimizeStackVisitor final : public StackVisitor {
       }
       prev_shadow_frame_ = new_frame;
 
-      if (single_frame_deopt_ && !IsInInlinedFrame()) {
-        // Single-frame deopt ends at the first non-inlined frame and needs to store that method.
-        single_frame_done_ = true;
-        single_frame_deopt_method_ = method;
-        single_frame_deopt_quick_method_header_ = GetCurrentOatQuickMethodHeader();
+      if (single_frame_deopt_) {
+        dex_pcs_.push_back(GetDexPc());
+        if (!IsInInlinedFrame()) {
+          // Single-frame deopt ends at the first non-inlined frame and needs to store that method.
+          single_frame_done_ = true;
+          single_frame_deopt_method_ = method;
+          single_frame_deopt_quick_method_header_ = GetCurrentOatQuickMethodHeader();
+        }
       }
       callee_method_ = method;
       return true;
@@ -659,6 +666,7 @@ class DeoptimizeStackVisitor final : public StackVisitor {
   // a deopt after running method exit callbacks if the callback throws or requests events that
   // need a deopt.
   bool skip_method_exit_callbacks_;
+  std::vector<uint32_t> dex_pcs_;
 
   DISALLOW_COPY_AND_ASSIGN(DeoptimizeStackVisitor);
 };
@@ -739,11 +747,26 @@ void QuickExceptionHandler::DeoptimizeSingleFrame(DeoptimizationKind kind) {
       case Instruction::INVOKE_VIRTUAL:
       case Instruction::INVOKE_INTERFACE_RANGE:
       case Instruction::INVOKE_VIRTUAL_RANGE: {
-        runtime->GetJit()->GetCodeCache()->MaybeUpdateInlineCache(
-            shadow_frame->GetMethod(),
-            dex_pc,
-            shadow_frame->GetVRegReference(inst->VRegC())->GetClass(),
-            self_);
+        uint32_t encoded_dex_pc = InlineCache::EncodeDexPc(
+            visitor.GetSingleFrameDeoptMethod(),
+            visitor.GetDexPcs(),
+            runtime->GetJit()->GetJitCompiler()->GetInlineMaxCodeUnits());
+        if (encoded_dex_pc != static_cast<uint32_t>(-1)) {
+          // The inline cache comes from the top-level method.
+          runtime->GetJit()->GetCodeCache()->MaybeUpdateInlineCache(
+              visitor.GetSingleFrameDeoptMethod(),
+              encoded_dex_pc,
+              shadow_frame->GetVRegReference(inst->VRegC())->GetClass(),
+              self_);
+        } else {
+          // If the top-level inline cache did not exist, update the one for the
+          // bottom method, we know it's the one that was used for compilation.
+          runtime->GetJit()->GetCodeCache()->MaybeUpdateInlineCache(
+              shadow_frame->GetMethod(),
+              dex_pc,
+              shadow_frame->GetVRegReference(inst->VRegC())->GetClass(),
+              self_);
+        }
         break;
       }
       default: {

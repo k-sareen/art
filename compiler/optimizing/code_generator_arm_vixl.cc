@@ -3687,7 +3687,8 @@ void CodeGeneratorARMVIXL::MaybeGenerateInlineCacheCheck(HInstruction* instructi
   DCHECK_EQ(r0.GetCode(), klass.GetCode());
   if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
-    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(
+        info, GetCompilerOptions(), instruction->AsInvoke());
     if (cache != nullptr) {
       uint32_t address = reinterpret_cast32<uint32_t>(cache);
       vixl32::Label done;

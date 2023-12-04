@@ -368,10 +368,10 @@ class OptimizingCompiler final : public Compiler {
                             const DexCompilationUnit& dex_compilation_unit,
                             PassObserver* pass_observer) const;
 
-  bool RunBaselineOptimizations(HGraph* graph,
-                                CodeGenerator* codegen,
-                                const DexCompilationUnit& dex_compilation_unit,
-                                PassObserver* pass_observer) const;
+  bool RunRequiredPasses(HGraph* graph,
+                         CodeGenerator* codegen,
+                         const DexCompilationUnit& dex_compilation_unit,
+                         PassObserver* pass_observer) const;
 
   std::vector<uint8_t> GenerateJitDebugInfo(const debug::MethodDebugInfo& method_debug_info);
 
@@ -444,10 +444,10 @@ static bool IsInstructionSetSupported(InstructionSet instruction_set) {
          instruction_set == InstructionSet::kX86_64;
 }
 
-bool OptimizingCompiler::RunBaselineOptimizations(HGraph* graph,
-                                                  CodeGenerator* codegen,
-                                                  const DexCompilationUnit& dex_compilation_unit,
-                                                  PassObserver* pass_observer) const {
+bool OptimizingCompiler::RunRequiredPasses(HGraph* graph,
+                                           CodeGenerator* codegen,
+                                           const DexCompilationUnit& dex_compilation_unit,
+                                           PassObserver* pass_observer) const {
   switch (codegen->GetCompilerOptions().GetInstructionSet()) {
 #if defined(ART_ENABLE_CODEGEN_arm)
     case InstructionSet::kThumb2:
@@ -904,21 +904,15 @@ CodeGenerator* OptimizingCompiler::TryCompile(ArenaAllocator* allocator,
     }
   }
 
-  if (compilation_kind == CompilationKind::kBaseline) {
-    RunBaselineOptimizations(graph, codegen.get(), dex_compilation_unit, &pass_observer);
+  if (compilation_kind == CompilationKind::kBaseline && compiler_options.ProfileBranches()) {
+    // Branch profiling currently doesn't support running optimizations.
+    RunRequiredPasses(graph, codegen.get(), dex_compilation_unit, &pass_observer);
   } else {
     RunOptimizations(graph, codegen.get(), dex_compilation_unit, &pass_observer);
     PassScope scope(WriteBarrierElimination::kWBEPassName, &pass_observer);
     WriteBarrierElimination(graph, compilation_stats_.get()).Run();
   }
 
-  RegisterAllocator::Strategy regalloc_strategy =
-    compiler_options.GetRegisterAllocationStrategy();
-  AllocateRegisters(graph,
-                    codegen.get(),
-                    &pass_observer,
-                    regalloc_strategy,
-                    compilation_stats_.get());
   // If we are compiling baseline and we haven't created a profiling info for
   // this method already, do it now.
   if (jit != nullptr &&
@@ -934,6 +928,14 @@ CodeGenerator* OptimizingCompiler::TryCompile(ArenaAllocator* allocator,
       return nullptr;
     }
   }
+
+  RegisterAllocator::Strategy regalloc_strategy =
+    compiler_options.GetRegisterAllocationStrategy();
+  AllocateRegisters(graph,
+                    codegen.get(),
+                    &pass_observer,
+                    regalloc_strategy,
+                    compilation_stats_.get());
 
   codegen->Compile();
   pass_observer.DumpDisassembly();
