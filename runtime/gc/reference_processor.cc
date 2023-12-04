@@ -337,7 +337,7 @@ void ReferenceProcessor::ProcessReferencesTPH(Thread* self,
                                               bool clear_soft_references) {
 #if ART_USE_MMTK
   switch (phase) {
-    case ForwardSoft:
+    case Phase1:
       {
         MutexLock mu(self, *Locks::reference_processor_lock_);
         rp_state_ = RpState::kStarting;
@@ -352,7 +352,7 @@ void ReferenceProcessor::ProcessReferencesTPH(Thread* self,
         }
       }
       break;
-    case ClearSoftWeak:
+    case Phase2:
       {
         MutexLock mu(self, *Locks::reference_processor_lock_);
         DCHECK(rp_state_ == RpState::kStarting);
@@ -386,14 +386,12 @@ void ReferenceProcessor::ProcessReferencesTPH(Thread* self,
         // But many kinds of references, including all java.lang.ref ones, are handled normally from
         // here on. See GetReferent().
       }
-      break;
-    case EnqueueFinalizer:
       // Preserve all white objects with finalize methods and schedule them for finalization.
       finalizer_reference_queue_.EnqueueFinalizerReferencesTPH(&cleared_references_,
                                                                mark_object_visitor,
                                                                is_marked_visitor);
       break;
-    case ClearFinalSoftWeakAndPhantom:
+    case Phase3:
       // Process all soft and weak references with white referents, where the references are reachable
       // only from finalizers. It is unclear that there is any way to do this without slightly
       // violating some language spec. We choose to apply normal Reference processing rules for these.

@@ -201,6 +201,14 @@ static void process_references(void* tls,
                            &mark_object_visitor,
                            &is_marked_visitor,
                            clear_soft_references);
+
+  // Sweep system weaks after clearing the soft, weak, and phantom references
+  if (phase == Phase3) {
+    runtime->SweepSystemWeaks(&is_marked_visitor);
+    runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
+    runtime->BroadcastForNewSystemWeaks();
+    runtime->GetClassLinker()->CleanupClassLoaders();
+  }
 }
 
 static void sweep_system_weaks() {
