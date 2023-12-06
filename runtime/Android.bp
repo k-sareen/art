@@ -624,6 +624,9 @@ cc_defaults {
         "libnativebridge",
         "libodrstatslog",
         "libunwindstack",
+    ],
+    exclude_static_libs: [
+        // This library comes from the static version of libunwindstack.
         "libz",
     ],
     target: {
