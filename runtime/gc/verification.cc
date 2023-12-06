@@ -77,6 +77,7 @@ std::string Verification::DumpObjectInfo(const void* addr, const char* tag) cons
     if (space != nullptr) {
       oss << " space=" << *space;
     }
+#if !ART_USE_MMTK
     if (gUseWriteBarrier) {
       accounting::CardTable* card_table = heap_->GetCardTable();
       if (card_table->AddrIsInCardTable(addr)) {
@@ -84,6 +85,7 @@ std::string Verification::DumpObjectInfo(const void* addr, const char* tag) cons
             card_table->GetCard(reinterpret_cast<const mirror::Object*>(addr)));
       }
     }
+#endif  // !ART_USE_MMTK
     // Dump adjacent RAM.
     oss << DumpRAMAroundAddress(reinterpret_cast<uintptr_t>(addr), 4 * kObjectAlignment);
   } else {

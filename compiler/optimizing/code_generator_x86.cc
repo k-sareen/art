@@ -6026,6 +6026,9 @@ void InstructionCodeGeneratorX86::HandleFieldGet(HInstruction* instruction,
 void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
                                          const FieldInfo& field_info,
                                          WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(write_barrier_kind);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations =
@@ -6067,9 +6070,11 @@ void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
         codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind);
 
     if (needs_write_barrier || check_gc_card) {
+#if !ART_USE_MMTK
       locations->AddTemp(Location::RequiresRegister());
       // Ensure the card is in a byte register.
       locations->AddTemp(Location::RegisterLocation(ECX));
+#endif  // !ART_USE_MMTK
     } else if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
       locations->AddTemp(Location::RequiresRegister());
     }
@@ -6084,6 +6089,10 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
                                                  bool is_volatile,
                                                  bool value_can_be_null,
                                                  WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(base);
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   LocationSummary* locations = instruction->GetLocations();
   Location value = locations->InAt(value_index);
   bool needs_write_barrier =
@@ -6201,37 +6210,16 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
   }
 
   if (needs_write_barrier) {
+#if !ART_USE_MMTK
     Register temp = locations->GetTemp(0).AsRegister<Register>();
     Register card = locations->GetTemp(1).AsRegister<Register>();
-    if (value.IsConstant()) {
-      DCHECK(value.GetConstant()->IsNullConstant())
-          << "constant value " << CodeGenerator::GetInt32ValueOf(value.GetConstant())
-          << " is not null. Instruction: " << *instruction;
-      if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
-        codegen_->MarkGCCard(temp, card, base);
-      }
-    } else {
-      codegen_->MaybeMarkGCCard(
-          temp,
-          card,
-          base,
-          value.AsRegister<Register>(),
-          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
-    }
-  } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
-    if (value.IsConstant()) {
-      // If we are storing a constant for a reference, we are in the case where we are storing
-      // null but we cannot skip it as this write barrier is being relied on by coalesced write
-      // barriers.
-      DCHECK(value.GetConstant()->IsNullConstant())
-          << "constant value " << CodeGenerator::GetInt32ValueOf(value.GetConstant())
-          << " is not null. Instruction: " << *instruction;
-      // No need to check the dirty bit as this value is null.
-    } else {
-      Register temp = locations->GetTemp(0).AsRegister<Register>();
-      Register card = locations->GetTemp(1).AsRegister<Register>();
-      codegen_->CheckGCCardIsValid(temp, card, base);
-    }
+    codegen_->MarkGCCard(
+        temp,
+        card,
+        base,
+        value.AsRegister<Register>(),
+        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+#endif  // !ART_USE_MMTK
   }
 
   if (is_volatile) {
@@ -6538,10 +6526,12 @@ void LocationsBuilderX86::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RegisterOrConstant(instruction->InputAt(2)));
   }
   if (needs_write_barrier || check_gc_card) {
+#if !ART_USE_MMTK
     // Used by reference poisoning, type checking, emitting, or checking a write barrier.
     locations->AddTemp(Location::RequiresRegister());
     // Only used when emitting or checking a write barrier. Ensure the card is in a byte register.
     locations->AddTemp(Location::RegisterLocation(ECX));
+#endif  // !ART_USE_MMTK
   } else if ((kPoisonHeapReferences && value_type == DataType::Type::kReference) ||
              instruction->NeedsTypeCheck()) {
     locations->AddTemp(Location::RequiresRegister());
@@ -6598,14 +6588,17 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         DCHECK(value.IsConstant()) << value;
         __ movl(address, Immediate(0));
         codegen_->MaybeRecordImplicitNullCheck(instruction);
-        if (gUseWriteBarrier && write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
-          // We need to set a write barrier here even though we are writing null, since this write
-          // barrier is being relied on.
-          DCHECK(needs_write_barrier);
-          Register temp = locations->GetTemp(0).AsRegister<Register>();
-          Register card = locations->GetTemp(1).AsRegister<Register>();
-          codegen_->MarkGCCard(temp, card, array);
-        }
+        if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
+          if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+            // We need to set a write barrier here even though we are writing null, since this write
+            // barrier is being relied on.
+            DCHECK(needs_write_barrier);
+            Register temp = locations->GetTemp(0).AsRegister<Register>();
+            Register card = locations->GetTemp(1).AsRegister<Register>();
+            codegen_->MarkGCCard(temp, card, array);
+          }
+#endif  // !ART_USE_MMTK
         DCHECK(!needs_type_check);
         break;
       }
@@ -6672,6 +6665,7 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
       }
 
       if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
         if (needs_write_barrier) {
           // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
           // this write barrier when its value is null (without an extra testl since we already
@@ -6686,6 +6680,7 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
           Register card = locations->GetTemp(1).AsRegister<Register>();
           codegen_->CheckGCCardIsValid(temp, card, array);
         }
+#endif  // !ART_USE_MMTK
       }
 
       Register source = register_value;

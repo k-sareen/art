@@ -5916,6 +5916,9 @@ void InstructionCodeGeneratorARMVIXL::GenerateWideAtomicStore(vixl32::Register a
 void LocationsBuilderARMVIXL::HandleFieldSet(HInstruction* instruction,
                                              const FieldInfo& field_info,
                                              WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(write_barrier_kind);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations =
@@ -5941,8 +5944,10 @@ void LocationsBuilderARMVIXL::HandleFieldSet(HInstruction* instruction,
   // Temporary registers for the write barrier.
   // TODO: consider renaming StoreNeedsWriteBarrier to StoreNeedsGCMark.
   if (needs_write_barrier || check_gc_card) {
+#if !ART_USE_MMTK
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());
+#endif  // !ART_USE_MMTK
   } else if (generate_volatile) {
     // ARM encoding have some additional constraints for ldrexd/strexd:
     // - registers need to be consecutive
@@ -5967,6 +5972,9 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
                                                      const FieldInfo& field_info,
                                                      bool value_can_be_null,
                                                      WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations = instruction->GetLocations();
@@ -6072,6 +6080,7 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
   }
 
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     if (needs_write_barrier) {
       vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
       vixl32::Register card = RegisterFrom(locations->GetTemp(1));
@@ -6086,6 +6095,7 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
       vixl32::Register card = RegisterFrom(locations->GetTemp(1));
       codegen_->CheckGCCardIsValid(temp, card, base);
     }
+#endif  // !ART_USE_MMTK
   }
 
   if (is_volatile) {
@@ -6858,10 +6868,12 @@ void LocationsBuilderARMVIXL::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RequiresRegister());
   }
   if (needs_write_barrier || check_gc_card || instruction->NeedsTypeCheck()) {
+#if !ART_USE_MMTK
     // Temporary registers for type checking, write barrier, checking the dirty bit, or register
     // poisoning.
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());
+#endif  // !ART_USE_MMTK
   } else if (kPoisonHeapReferences && value_type == DataType::Type::kReference) {
     locations->AddTemp(Location::RequiresRegister());
   }
@@ -6944,13 +6956,17 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
           codegen_->StoreToShiftedRegOffset(value_type, value_loc, temp, RegisterFrom(index));
         }
         codegen_->MaybeRecordImplicitNullCheck(instruction);
-        if (gUseWriteBarrier && write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
-          // We need to set a write barrier here even though we are writing null, since this write
-          // barrier is being relied on.
-          DCHECK(needs_write_barrier);
-          vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
-          vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
-          codegen_->MarkGCCard(temp1, temp2, array);
+        if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
+          if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+            // We need to set a write barrier here even though we are writing null, since this write
+            // barrier is being relied on.
+            DCHECK(needs_write_barrier);
+            vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
+            vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
+            codegen_->MarkGCCard(temp1, temp2, array);
+          }
+#endif  // !ART_USE_MMTK
         }
         DCHECK(!needs_type_check);
         break;
@@ -7025,6 +7041,7 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
       }
 
       if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
         if (needs_write_barrier) {
           // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
           // this write barrier when its value is null (without an extra CompareAndBranchIfZero since
@@ -7039,6 +7056,7 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
           vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
           codegen_->CheckGCCardIsValid(temp1, temp2, array);
         }
+#endif  // !ART_USE_MMTK
       }
 
       vixl32::Register source = value;

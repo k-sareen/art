@@ -75,6 +75,11 @@ extern "C" mirror::String* artStringBuilderAppend(uint32_t format,
                                                   Thread* self)
     REQUIRES_SHARED(Locks::mutator_lock_) HOT_ATTR;
 
+// extern "C" void artWriteBarrier(mirror::Object* src,
+//                                 mirror::Object** slot,
+//                                 mirror::Object* target)
+//     HOT_ATTR;
+
 // Read barrier entrypoints.
 //
 // Compilers for ARM, ARM64 can insert a call to these

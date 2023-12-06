@@ -2319,6 +2319,9 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
                                                    const FieldInfo& field_info,
                                                    bool value_can_be_null,
                                                    WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   Register obj = InputRegisterAt(instruction, 0);
@@ -2354,6 +2357,7 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
       codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
 
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     if (needs_write_barrier) {
       // TODO(solanes): If we do a `HuntForOriginalReference` call to the value in WBE, we will be
       // able to DCHECK that the write_barrier_kind is kBeingReliedOn when Register(value).IsZero(),
@@ -2366,6 +2370,7 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
     } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
       codegen_->CheckGCCardIsValid(obj);
     }
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -3048,6 +3053,7 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
     }
 
     if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
       DCHECK_NE(write_barrier_kind, WriteBarrierKind::kDontEmit);
       // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip this
       // write barrier when its value is null (without an extra cbz since we already checked if the
@@ -3057,6 +3063,7 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
       // we have the Zero register as the value. If we do `HuntForOriginalReference` on the value
       // we'll resolve this.
       codegen_->MarkGCCard(array);
+#endif  // !ART_USE_MMTK
     }
 
     UseScratchRegisterScope temps(masm);

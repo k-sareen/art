@@ -1452,6 +1452,7 @@ END \name
 .endm
 
 .macro WRITE_BARRIER_IF_OBJECT is_object, value, holder, label, tmp
+#if !ART_USE_MMTK
    .if \is_object
    // In T32, we would use `SMART_CBZ \value, \label`
    cmp     \value, #0
@@ -1461,6 +1462,7 @@ END \name
    strb    ip, [ip, \tmp]
 \label:
    .endif
+#endif  // !ART_USE_MMTK
 .endm
 
 .macro LDREXD_STREXD_LOOP addr, load1, load2, store1, store2, tmp, label

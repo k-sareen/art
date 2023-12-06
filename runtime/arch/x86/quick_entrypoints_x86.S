@@ -1255,9 +1255,11 @@ DEFINE_FUNCTION art_quick_aput_obj
     POISON_HEAP_REF edx
     movl %edx, MIRROR_OBJECT_ARRAY_DATA_OFFSET(%eax, %ecx, 4)
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     movl %fs:THREAD_CARD_TABLE_OFFSET, %edx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %eax
     movb %dl, (%edx, %eax)
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
 
@@ -1292,9 +1294,11 @@ DEFINE_FUNCTION art_quick_aput_obj
     POISON_HEAP_REF edx
     movl %edx, MIRROR_OBJECT_ARRAY_DATA_OFFSET(%eax, %ecx, 4)  // Do the aput.
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     movl %fs:THREAD_CARD_TABLE_OFFSET, %edx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %eax
     movb %dl, (%edx, %eax)
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
 

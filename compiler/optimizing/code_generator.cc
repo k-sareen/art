@@ -162,6 +162,7 @@ bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
                                       HInstruction* value,
                                       WriteBarrierKind write_barrier_kind) const {
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     const CompilerOptions& options = GetCompilerOptions();
     const bool result =
         // Check the GC card in debug mode,
@@ -177,6 +178,9 @@ bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
         result, !(GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches()));
 
     return result;
+#else
+    return false;
+#endif  // !ART_USE_MMTK
   } else {
     return false;
   }
