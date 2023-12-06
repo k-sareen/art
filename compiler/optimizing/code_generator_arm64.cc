@@ -2297,6 +2297,9 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
                                                    const FieldInfo& field_info,
                                                    bool value_can_be_null,
                                                    WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
   bool is_predicated =
       instruction->IsInstanceFieldSet() && instruction->AsInstanceFieldSet()->GetIsPredicatedSet();
@@ -2338,10 +2341,12 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
 
   if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(1)) &&
       write_barrier_kind != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
     codegen_->MarkGCCard(
         obj,
         Register(value),
         value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+#endif  // !ART_USE_MMTK
   }
 
   if (is_predicated) {
@@ -3008,9 +3013,11 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
     }
 
     if (needs_write_barrier && instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
       DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
           << " Already null checked so we shouldn't do it again.";
       codegen_->MarkGCCard(array, value.W(), /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
     }
 
     if (can_value_be_null) {

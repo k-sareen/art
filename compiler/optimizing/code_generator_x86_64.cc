@@ -5255,9 +5255,11 @@ void LocationsBuilderX86_64::HandleFieldSet(HInstruction* instruction,
   // TODO(solanes): We could reduce the temp usage but it requires some non-trivial refactoring of
   // InstructionCodeGeneratorX86_64::HandleFieldSet.
   if (needs_write_barrier) {
+#if !ART_USE_MMTK
     // Temporary registers for the write barrier.
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());  // Possibly used for reference poisoning too.
+#endif  // !ART_USE_MMTK
   } else if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
     // Temporary register for the reference poisoning.
     locations->AddTemp(Location::RequiresRegister());
@@ -5317,6 +5319,11 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
                                                     bool value_can_be_null,
                                                     bool byte_swap,
                                                     WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(base);
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
+
   LocationSummary* locations = instruction->GetLocations();
   Location value = locations->InAt(value_index);
 
@@ -5436,6 +5443,7 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
 
   if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(value_index)) &&
       write_barrier_kind != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
     CpuRegister temp = locations->GetTemp(0).AsRegister<CpuRegister>();
     CpuRegister card = locations->GetTemp(extra_temp_index).AsRegister<CpuRegister>();
     codegen_->MarkGCCard(
@@ -5444,6 +5452,7 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
         base,
         value.AsRegister<CpuRegister>(),
         value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+#endif  // !ART_USE_MMTK
   }
 
   if (is_volatile) {
@@ -5777,8 +5786,10 @@ void LocationsBuilderX86_64::VisitArraySet(HArraySet* instruction) {
   if (needs_write_barrier) {
     // Used for emitting write barrier.
     if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
       // Only used when emitting a write barrier.
       locations->AddTemp(Location::RequiresRegister());
+#endif  // !ART_USE_MMTK
     }
   }
 }
@@ -5898,6 +5909,7 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
       }
 
       if (needs_write_barrier && instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
         DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
             << " Already null checked so we shouldn't do it again.";
         CpuRegister card = locations->GetTemp(1).AsRegister<CpuRegister>();
@@ -5906,6 +5918,7 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
                              array,
                              value.AsRegister<CpuRegister>(),
                              /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
       }
 
       if (can_value_be_null) {

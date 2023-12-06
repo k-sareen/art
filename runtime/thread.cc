@@ -157,9 +157,11 @@ constexpr size_t kStackOverflowProtectedSize = 4 * kMemoryToolStackGuardSizeScal
 static const char* kThreadNameDuringStartup = "<native thread without managed peer>";
 
 void Thread::InitCardTable() {
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     tlsPtr_.card_table = Runtime::Current()->GetHeap()->GetCardTable()->GetBiasedBegin();
   }
+#endif  // !ART_USE_MMTK
 }
 
 static void UnimplementedEntryPoint() {

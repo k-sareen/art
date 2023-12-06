@@ -1724,7 +1724,9 @@ void IntrinsicCodeGeneratorARMVIXL::VisitSystemArrayCopy(HInvoke* invoke) {
 
   // We only need one card marking on the destination array.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     codegen_->MarkGCCard(temp1, temp2, dest, NoReg, /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
   }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());
@@ -3101,7 +3103,9 @@ static void GenUnsafePut(HInvoke* invoke,
                          std::memory_order order,
                          bool atomic,
                          CodeGeneratorARMVIXL* codegen) {
+#if !ART_USE_MMTK
   ArmVIXLAssembler* assembler = codegen->GetAssembler();
+#endif  // !ART_USE_MMTK
 
   LocationSummary* locations = invoke->GetLocations();
   vixl32::Register base = RegisterFrom(locations->InAt(1));       // Object pointer.
@@ -3126,11 +3130,13 @@ static void GenUnsafePut(HInvoke* invoke,
                        /*maybe_temp3=*/ Location::NoLocation());
 
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
     UseScratchRegisterScope temps(assembler->GetVIXLAssembler());
     vixl32::Register card = temps.Acquire();
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(temp, card, base, RegisterFrom(value), value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -3698,10 +3704,12 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARMV
   vixl32::Register tmp_ptr = temps.Acquire();
 
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     // Mark card for object assuming new value is stored. Worst case we will mark an unchanged
     // object and scan the receiver at the next GC for nothing.
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(tmp_ptr, tmp, base, new_value, value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 
   vixl32::Label exit_loop_label;

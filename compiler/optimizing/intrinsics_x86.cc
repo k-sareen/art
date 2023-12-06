@@ -2021,12 +2021,14 @@ static void GenUnsafePut(LocationSummary* locations,
   }
 
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(locations->GetTemp(0).AsRegister<Register>(),
                         locations->GetTemp(1).AsRegister<Register>(),
                         base,
                         value_loc.AsRegister<Register>(),
                         value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -2355,11 +2357,13 @@ static void GenReferenceCAS(HInvoke* invoke,
 
   // Mark card for object if the new value is stored.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     NearLabel skip_mark_gc_card;
     __ j(kNotZero, &skip_mark_gc_card);
     codegen->MarkGCCard(temp, temp2, base, value, value_can_be_null);
     __ Bind(&skip_mark_gc_card);
+#endif  // !ART_USE_MMTK
   }
 
   // If heap poisoning is enabled, we need to unpoison the values
@@ -3261,7 +3265,9 @@ void IntrinsicCodeGeneratorX86::VisitSystemArrayCopy(HInvoke* invoke) {
 
   // We only need one card marking on the destination array.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     codegen_->MarkGCCard(temp1, temp2, dest, Register(kNoRegister), /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
   }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());
@@ -4214,8 +4220,10 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke, CodeGeneratorX86* codege
             &temp2);
       }
       if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
         codegen->MarkGCCard(
             temp, temp2, reference, value.AsRegister<Register>(), /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
       }
       if (kPoisonHeapReferences) {
         __ movl(temp, value.AsRegister<Register>());

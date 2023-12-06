@@ -5955,6 +5955,9 @@ void InstructionCodeGeneratorX86::HandleFieldGet(HInstruction* instruction,
 void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
                                          const FieldInfo& field_info,
                                          WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(write_barrier_kind);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations =
@@ -5991,6 +5994,7 @@ void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
     locations->SetInAt(1, Location::RegisterOrConstant(instruction->InputAt(1)));
 
     if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(1))) {
+#if !ART_USE_MMTK
       if (write_barrier_kind != WriteBarrierKind::kDontEmit) {
         locations->AddTemp(Location::RequiresRegister());
         // Ensure the card is in a byte register.
@@ -5998,6 +6002,7 @@ void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
       } else if (kPoisonHeapReferences) {
         locations->AddTemp(Location::RequiresRegister());
       }
+#endif  // !ART_USE_MMTK
     }
   }
 }
@@ -6010,6 +6015,10 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
                                                  bool is_volatile,
                                                  bool value_can_be_null,
                                                  WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(base);
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   LocationSummary* locations = instruction->GetLocations();
   Location value = locations->InAt(value_index);
   bool needs_write_barrier =
@@ -6123,6 +6132,7 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
   }
 
   if (needs_write_barrier && write_barrier_kind != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
     Register temp = locations->GetTemp(0).AsRegister<Register>();
     Register card = locations->GetTemp(1).AsRegister<Register>();
     codegen_->MarkGCCard(
@@ -6131,6 +6141,7 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
         base,
         value.AsRegister<Register>(),
         value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+#endif  // !ART_USE_MMTK
   }
 
   if (is_volatile) {
@@ -6468,8 +6479,10 @@ void LocationsBuilderX86::VisitArraySet(HArraySet* instruction) {
   if (needs_write_barrier) {
     // Used for emitting write barrier.
     if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
       // Only used when emitting a write barrier. Ensure the card is in a byte register.
       locations->AddTemp(Location::RegisterLocation(ECX));
+#endif  // !ART_USE_MMTK
     }
   }
 }
@@ -6590,12 +6603,14 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
       if (needs_write_barrier && instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
         DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
             << " Already null checked so we shouldn't do it again.";
+#if !ART_USE_MMTK
         Register card = locations->GetTemp(1).AsRegister<Register>();
         codegen_->MarkGCCard(temp,
                              card,
                              array,
                              value.AsRegister<Register>(),
                              /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
       }
 
       if (can_value_be_null) {

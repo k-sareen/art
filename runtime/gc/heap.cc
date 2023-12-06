@@ -865,15 +865,18 @@ Heap::Heap(size_t initial_size,
   // Start at 4 KB, we can be sure there are no spaces mapped this low since the address range is
   // reserved by the kernel.
   static constexpr size_t kMinHeapAddress = 4 * KB;
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     card_table_.reset(accounting::CardTable::Create(reinterpret_cast<uint8_t*>(kMinHeapAddress),
                                                     4 * GB - kMinHeapAddress));
     CHECK(card_table_.get() != nullptr) << "Failed to create card table";
   }
+#endif  // !ART_USE_MMTK
   if (foreground_collector_type_ == kCollectorTypeCC && kUseTableLookupReadBarrier) {
     rb_table_.reset(new accounting::ReadBarrierTable());
     DCHECK(rb_table_->IsAllCleared());
   }
+#if !ART_USE_MMTK
   if (gUseWriteBarrier && HasBootImageSpace()) {
     // Don't add the image mod union table if we are running without an image, this can crash if
     // we use the CardCache implementation.
@@ -884,6 +887,7 @@ Heap::Heap(size_t initial_size,
       AddModUnionTable(mod_union_table);
     }
   }
+#endif  // !ART_USE_MMTK
   if (collector::SemiSpace::kUseRememberedSet && non_moving_space_ != main_space_) {
     accounting::RememberedSet* non_moving_space_rem_set =
         new accounting::RememberedSet("Non-moving space remembered set", this, non_moving_space_);
@@ -2810,6 +2814,7 @@ void Heap::PreZygoteFork() {
     zygote_space_->SetMarkBitInLiveObjects();
   }
 
+#if !ART_USE_MMTK
   // Create the zygote space mod union table.
   if (gUseWriteBarrier) {
     accounting::ModUnionTable* mod_union_table =
@@ -2841,6 +2846,7 @@ void Heap::PreZygoteFork() {
     }
     AddModUnionTable(mod_union_table);
   }
+#endif  // !ART_USE_MMTK
   large_object_space_->SetAllLargeObjectsAsZygoteObjects(self, set_mark_bit);
   if (collector::SemiSpace::kUseRememberedSet) {
     // Add a new remembered set for the post-zygote non-moving space.
@@ -3310,19 +3316,24 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
     }
     if (obj != nullptr) {
       // Only do this part for non roots.
+#if !ART_USE_MMTK
       accounting::CardTable* card_table = nullptr;
       uint8_t* card_addr = nullptr;
+#endif  // !ART_USE_MMTK
       accounting::ObjectStack* alloc_stack = heap_->allocation_stack_.get();
       accounting::ObjectStack* live_stack = heap_->live_stack_.get();
-      if (gUseWriteBarrier) {
+      if (!gUseWriteBarrier) {
+        LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
+                   << offset << "\n";
+      }
+#if !ART_USE_MMTK
+      else {
         card_table = heap_->GetCardTable();
         card_addr = card_table->CardFromAddr(obj);
         LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
                    << offset << "\n card value = " << static_cast<int>(*card_addr);
-      } else {
-        LOG(ERROR) << "Object " << obj << " references dead object " << ref << " at offset "
-                   << offset << "\n";
       }
+#endif  // !ART_USE_MMTK
       if (heap_->IsValidObjectAddress(obj->GetClass())) {
         LOG(ERROR) << "Obj type " << obj->PrettyTypeOf();
       } else {
@@ -3350,6 +3361,7 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
                    << ") is not a valid heap address";
       }
 
+#if !ART_USE_MMTK
       if (gUseWriteBarrier) {
         card_table->CheckAddrIsInCardTable(reinterpret_cast<const uint8_t*>(obj));
         void* cover_begin = card_table->AddrFromCard(card_addr);
@@ -3358,6 +3370,7 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
         LOG(ERROR) << "Card " << reinterpret_cast<void*>(card_addr) << " covers " << cover_begin
             << "-" << cover_end;
       }
+#endif  // !ART_USE_MMTK
       accounting::ContinuousSpaceBitmap* bitmap =
           heap_->GetLiveBitmap()->GetContinuousSpaceBitmap(obj);
 
@@ -3383,6 +3396,7 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
         if (live_stack->Contains(const_cast<mirror::Object*>(ref))) {
           LOG(ERROR) << "Ref " << ref << " found in live stack";
         }
+#if !ART_USE_MMTK
         // Attempt to see if the card table missed the reference.
         if (gUseWriteBarrier) {
           ScanVisitor scan_visitor;
@@ -3390,6 +3404,7 @@ class VerifyReferenceVisitor : public SingleRootVisitor {
           card_table->Scan<false>(bitmap, byte_cover_begin,
                                   byte_cover_begin + accounting::CardTable::kCardSize, scan_visitor);
         }
+#endif  // !ART_USE_MMTK
       }
 
       // Search to see if any of the roots reference our object.
@@ -3505,6 +3520,7 @@ size_t Heap::VerifyHeapReferences(bool verify_referents) {
   // Verify the roots:
   visitor.VerifyRoots();
   if (visitor.GetFailureCount() > 0) {
+#if !ART_USE_MMTK
     // Dump mod-union tables.
     if (gUseWriteBarrier) {
       for (const auto& table_pair : mod_union_tables_) {
@@ -3517,6 +3533,7 @@ size_t Heap::VerifyHeapReferences(bool verify_referents) {
         remembered_set->Dump(LOG_STREAM(ERROR) << remembered_set->GetName() << ": ");
       }
     }
+#endif  // !ART_USE_MMTK
     DumpSpaces(LOG_STREAM(ERROR));
   }
   return visitor.GetFailureCount();
@@ -3605,10 +3622,15 @@ class VerifyLiveStackReferences {
 
   void operator()(mirror::Object* obj) const
       REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_) {
+#if !ART_USE_MMTK
     if (gUseWriteBarrier) {
       VerifyReferenceCardVisitor visitor(heap_, const_cast<bool*>(&failed_));
       obj->VisitReferences(visitor, VoidFunctor());
     }
+#else
+    UNUSED(obj);
+    UNUSED(heap_);
+#endif  // !ART_USE_MMTK
   }
 
   bool Failed() const {
@@ -3744,7 +3766,6 @@ struct IdentityMarkHeapReferenceVisitor : public MarkObjectVisitor {
 };
 
 void Heap::PreGcVerificationPaused(collector::GarbageCollector* gc) {
-  Thread* const self = Thread::Current();
   TimingLogger* const timings = current_gc_iteration_.GetTimings();
   TimingLogger::ScopedTiming t(__FUNCTION__, timings);
   if (verify_pre_gc_heap_) {
@@ -3755,6 +3776,8 @@ void Heap::PreGcVerificationPaused(collector::GarbageCollector* gc) {
           << " failures";
     }
   }
+#if !ART_USE_MMTK
+  Thread* const self = Thread::Current();
   if (gUseWriteBarrier) {
     // Check that all objects which reference things in the live stack are on dirty cards.
     if (verify_missing_card_marks_) {
@@ -3777,6 +3800,7 @@ void Heap::PreGcVerificationPaused(collector::GarbageCollector* gc) {
       }
     }
   }
+#endif  // !ART_USE_MMTK
 }
 
 void Heap::PreGcVerification(collector::GarbageCollector* gc) {

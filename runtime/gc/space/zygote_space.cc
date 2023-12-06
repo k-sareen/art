@@ -122,10 +122,12 @@ void ZygoteSpace::SweepCallback(size_t num_ptrs, mirror::Object** ptrs, void* ar
   DCHECK(context->space->IsZygoteSpace());
   ZygoteSpace* zygote_space = context->space->AsZygoteSpace();
   Locks::heap_bitmap_lock_->AssertExclusiveHeld(context->self);
+#if !ART_USE_MMTK
   accounting::CardTable* card_table = nullptr;
   if (gUseWriteBarrier) {
     card_table = Runtime::Current()->GetHeap()->GetCardTable();
   }
+#endif  // !ART_USE_MMTK
   // If the bitmaps aren't swapped we need to clear the bits since the GC isn't going to re-swap
   // the bitmaps as an optimization.
   if (!context->swap_bitmaps) {
@@ -134,6 +136,7 @@ void ZygoteSpace::SweepCallback(size_t num_ptrs, mirror::Object** ptrs, void* ar
       bitmap->Clear(ptrs[i]);
     }
   }
+#if !ART_USE_MMTK
   // We don't free any actual memory to avoid dirtying the shared zygote pages.
   if (gUseWriteBarrier) {
     for (size_t i = 0; i < num_ptrs; ++i) {
@@ -142,6 +145,7 @@ void ZygoteSpace::SweepCallback(size_t num_ptrs, mirror::Object** ptrs, void* ar
     }
   }
   zygote_space->objects_allocated_.fetch_sub(num_ptrs);
+#endif  // !ART_USE_MMTK
 }
 
 }  // namespace space

@@ -5883,6 +5883,9 @@ void InstructionCodeGeneratorARMVIXL::GenerateWideAtomicStore(vixl32::Register a
 void LocationsBuilderARMVIXL::HandleFieldSet(HInstruction* instruction,
                                              const FieldInfo& field_info,
                                              WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(write_barrier_kind);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations =
@@ -5905,12 +5908,14 @@ void LocationsBuilderARMVIXL::HandleFieldSet(HInstruction* instruction,
   // Temporary registers for the write barrier.
   // TODO: consider renaming StoreNeedsWriteBarrier to StoreNeedsGCMark.
   if (needs_write_barrier) {
+#if !ART_USE_MMTK
     if (write_barrier_kind != WriteBarrierKind::kDontEmit) {
       locations->AddTemp(Location::RequiresRegister());
       locations->AddTemp(Location::RequiresRegister());
     } else if (kPoisonHeapReferences) {
       locations->AddTemp(Location::RequiresRegister());
     }
+#endif  // !ART_USE_MMTK
   } else if (generate_volatile) {
     // ARM encoding have some additional constraints for ldrexd/strexd:
     // - registers need to be consecutive
@@ -5933,6 +5938,9 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
                                                      const FieldInfo& field_info,
                                                      bool value_can_be_null,
                                                      WriteBarrierKind write_barrier_kind) {
+#if ART_USE_MMTK
+  UNUSED(value_can_be_null);
+#endif  // ART_USE_MMTK
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
   LocationSummary* locations = instruction->GetLocations();
@@ -6050,6 +6058,7 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
 
   if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(1)) &&
       write_barrier_kind != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
     vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
     vixl32::Register card = RegisterFrom(locations->GetTemp(1));
     codegen_->MarkGCCard(
@@ -6058,6 +6067,7 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
         base,
         RegisterFrom(value),
         value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+#endif  // !ART_USE_MMTK
   }
 
   if (is_volatile) {
@@ -6858,11 +6868,13 @@ void LocationsBuilderARMVIXL::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RequiresRegister());
   }
   if (needs_write_barrier) {
+#if !ART_USE_MMTK
     // Temporary registers for the write barrier or register poisoning.
     // TODO(solanes): We could reduce the temp usage but it requires some non-trivial refactoring of
     // InstructionCodeGeneratorARMVIXL::VisitArraySet.
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -7014,9 +7026,11 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
       }
 
       if (needs_write_barrier && instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+#if !ART_USE_MMTK
         DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
             << " Already null checked so we shouldn't do it again.";
         codegen_->MarkGCCard(temp1, temp2, array, value, /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
       }
 
       if (can_value_be_null) {

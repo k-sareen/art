@@ -976,8 +976,10 @@ static void GenUnsafePut(HInvoke* invoke,
   }
 
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(base, value, value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -1434,9 +1436,11 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
 
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(base, new_value, new_value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 
   UseScratchRegisterScope temps(masm);
@@ -3419,7 +3423,9 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopy(HInvoke* invoke) {
 
   // We only need one card marking on the destination array.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     codegen_->MarkGCCard(dest.W(), Register(), /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
   }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());

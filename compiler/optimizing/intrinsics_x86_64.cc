@@ -1225,7 +1225,9 @@ void IntrinsicCodeGeneratorX86_64::VisitSystemArrayCopy(HInvoke* invoke) {
 
   // We only need one card marking on the destination array.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     codegen_->MarkGCCard(temp1, temp2, dest, CpuRegister(kNoRegister), /* emit_null_check= */ false);
+#endif  // !ART_USE_MMTK
   }
 
   __ Bind(intrinsic_slow_path->GetExitLabel());
@@ -2151,12 +2153,14 @@ static void GenUnsafePut(LocationSummary* locations, DataType::Type type, bool i
   }
 
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+#if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(locations->GetTemp(0).AsRegister<CpuRegister>(),
                         locations->GetTemp(1).AsRegister<CpuRegister>(),
                         base,
                         value,
                         value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 }
 
@@ -2446,8 +2450,10 @@ static void GenCompareAndSetOrExchangeRef(CodeGeneratorX86_64* codegen,
 
   // Mark card for object assuming new value is stored.
   if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(temp1, temp2, base, value, value_can_be_null);
+#endif  // !ART_USE_MMTK
   }
 
   Address field_addr(base, offset, TIMES_1, 0);
@@ -4287,7 +4293,9 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke,
     }
 
     if (gUseWriteBarrier) {
+#if !ART_USE_MMTK
       codegen->MarkGCCard(temp1, temp2, ref, valreg, /*emit_null_check=*/ false);
+#endif  // !ART_USE_MMTK
     }
 
     DCHECK_EQ(valreg, out.AsRegister<CpuRegister>());

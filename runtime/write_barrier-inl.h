@@ -31,6 +31,7 @@ template <WriteBarrier::NullCheck kNullCheck>
 inline void WriteBarrier::ForFieldWrite(ObjPtr<mirror::Object> dst,
                                         MemberOffset offset ATTRIBUTE_UNUSED,
                                         ObjPtr<mirror::Object> new_value) {
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     if (kNullCheck == kWithNullCheck && new_value == nullptr) {
       return;
@@ -38,28 +39,44 @@ inline void WriteBarrier::ForFieldWrite(ObjPtr<mirror::Object> dst,
     DCHECK(new_value != nullptr);
     GetCardTable()->MarkCard(dst.Ptr());
   }
+#else
+  UNUSED(dst);
+  UNUSED(new_value);
+#endif  // !ART_USE_MMTK
 }
 
 inline void WriteBarrier::ForArrayWrite(ObjPtr<mirror::Object> dst,
                                         int start_offset ATTRIBUTE_UNUSED,
                                         size_t length ATTRIBUTE_UNUSED) {
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     GetCardTable()->MarkCard(dst.Ptr());
   }
+#else
+  UNUSED(dst);
+#endif  // !ART_USE_MMTK
 }
 
 inline void WriteBarrier::ForEveryFieldWrite(ObjPtr<mirror::Object> obj) {
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     GetCardTable()->MarkCard(obj.Ptr());
   }
+#else
+  UNUSED(obj);
+#endif  // !ART_USE_MMTK
 }
 
 inline gc::accounting::CardTable* WriteBarrier::GetCardTable() {
+#if !ART_USE_MMTK
   if (gUseWriteBarrier) {
     return Runtime::Current()->GetHeap()->GetCardTable();
   } else {
     return nullptr;
   }
+#else
+  return nullptr;
+#endif  // !ART_USE_MMTK
 }
 
 }  // namespace art

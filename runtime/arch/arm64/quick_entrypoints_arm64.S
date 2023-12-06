@@ -1018,9 +1018,11 @@ ENTRY art_quick_aput_obj
     POISON_HEAP_REF w2
     str w2, [x3, x1, lsl #2]                           // Heap reference = 32b.
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
 
@@ -1051,9 +1053,11 @@ ENTRY art_quick_aput_obj
     POISON_HEAP_REF w2
     str w2, [x3, x1, lsl #2]                           // Heap reference = 32b.
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
 

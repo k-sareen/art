@@ -728,9 +728,11 @@ ENTRY art_quick_aput_obj
     POISON_HEAP_REF r2
     str r2, [r3, r1, lsl #2]
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     ldr r3, [rSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr r0, r0, #CARD_TABLE_CARD_SHIFT
     strb r3, [r3, r0]
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     blx lr
 
@@ -755,9 +757,11 @@ ENTRY art_quick_aput_obj
     POISON_HEAP_REF r2
     str r2, [r3, r1, lsl #2]
 #ifdef USE_WRITE_BARRIER
+#if !ART_USE_MMTK
     ldr r3, [rSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr r0, r0, #CARD_TABLE_CARD_SHIFT
     strb r3, [r3, r0]
+#endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     blx lr
 
@@ -1972,6 +1976,7 @@ END art_quick_string_builder_append
      */
 .macro READ_BARRIER_MARK_REG name, reg
 ENTRY \name
+#if !ART_USE_MMTK
     // Null check so that we can load the lock word.
     SMART_CBZ \reg, .Lret_rb_\name
     // Check lock word for mark bit, if marked return. Use IP for scratch since it is blocked.
@@ -2059,6 +2064,7 @@ ENTRY \name
     // in the top 2 bits of the lock word.
     lsl \reg, ip, #LOCK_WORD_STATE_FORWARDING_ADDRESS_SHIFT
     bx lr
+#endif  // !ART_USE_MMTK
 END \name
 .endm
 

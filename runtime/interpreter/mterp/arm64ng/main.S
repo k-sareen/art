@@ -1405,6 +1405,7 @@ END \name
 .endm
 
 .macro WRITE_BARRIER_IF_OBJECT is_object, value, holder, label
+#if !ART_USE_MMTK
    .if \is_object
    cbz     \value, \label
    ldr     ip, [xSELF, #THREAD_CARD_TABLE_OFFSET]
@@ -1412,6 +1413,7 @@ END \name
    strb    wip, [ip, ip2]
 \label:
    .endif
+#endif  // !ART_USE_MMTK
 .endm
 
 // Puts the next int/long/object parameter passed in physical register
