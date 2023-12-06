@@ -41,7 +41,11 @@ class MmtkScanObjectVisitor {
       NO_THREAD_SAFETY_ANALYSIS {
     mirror::HeapReference<mirror::Object>* field = obj->GetFieldObjectReferenceAddr<kVerifyNone>(offset);
     void* slot = reinterpret_cast<void*>(field);
-    closure_.invoke(slot);
+    // Don't enqueue null references. We do this here since the object is in the
+    // cache line, so this allows for better locality
+    if (!field->IsNull()) {
+      closure_.invoke(slot);
+    }
   }
 
   void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
