@@ -685,6 +685,11 @@ class AssemblerTest : public AssemblerTestBase {
     return str;
   }
 
+  std::string RepeatV(void (Ass::*f)(VecReg), const std::string& fmt) {
+    return RepeatTemplatedRegister<VecReg>(
+        f, GetVectorRegisters(), &AssemblerTest::GetVecRegName, fmt);
+  }
+
   std::string RepeatVV(void (Ass::*f)(VecReg, VecReg), const std::string& fmt) {
     return RepeatTemplatedRegisters<VecReg, VecReg>(f,
                                                     GetVectorRegisters(),
@@ -705,6 +710,18 @@ class AssemblerTest : public AssemblerTestBase {
                                                             fmt);
   }
 
+  std::string RepeatVVR(void (Ass::*f)(VecReg, VecReg, Reg), const std::string& fmt) {
+    return RepeatTemplatedRegisters<VecReg, VecReg, Reg>(
+        f,
+        GetVectorRegisters(),
+        GetVectorRegisters(),
+        GetRegisters(),
+        &AssemblerTest::GetVecRegName,
+        &AssemblerTest::GetVecRegName,
+        &AssemblerTest::GetRegName<RegisterView::kUsePrimaryName>,
+        fmt);
+  }
+
   std::string RepeatVR(void (Ass::*f)(VecReg, Reg), const std::string& fmt) {
     return RepeatTemplatedRegisters<VecReg, Reg>(
         f,
@@ -712,6 +729,34 @@ class AssemblerTest : public AssemblerTestBase {
         GetRegisters(),
         &AssemblerTest::GetVecRegName,
         &AssemblerTest::GetRegName<RegisterView::kUsePrimaryName>,
+        fmt);
+  }
+
+  std::string RepeatVF(void (Ass::*f)(VecReg, FPReg), const std::string& fmt) {
+    return RepeatTemplatedRegisters<VecReg, FPReg>(f,
+                                                   GetVectorRegisters(),
+                                                   GetFPRegisters(),
+                                                   &AssemblerTest::GetVecRegName,
+                                                   &AssemblerTest::GetFPRegName,
+                                                   fmt);
+  }
+
+  std::string RepeatFV(void (Ass::*f)(FPReg, VecReg), const std::string& fmt) {
+    return RepeatTemplatedRegisters<FPReg, VecReg>(f,
+                                                   GetFPRegisters(),
+                                                   GetVectorRegisters(),
+                                                   &AssemblerTest::GetFPRegName,
+                                                   &AssemblerTest::GetVecRegName,
+                                                   fmt);
+  }
+
+  std::string RepeatRV(void (Ass::*f)(Reg, VecReg), const std::string& fmt) {
+    return RepeatTemplatedRegisters<Reg, VecReg>(
+        f,
+        GetRegisters(),
+        GetVectorRegisters(),
+        &AssemblerTest::GetRegName<RegisterView::kUsePrimaryName>,
+        &AssemblerTest::GetVecRegName,
         fmt);
   }
 
