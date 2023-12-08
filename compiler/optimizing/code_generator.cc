@@ -158,6 +158,25 @@ ReadBarrierOption CodeGenerator::GetCompilerReadBarrierOption() const {
   return EmitReadBarrier() ? kWithReadBarrier : kWithoutReadBarrier;
 }
 
+bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
+                                      HInstruction* value,
+                                      WriteBarrierKind write_barrier_kind) const {
+  const CompilerOptions& options = GetCompilerOptions();
+  const bool result =
+      // Check the GC card in debug mode,
+      options.EmitRunTimeChecksInDebugMode() &&
+      // only for CC GC,
+      options.EmitReadBarrier() &&
+      // and if we eliminated the write barrier in WBE.
+      !StoreNeedsWriteBarrier(type, value, write_barrier_kind) &&
+      CodeGenerator::StoreNeedsWriteBarrier(type, value);
+
+  DCHECK_IMPLIES(result, write_barrier_kind == WriteBarrierKind::kDontEmit);
+  DCHECK_IMPLIES(result, !GetGraph()->IsCompilingBaseline());
+
+  return result;
+}
+
 ScopedArenaAllocator* CodeGenerator::GetScopedAllocator() {
   DCHECK(code_generation_data_ != nullptr);
   return code_generation_data_->GetScopedAllocator();
@@ -1606,6 +1625,17 @@ void CodeGenerator::EmitParallelMoves(Location from1,
   parallel_move.AddMove(from1, to1, type1, nullptr);
   parallel_move.AddMove(from2, to2, type2, nullptr);
   GetMoveResolver()->EmitNativeCode(&parallel_move);
+}
+
+bool CodeGenerator::StoreNeedsWriteBarrier(DataType::Type type,
+                                           HInstruction* value,
+                                           WriteBarrierKind write_barrier_kind) const {
+  // Check that null value is not represented as an integer constant.
+  DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
+  // Branch profiling currently doesn't support running optimizations.
+  return GetGraph()->IsCompilingBaseline()
+            ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
+            : write_barrier_kind != WriteBarrierKind::kDontEmit;
 }
 
 void CodeGenerator::ValidateInvokeRuntime(QuickEntrypointEnum entrypoint,

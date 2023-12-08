@@ -567,9 +567,19 @@ class CodeGeneratorX86 : public CodeGenerator {
                        uint64_t index_in_table) const;
   void EmitJitRootPatches(uint8_t* code, const uint8_t* roots_data) override;
 
-  // Emit a write barrier.
-  void MarkGCCard(
+  // Emit a write barrier if:
+  // A) emit_null_check is false
+  // B) emit_null_check is true, and value is not null.
+  void MaybeMarkGCCard(
       Register temp, Register card, Register object, Register value, bool emit_null_check);
+
+  // Emit a write barrier unconditionally.
+  void MarkGCCard(Register temp, Register card, Register object);
+
+  // Crash if the card table is not valid. This check is only emitted for the CC GC. We assert
+  // `(!clean || !self->is_gc_marking)`, since the card table should not be set to clean when the CC
+  // GC is marking for eliminated write barriers.
+  void CheckGCCardIsValid(Register temp, Register card, Register object);
 
   void GenerateMemoryBarrier(MemBarrierKind kind);
 

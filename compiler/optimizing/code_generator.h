@@ -380,6 +380,11 @@ class CodeGenerator : public DeletableArenaObject<kArenaAllocCodeGenerator> {
   bool EmitNonBakerReadBarrier() const;
   ReadBarrierOption GetCompilerReadBarrierOption() const;
 
+  // Returns true if we should check the GC card for consistency purposes.
+  bool ShouldCheckGCCard(DataType::Type type,
+                         HInstruction* value,
+                         WriteBarrierKind write_barrier_kind) const;
+
   // Get the ScopedArenaAllocator used for codegen memory allocation.
   ScopedArenaAllocator* GetScopedAllocator();
 
@@ -503,6 +508,11 @@ class CodeGenerator : public DeletableArenaObject<kArenaAllocCodeGenerator> {
     return type == DataType::Type::kReference && !value->IsNullConstant();
   }
 
+  // If we are compiling a graph with the WBE pass enabled, we want to honor the WriteBarrierKind
+  // set during the WBE pass.
+  bool StoreNeedsWriteBarrier(DataType::Type type,
+                              HInstruction* value,
+                              WriteBarrierKind write_barrier_kind) const;
 
   // Performs checks pertaining to an InvokeRuntime call.
   void ValidateInvokeRuntime(QuickEntrypointEnum entrypoint,
