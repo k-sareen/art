@@ -523,6 +523,7 @@ class CodeGeneratorX86_64 : public CodeGenerator {
   Label* NewTypeBssEntryPatch(HLoadClass* load_class);
   void RecordBootImageStringPatch(HLoadString* load_string);
   Label* NewStringBssEntryPatch(HLoadString* load_string);
+  Label* NewMethodTypeBssEntryPatch(HLoadMethodType* load_method_type);
   void RecordBootImageJniEntrypointPatch(HInvokeStaticOrDirect* invoke);
   Label* NewJitRootStringPatch(const DexFile& dex_file,
                                dex::StringIndex string_index,
@@ -735,6 +736,8 @@ class CodeGeneratorX86_64 : public CodeGenerator {
   ArenaDeque<PatchInfo<Label>> boot_image_string_patches_;
   // PC-relative String patch info for kBssEntry.
   ArenaDeque<PatchInfo<Label>> string_bss_entry_patches_;
+  // PC-relative MethodType patch info for kBssEntry.
+  ArenaDeque<PatchInfo<Label>> method_type_bss_entry_patches_;
   // PC-relative method patch info for kBootImageLinkTimePcRelative+kCallCriticalNative.
   ArenaDeque<PatchInfo<Label>> boot_image_jni_entrypoint_patches_;
   // PC-relative patch info for IntrinsicObjects for the boot image,
