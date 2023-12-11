@@ -543,12 +543,18 @@ def main() -> None:
   parser.add_argument("--smali", type=Path)
   parser.add_argument("--soong_zip", type=Path)
   parser.add_argument("--zipalign", type=Path)
+  parser.add_argument("--test-dir-regex")
   parser.add_argument("srcs", nargs="+", type=Path)
   args = parser.parse_args()
 
   android_build_top = Path(getcwd()).absolute()
   ziproot = args.out.absolute().parent / "zip"
-  srcdirs = set(s.parents[-4].absolute() for s in args.srcs)
+  test_dir_regex = re.compile(args.test_dir_regex) if args.test_dir_regex else re.compile(".*")
+  srcdirs = set(
+    s.parents[-4].absolute()
+    for s in args.srcs
+    if test_dir_regex.search(str(s))
+  )
 
   # Special hidden-api shard: If the --hiddenapi flag is provided, build only
   # hiddenapi tests. Otherwise exclude all hiddenapi tests from normal shards.

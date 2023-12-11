@@ -54,7 +54,7 @@ def main():
                   "?{shard}-*/**/*",
                   "??{shard}-*/**/*",
               ],
-              cmd: TEST_BUILD_COMMON_ARGS + "--mode {mode} $(locations ?{shard}-*/**/*) $(locations ??{shard}-*/**/*)",
+              cmd: TEST_BUILD_COMMON_ARGS + "--mode {mode} --test-dir-regex 'art/test/..?{shard}-' $(in)",
               defaults: ["art-run-test-{mode}-data-defaults"],
           }}
 
@@ -83,7 +83,7 @@ def main():
             ],
             defaults: ["art-run-test-{mode}-data-defaults"],
             tools: ["hiddenapi"],
-            cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode {mode} $(locations ???-*hiddenapi*/**/*) $(locations ????-*hiddenapi*/**/*)",
+            cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode {mode} --test-dir-regex 'art/test/....?-[^/]*hiddenapi' $(in)",
         }}
 
         // Install in the output directory to make it accessible for tests.

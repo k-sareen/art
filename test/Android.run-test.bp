@@ -17,7 +17,7 @@ java_genrule {
         "?00-*/**/*",
         "??00-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?00-*/**/*) $(locations ??00-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?00-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -37,7 +37,7 @@ java_genrule {
         "?01-*/**/*",
         "??01-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?01-*/**/*) $(locations ??01-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?01-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -57,7 +57,7 @@ java_genrule {
         "?02-*/**/*",
         "??02-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?02-*/**/*) $(locations ??02-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?02-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -77,7 +77,7 @@ java_genrule {
         "?03-*/**/*",
         "??03-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?03-*/**/*) $(locations ??03-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?03-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -97,7 +97,7 @@ java_genrule {
         "?04-*/**/*",
         "??04-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?04-*/**/*) $(locations ??04-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?04-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -117,7 +117,7 @@ java_genrule {
         "?05-*/**/*",
         "??05-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?05-*/**/*) $(locations ??05-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?05-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -137,7 +137,7 @@ java_genrule {
         "?06-*/**/*",
         "??06-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?06-*/**/*) $(locations ??06-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?06-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -157,7 +157,7 @@ java_genrule {
         "?07-*/**/*",
         "??07-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?07-*/**/*) $(locations ??07-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?07-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -177,7 +177,7 @@ java_genrule {
         "?08-*/**/*",
         "??08-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?08-*/**/*) $(locations ??08-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?08-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -197,7 +197,7 @@ java_genrule {
         "?09-*/**/*",
         "??09-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?09-*/**/*) $(locations ??09-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?09-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -217,7 +217,7 @@ java_genrule {
         "?10-*/**/*",
         "??10-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?10-*/**/*) $(locations ??10-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?10-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -237,7 +237,7 @@ java_genrule {
         "?11-*/**/*",
         "??11-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?11-*/**/*) $(locations ??11-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?11-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -257,7 +257,7 @@ java_genrule {
         "?12-*/**/*",
         "??12-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?12-*/**/*) $(locations ??12-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?12-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -277,7 +277,7 @@ java_genrule {
         "?13-*/**/*",
         "??13-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?13-*/**/*) $(locations ??13-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?13-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -297,7 +297,7 @@ java_genrule {
         "?14-*/**/*",
         "??14-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?14-*/**/*) $(locations ??14-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?14-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -317,7 +317,7 @@ java_genrule {
         "?15-*/**/*",
         "??15-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?15-*/**/*) $(locations ??15-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?15-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -337,7 +337,7 @@ java_genrule {
         "?16-*/**/*",
         "??16-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?16-*/**/*) $(locations ??16-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?16-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -357,7 +357,7 @@ java_genrule {
         "?17-*/**/*",
         "??17-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?17-*/**/*) $(locations ??17-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?17-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -377,7 +377,7 @@ java_genrule {
         "?18-*/**/*",
         "??18-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?18-*/**/*) $(locations ??18-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?18-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -397,7 +397,7 @@ java_genrule {
         "?19-*/**/*",
         "??19-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?19-*/**/*) $(locations ??19-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?19-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -417,7 +417,7 @@ java_genrule {
         "?20-*/**/*",
         "??20-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?20-*/**/*) $(locations ??20-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?20-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -437,7 +437,7 @@ java_genrule {
         "?21-*/**/*",
         "??21-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?21-*/**/*) $(locations ??21-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?21-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -457,7 +457,7 @@ java_genrule {
         "?22-*/**/*",
         "??22-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?22-*/**/*) $(locations ??22-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?22-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -477,7 +477,7 @@ java_genrule {
         "?23-*/**/*",
         "??23-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?23-*/**/*) $(locations ??23-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?23-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -497,7 +497,7 @@ java_genrule {
         "?24-*/**/*",
         "??24-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?24-*/**/*) $(locations ??24-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?24-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -517,7 +517,7 @@ java_genrule {
         "?25-*/**/*",
         "??25-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?25-*/**/*) $(locations ??25-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?25-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -537,7 +537,7 @@ java_genrule {
         "?26-*/**/*",
         "??26-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?26-*/**/*) $(locations ??26-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?26-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -557,7 +557,7 @@ java_genrule {
         "?27-*/**/*",
         "??27-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?27-*/**/*) $(locations ??27-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?27-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -577,7 +577,7 @@ java_genrule {
         "?28-*/**/*",
         "??28-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?28-*/**/*) $(locations ??28-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?28-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -597,7 +597,7 @@ java_genrule {
         "?29-*/**/*",
         "??29-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?29-*/**/*) $(locations ??29-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?29-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -617,7 +617,7 @@ java_genrule {
         "?30-*/**/*",
         "??30-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?30-*/**/*) $(locations ??30-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?30-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -637,7 +637,7 @@ java_genrule {
         "?31-*/**/*",
         "??31-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?31-*/**/*) $(locations ??31-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?31-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -657,7 +657,7 @@ java_genrule {
         "?32-*/**/*",
         "??32-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?32-*/**/*) $(locations ??32-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?32-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -677,7 +677,7 @@ java_genrule {
         "?33-*/**/*",
         "??33-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?33-*/**/*) $(locations ??33-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?33-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -697,7 +697,7 @@ java_genrule {
         "?34-*/**/*",
         "??34-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?34-*/**/*) $(locations ??34-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?34-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -717,7 +717,7 @@ java_genrule {
         "?35-*/**/*",
         "??35-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?35-*/**/*) $(locations ??35-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?35-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -737,7 +737,7 @@ java_genrule {
         "?36-*/**/*",
         "??36-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?36-*/**/*) $(locations ??36-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?36-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -757,7 +757,7 @@ java_genrule {
         "?37-*/**/*",
         "??37-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?37-*/**/*) $(locations ??37-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?37-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -777,7 +777,7 @@ java_genrule {
         "?38-*/**/*",
         "??38-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?38-*/**/*) $(locations ??38-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?38-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -797,7 +797,7 @@ java_genrule {
         "?39-*/**/*",
         "??39-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?39-*/**/*) $(locations ??39-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?39-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -817,7 +817,7 @@ java_genrule {
         "?40-*/**/*",
         "??40-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?40-*/**/*) $(locations ??40-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?40-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -837,7 +837,7 @@ java_genrule {
         "?41-*/**/*",
         "??41-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?41-*/**/*) $(locations ??41-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?41-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -857,7 +857,7 @@ java_genrule {
         "?42-*/**/*",
         "??42-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?42-*/**/*) $(locations ??42-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?42-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -877,7 +877,7 @@ java_genrule {
         "?43-*/**/*",
         "??43-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?43-*/**/*) $(locations ??43-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?43-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -897,7 +897,7 @@ java_genrule {
         "?44-*/**/*",
         "??44-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?44-*/**/*) $(locations ??44-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?44-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -917,7 +917,7 @@ java_genrule {
         "?45-*/**/*",
         "??45-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?45-*/**/*) $(locations ??45-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?45-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -937,7 +937,7 @@ java_genrule {
         "?46-*/**/*",
         "??46-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?46-*/**/*) $(locations ??46-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?46-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -957,7 +957,7 @@ java_genrule {
         "?47-*/**/*",
         "??47-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?47-*/**/*) $(locations ??47-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?47-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -977,7 +977,7 @@ java_genrule {
         "?48-*/**/*",
         "??48-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?48-*/**/*) $(locations ??48-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?48-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -997,7 +997,7 @@ java_genrule {
         "?49-*/**/*",
         "??49-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?49-*/**/*) $(locations ??49-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?49-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1017,7 +1017,7 @@ java_genrule {
         "?50-*/**/*",
         "??50-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?50-*/**/*) $(locations ??50-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?50-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1037,7 +1037,7 @@ java_genrule {
         "?51-*/**/*",
         "??51-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?51-*/**/*) $(locations ??51-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?51-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1057,7 +1057,7 @@ java_genrule {
         "?52-*/**/*",
         "??52-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?52-*/**/*) $(locations ??52-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?52-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1077,7 +1077,7 @@ java_genrule {
         "?53-*/**/*",
         "??53-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?53-*/**/*) $(locations ??53-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?53-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1097,7 +1097,7 @@ java_genrule {
         "?54-*/**/*",
         "??54-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?54-*/**/*) $(locations ??54-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?54-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1117,7 +1117,7 @@ java_genrule {
         "?55-*/**/*",
         "??55-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?55-*/**/*) $(locations ??55-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?55-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1137,7 +1137,7 @@ java_genrule {
         "?56-*/**/*",
         "??56-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?56-*/**/*) $(locations ??56-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?56-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1157,7 +1157,7 @@ java_genrule {
         "?57-*/**/*",
         "??57-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?57-*/**/*) $(locations ??57-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?57-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1177,7 +1177,7 @@ java_genrule {
         "?58-*/**/*",
         "??58-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?58-*/**/*) $(locations ??58-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?58-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1197,7 +1197,7 @@ java_genrule {
         "?59-*/**/*",
         "??59-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?59-*/**/*) $(locations ??59-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?59-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1217,7 +1217,7 @@ java_genrule {
         "?60-*/**/*",
         "??60-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?60-*/**/*) $(locations ??60-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?60-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1237,7 +1237,7 @@ java_genrule {
         "?61-*/**/*",
         "??61-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?61-*/**/*) $(locations ??61-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?61-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1257,7 +1257,7 @@ java_genrule {
         "?62-*/**/*",
         "??62-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?62-*/**/*) $(locations ??62-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?62-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1277,7 +1277,7 @@ java_genrule {
         "?63-*/**/*",
         "??63-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?63-*/**/*) $(locations ??63-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?63-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1297,7 +1297,7 @@ java_genrule {
         "?64-*/**/*",
         "??64-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?64-*/**/*) $(locations ??64-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?64-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1317,7 +1317,7 @@ java_genrule {
         "?65-*/**/*",
         "??65-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?65-*/**/*) $(locations ??65-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?65-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1337,7 +1337,7 @@ java_genrule {
         "?66-*/**/*",
         "??66-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?66-*/**/*) $(locations ??66-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?66-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1357,7 +1357,7 @@ java_genrule {
         "?67-*/**/*",
         "??67-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?67-*/**/*) $(locations ??67-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?67-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1377,7 +1377,7 @@ java_genrule {
         "?68-*/**/*",
         "??68-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?68-*/**/*) $(locations ??68-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?68-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1397,7 +1397,7 @@ java_genrule {
         "?69-*/**/*",
         "??69-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?69-*/**/*) $(locations ??69-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?69-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1417,7 +1417,7 @@ java_genrule {
         "?70-*/**/*",
         "??70-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?70-*/**/*) $(locations ??70-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?70-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1437,7 +1437,7 @@ java_genrule {
         "?71-*/**/*",
         "??71-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?71-*/**/*) $(locations ??71-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?71-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1457,7 +1457,7 @@ java_genrule {
         "?72-*/**/*",
         "??72-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?72-*/**/*) $(locations ??72-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?72-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1477,7 +1477,7 @@ java_genrule {
         "?73-*/**/*",
         "??73-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?73-*/**/*) $(locations ??73-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?73-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1497,7 +1497,7 @@ java_genrule {
         "?74-*/**/*",
         "??74-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?74-*/**/*) $(locations ??74-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?74-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1517,7 +1517,7 @@ java_genrule {
         "?75-*/**/*",
         "??75-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?75-*/**/*) $(locations ??75-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?75-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1537,7 +1537,7 @@ java_genrule {
         "?76-*/**/*",
         "??76-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?76-*/**/*) $(locations ??76-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?76-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1557,7 +1557,7 @@ java_genrule {
         "?77-*/**/*",
         "??77-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?77-*/**/*) $(locations ??77-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?77-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1577,7 +1577,7 @@ java_genrule {
         "?78-*/**/*",
         "??78-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?78-*/**/*) $(locations ??78-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?78-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1597,7 +1597,7 @@ java_genrule {
         "?79-*/**/*",
         "??79-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?79-*/**/*) $(locations ??79-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?79-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1617,7 +1617,7 @@ java_genrule {
         "?80-*/**/*",
         "??80-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?80-*/**/*) $(locations ??80-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?80-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1637,7 +1637,7 @@ java_genrule {
         "?81-*/**/*",
         "??81-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?81-*/**/*) $(locations ??81-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?81-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1657,7 +1657,7 @@ java_genrule {
         "?82-*/**/*",
         "??82-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?82-*/**/*) $(locations ??82-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?82-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1677,7 +1677,7 @@ java_genrule {
         "?83-*/**/*",
         "??83-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?83-*/**/*) $(locations ??83-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?83-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1697,7 +1697,7 @@ java_genrule {
         "?84-*/**/*",
         "??84-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?84-*/**/*) $(locations ??84-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?84-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1717,7 +1717,7 @@ java_genrule {
         "?85-*/**/*",
         "??85-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?85-*/**/*) $(locations ??85-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?85-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1737,7 +1737,7 @@ java_genrule {
         "?86-*/**/*",
         "??86-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?86-*/**/*) $(locations ??86-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?86-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1757,7 +1757,7 @@ java_genrule {
         "?87-*/**/*",
         "??87-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?87-*/**/*) $(locations ??87-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?87-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1777,7 +1777,7 @@ java_genrule {
         "?88-*/**/*",
         "??88-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?88-*/**/*) $(locations ??88-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?88-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1797,7 +1797,7 @@ java_genrule {
         "?89-*/**/*",
         "??89-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?89-*/**/*) $(locations ??89-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?89-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1817,7 +1817,7 @@ java_genrule {
         "?90-*/**/*",
         "??90-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?90-*/**/*) $(locations ??90-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?90-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1837,7 +1837,7 @@ java_genrule {
         "?91-*/**/*",
         "??91-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?91-*/**/*) $(locations ??91-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?91-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1857,7 +1857,7 @@ java_genrule {
         "?92-*/**/*",
         "??92-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?92-*/**/*) $(locations ??92-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?92-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1877,7 +1877,7 @@ java_genrule {
         "?93-*/**/*",
         "??93-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?93-*/**/*) $(locations ??93-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?93-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1897,7 +1897,7 @@ java_genrule {
         "?94-*/**/*",
         "??94-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?94-*/**/*) $(locations ??94-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?94-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1917,7 +1917,7 @@ java_genrule {
         "?95-*/**/*",
         "??95-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?95-*/**/*) $(locations ??95-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?95-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1937,7 +1937,7 @@ java_genrule {
         "?96-*/**/*",
         "??96-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?96-*/**/*) $(locations ??96-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?96-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1957,7 +1957,7 @@ java_genrule {
         "?97-*/**/*",
         "??97-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?97-*/**/*) $(locations ??97-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?97-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1977,7 +1977,7 @@ java_genrule {
         "?98-*/**/*",
         "??98-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?98-*/**/*) $(locations ??98-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?98-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -1997,7 +1997,7 @@ java_genrule {
         "?99-*/**/*",
         "??99-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode host $(locations ?99-*/**/*) $(locations ??99-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode host --test-dir-regex 'art/test/..?99-' $(in)",
     defaults: ["art-run-test-host-data-defaults"],
 }
 
@@ -2019,7 +2019,7 @@ java_genrule {
     ],
     defaults: ["art-run-test-host-data-defaults"],
     tools: ["hiddenapi"],
-    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode host $(locations ???-*hiddenapi*/**/*) $(locations ????-*hiddenapi*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode host --test-dir-regex 'art/test/....?-[^/]*hiddenapi' $(in)",
 }
 
 // Install in the output directory to make it accessible for tests.
@@ -2526,7 +2526,7 @@ java_genrule {
         "?00-*/**/*",
         "??00-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?00-*/**/*) $(locations ??00-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?00-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2546,7 +2546,7 @@ java_genrule {
         "?01-*/**/*",
         "??01-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?01-*/**/*) $(locations ??01-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?01-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2566,7 +2566,7 @@ java_genrule {
         "?02-*/**/*",
         "??02-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?02-*/**/*) $(locations ??02-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?02-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2586,7 +2586,7 @@ java_genrule {
         "?03-*/**/*",
         "??03-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?03-*/**/*) $(locations ??03-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?03-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2606,7 +2606,7 @@ java_genrule {
         "?04-*/**/*",
         "??04-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?04-*/**/*) $(locations ??04-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?04-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2626,7 +2626,7 @@ java_genrule {
         "?05-*/**/*",
         "??05-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?05-*/**/*) $(locations ??05-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?05-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2646,7 +2646,7 @@ java_genrule {
         "?06-*/**/*",
         "??06-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?06-*/**/*) $(locations ??06-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?06-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2666,7 +2666,7 @@ java_genrule {
         "?07-*/**/*",
         "??07-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?07-*/**/*) $(locations ??07-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?07-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2686,7 +2686,7 @@ java_genrule {
         "?08-*/**/*",
         "??08-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?08-*/**/*) $(locations ??08-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?08-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2706,7 +2706,7 @@ java_genrule {
         "?09-*/**/*",
         "??09-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?09-*/**/*) $(locations ??09-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?09-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2726,7 +2726,7 @@ java_genrule {
         "?10-*/**/*",
         "??10-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?10-*/**/*) $(locations ??10-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?10-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2746,7 +2746,7 @@ java_genrule {
         "?11-*/**/*",
         "??11-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?11-*/**/*) $(locations ??11-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?11-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2766,7 +2766,7 @@ java_genrule {
         "?12-*/**/*",
         "??12-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?12-*/**/*) $(locations ??12-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?12-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2786,7 +2786,7 @@ java_genrule {
         "?13-*/**/*",
         "??13-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?13-*/**/*) $(locations ??13-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?13-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2806,7 +2806,7 @@ java_genrule {
         "?14-*/**/*",
         "??14-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?14-*/**/*) $(locations ??14-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?14-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2826,7 +2826,7 @@ java_genrule {
         "?15-*/**/*",
         "??15-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?15-*/**/*) $(locations ??15-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?15-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2846,7 +2846,7 @@ java_genrule {
         "?16-*/**/*",
         "??16-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?16-*/**/*) $(locations ??16-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?16-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2866,7 +2866,7 @@ java_genrule {
         "?17-*/**/*",
         "??17-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?17-*/**/*) $(locations ??17-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?17-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2886,7 +2886,7 @@ java_genrule {
         "?18-*/**/*",
         "??18-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?18-*/**/*) $(locations ??18-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?18-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2906,7 +2906,7 @@ java_genrule {
         "?19-*/**/*",
         "??19-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?19-*/**/*) $(locations ??19-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?19-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2926,7 +2926,7 @@ java_genrule {
         "?20-*/**/*",
         "??20-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?20-*/**/*) $(locations ??20-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?20-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2946,7 +2946,7 @@ java_genrule {
         "?21-*/**/*",
         "??21-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?21-*/**/*) $(locations ??21-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?21-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2966,7 +2966,7 @@ java_genrule {
         "?22-*/**/*",
         "??22-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?22-*/**/*) $(locations ??22-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?22-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -2986,7 +2986,7 @@ java_genrule {
         "?23-*/**/*",
         "??23-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?23-*/**/*) $(locations ??23-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?23-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3006,7 +3006,7 @@ java_genrule {
         "?24-*/**/*",
         "??24-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?24-*/**/*) $(locations ??24-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?24-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3026,7 +3026,7 @@ java_genrule {
         "?25-*/**/*",
         "??25-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?25-*/**/*) $(locations ??25-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?25-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3046,7 +3046,7 @@ java_genrule {
         "?26-*/**/*",
         "??26-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?26-*/**/*) $(locations ??26-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?26-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3066,7 +3066,7 @@ java_genrule {
         "?27-*/**/*",
         "??27-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?27-*/**/*) $(locations ??27-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?27-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3086,7 +3086,7 @@ java_genrule {
         "?28-*/**/*",
         "??28-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?28-*/**/*) $(locations ??28-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?28-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3106,7 +3106,7 @@ java_genrule {
         "?29-*/**/*",
         "??29-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?29-*/**/*) $(locations ??29-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?29-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3126,7 +3126,7 @@ java_genrule {
         "?30-*/**/*",
         "??30-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?30-*/**/*) $(locations ??30-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?30-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3146,7 +3146,7 @@ java_genrule {
         "?31-*/**/*",
         "??31-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?31-*/**/*) $(locations ??31-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?31-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3166,7 +3166,7 @@ java_genrule {
         "?32-*/**/*",
         "??32-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?32-*/**/*) $(locations ??32-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?32-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3186,7 +3186,7 @@ java_genrule {
         "?33-*/**/*",
         "??33-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?33-*/**/*) $(locations ??33-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?33-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3206,7 +3206,7 @@ java_genrule {
         "?34-*/**/*",
         "??34-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?34-*/**/*) $(locations ??34-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?34-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3226,7 +3226,7 @@ java_genrule {
         "?35-*/**/*",
         "??35-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?35-*/**/*) $(locations ??35-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?35-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3246,7 +3246,7 @@ java_genrule {
         "?36-*/**/*",
         "??36-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?36-*/**/*) $(locations ??36-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?36-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3266,7 +3266,7 @@ java_genrule {
         "?37-*/**/*",
         "??37-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?37-*/**/*) $(locations ??37-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?37-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3286,7 +3286,7 @@ java_genrule {
         "?38-*/**/*",
         "??38-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?38-*/**/*) $(locations ??38-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?38-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3306,7 +3306,7 @@ java_genrule {
         "?39-*/**/*",
         "??39-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?39-*/**/*) $(locations ??39-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?39-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3326,7 +3326,7 @@ java_genrule {
         "?40-*/**/*",
         "??40-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?40-*/**/*) $(locations ??40-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?40-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3346,7 +3346,7 @@ java_genrule {
         "?41-*/**/*",
         "??41-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?41-*/**/*) $(locations ??41-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?41-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3366,7 +3366,7 @@ java_genrule {
         "?42-*/**/*",
         "??42-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?42-*/**/*) $(locations ??42-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?42-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3386,7 +3386,7 @@ java_genrule {
         "?43-*/**/*",
         "??43-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?43-*/**/*) $(locations ??43-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?43-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3406,7 +3406,7 @@ java_genrule {
         "?44-*/**/*",
         "??44-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?44-*/**/*) $(locations ??44-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?44-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3426,7 +3426,7 @@ java_genrule {
         "?45-*/**/*",
         "??45-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?45-*/**/*) $(locations ??45-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?45-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3446,7 +3446,7 @@ java_genrule {
         "?46-*/**/*",
         "??46-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?46-*/**/*) $(locations ??46-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?46-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3466,7 +3466,7 @@ java_genrule {
         "?47-*/**/*",
         "??47-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?47-*/**/*) $(locations ??47-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?47-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3486,7 +3486,7 @@ java_genrule {
         "?48-*/**/*",
         "??48-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?48-*/**/*) $(locations ??48-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?48-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3506,7 +3506,7 @@ java_genrule {
         "?49-*/**/*",
         "??49-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?49-*/**/*) $(locations ??49-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?49-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3526,7 +3526,7 @@ java_genrule {
         "?50-*/**/*",
         "??50-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?50-*/**/*) $(locations ??50-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?50-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3546,7 +3546,7 @@ java_genrule {
         "?51-*/**/*",
         "??51-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?51-*/**/*) $(locations ??51-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?51-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3566,7 +3566,7 @@ java_genrule {
         "?52-*/**/*",
         "??52-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?52-*/**/*) $(locations ??52-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?52-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3586,7 +3586,7 @@ java_genrule {
         "?53-*/**/*",
         "??53-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?53-*/**/*) $(locations ??53-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?53-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3606,7 +3606,7 @@ java_genrule {
         "?54-*/**/*",
         "??54-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?54-*/**/*) $(locations ??54-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?54-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3626,7 +3626,7 @@ java_genrule {
         "?55-*/**/*",
         "??55-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?55-*/**/*) $(locations ??55-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?55-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3646,7 +3646,7 @@ java_genrule {
         "?56-*/**/*",
         "??56-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?56-*/**/*) $(locations ??56-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?56-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3666,7 +3666,7 @@ java_genrule {
         "?57-*/**/*",
         "??57-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?57-*/**/*) $(locations ??57-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?57-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3686,7 +3686,7 @@ java_genrule {
         "?58-*/**/*",
         "??58-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?58-*/**/*) $(locations ??58-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?58-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3706,7 +3706,7 @@ java_genrule {
         "?59-*/**/*",
         "??59-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?59-*/**/*) $(locations ??59-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?59-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3726,7 +3726,7 @@ java_genrule {
         "?60-*/**/*",
         "??60-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?60-*/**/*) $(locations ??60-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?60-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3746,7 +3746,7 @@ java_genrule {
         "?61-*/**/*",
         "??61-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?61-*/**/*) $(locations ??61-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?61-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3766,7 +3766,7 @@ java_genrule {
         "?62-*/**/*",
         "??62-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?62-*/**/*) $(locations ??62-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?62-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3786,7 +3786,7 @@ java_genrule {
         "?63-*/**/*",
         "??63-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?63-*/**/*) $(locations ??63-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?63-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3806,7 +3806,7 @@ java_genrule {
         "?64-*/**/*",
         "??64-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?64-*/**/*) $(locations ??64-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?64-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3826,7 +3826,7 @@ java_genrule {
         "?65-*/**/*",
         "??65-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?65-*/**/*) $(locations ??65-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?65-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3846,7 +3846,7 @@ java_genrule {
         "?66-*/**/*",
         "??66-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?66-*/**/*) $(locations ??66-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?66-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3866,7 +3866,7 @@ java_genrule {
         "?67-*/**/*",
         "??67-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?67-*/**/*) $(locations ??67-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?67-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3886,7 +3886,7 @@ java_genrule {
         "?68-*/**/*",
         "??68-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?68-*/**/*) $(locations ??68-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?68-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3906,7 +3906,7 @@ java_genrule {
         "?69-*/**/*",
         "??69-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?69-*/**/*) $(locations ??69-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?69-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3926,7 +3926,7 @@ java_genrule {
         "?70-*/**/*",
         "??70-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?70-*/**/*) $(locations ??70-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?70-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3946,7 +3946,7 @@ java_genrule {
         "?71-*/**/*",
         "??71-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?71-*/**/*) $(locations ??71-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?71-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3966,7 +3966,7 @@ java_genrule {
         "?72-*/**/*",
         "??72-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?72-*/**/*) $(locations ??72-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?72-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -3986,7 +3986,7 @@ java_genrule {
         "?73-*/**/*",
         "??73-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?73-*/**/*) $(locations ??73-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?73-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4006,7 +4006,7 @@ java_genrule {
         "?74-*/**/*",
         "??74-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?74-*/**/*) $(locations ??74-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?74-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4026,7 +4026,7 @@ java_genrule {
         "?75-*/**/*",
         "??75-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?75-*/**/*) $(locations ??75-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?75-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4046,7 +4046,7 @@ java_genrule {
         "?76-*/**/*",
         "??76-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?76-*/**/*) $(locations ??76-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?76-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4066,7 +4066,7 @@ java_genrule {
         "?77-*/**/*",
         "??77-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?77-*/**/*) $(locations ??77-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?77-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4086,7 +4086,7 @@ java_genrule {
         "?78-*/**/*",
         "??78-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?78-*/**/*) $(locations ??78-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?78-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4106,7 +4106,7 @@ java_genrule {
         "?79-*/**/*",
         "??79-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?79-*/**/*) $(locations ??79-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?79-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4126,7 +4126,7 @@ java_genrule {
         "?80-*/**/*",
         "??80-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?80-*/**/*) $(locations ??80-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?80-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4146,7 +4146,7 @@ java_genrule {
         "?81-*/**/*",
         "??81-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?81-*/**/*) $(locations ??81-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?81-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4166,7 +4166,7 @@ java_genrule {
         "?82-*/**/*",
         "??82-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?82-*/**/*) $(locations ??82-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?82-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4186,7 +4186,7 @@ java_genrule {
         "?83-*/**/*",
         "??83-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?83-*/**/*) $(locations ??83-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?83-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4206,7 +4206,7 @@ java_genrule {
         "?84-*/**/*",
         "??84-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?84-*/**/*) $(locations ??84-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?84-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4226,7 +4226,7 @@ java_genrule {
         "?85-*/**/*",
         "??85-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?85-*/**/*) $(locations ??85-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?85-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4246,7 +4246,7 @@ java_genrule {
         "?86-*/**/*",
         "??86-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?86-*/**/*) $(locations ??86-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?86-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4266,7 +4266,7 @@ java_genrule {
         "?87-*/**/*",
         "??87-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?87-*/**/*) $(locations ??87-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?87-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4286,7 +4286,7 @@ java_genrule {
         "?88-*/**/*",
         "??88-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?88-*/**/*) $(locations ??88-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?88-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4306,7 +4306,7 @@ java_genrule {
         "?89-*/**/*",
         "??89-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?89-*/**/*) $(locations ??89-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?89-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4326,7 +4326,7 @@ java_genrule {
         "?90-*/**/*",
         "??90-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?90-*/**/*) $(locations ??90-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?90-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4346,7 +4346,7 @@ java_genrule {
         "?91-*/**/*",
         "??91-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?91-*/**/*) $(locations ??91-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?91-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4366,7 +4366,7 @@ java_genrule {
         "?92-*/**/*",
         "??92-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?92-*/**/*) $(locations ??92-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?92-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4386,7 +4386,7 @@ java_genrule {
         "?93-*/**/*",
         "??93-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?93-*/**/*) $(locations ??93-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?93-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4406,7 +4406,7 @@ java_genrule {
         "?94-*/**/*",
         "??94-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?94-*/**/*) $(locations ??94-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?94-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4426,7 +4426,7 @@ java_genrule {
         "?95-*/**/*",
         "??95-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?95-*/**/*) $(locations ??95-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?95-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4446,7 +4446,7 @@ java_genrule {
         "?96-*/**/*",
         "??96-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?96-*/**/*) $(locations ??96-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?96-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4466,7 +4466,7 @@ java_genrule {
         "?97-*/**/*",
         "??97-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?97-*/**/*) $(locations ??97-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?97-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4486,7 +4486,7 @@ java_genrule {
         "?98-*/**/*",
         "??98-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?98-*/**/*) $(locations ??98-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?98-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4506,7 +4506,7 @@ java_genrule {
         "?99-*/**/*",
         "??99-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode target $(locations ?99-*/**/*) $(locations ??99-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode target --test-dir-regex 'art/test/..?99-' $(in)",
     defaults: ["art-run-test-target-data-defaults"],
 }
 
@@ -4528,7 +4528,7 @@ java_genrule {
     ],
     defaults: ["art-run-test-target-data-defaults"],
     tools: ["hiddenapi"],
-    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode target $(locations ???-*hiddenapi*/**/*) $(locations ????-*hiddenapi*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode target --test-dir-regex 'art/test/....?-[^/]*hiddenapi' $(in)",
 }
 
 // Install in the output directory to make it accessible for tests.
@@ -5035,7 +5035,7 @@ java_genrule {
         "?00-*/**/*",
         "??00-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?00-*/**/*) $(locations ??00-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?00-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5055,7 +5055,7 @@ java_genrule {
         "?01-*/**/*",
         "??01-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?01-*/**/*) $(locations ??01-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?01-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5075,7 +5075,7 @@ java_genrule {
         "?02-*/**/*",
         "??02-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?02-*/**/*) $(locations ??02-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?02-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5095,7 +5095,7 @@ java_genrule {
         "?03-*/**/*",
         "??03-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?03-*/**/*) $(locations ??03-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?03-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5115,7 +5115,7 @@ java_genrule {
         "?04-*/**/*",
         "??04-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?04-*/**/*) $(locations ??04-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?04-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5135,7 +5135,7 @@ java_genrule {
         "?05-*/**/*",
         "??05-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?05-*/**/*) $(locations ??05-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?05-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5155,7 +5155,7 @@ java_genrule {
         "?06-*/**/*",
         "??06-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?06-*/**/*) $(locations ??06-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?06-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5175,7 +5175,7 @@ java_genrule {
         "?07-*/**/*",
         "??07-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?07-*/**/*) $(locations ??07-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?07-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5195,7 +5195,7 @@ java_genrule {
         "?08-*/**/*",
         "??08-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?08-*/**/*) $(locations ??08-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?08-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5215,7 +5215,7 @@ java_genrule {
         "?09-*/**/*",
         "??09-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?09-*/**/*) $(locations ??09-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?09-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5235,7 +5235,7 @@ java_genrule {
         "?10-*/**/*",
         "??10-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?10-*/**/*) $(locations ??10-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?10-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5255,7 +5255,7 @@ java_genrule {
         "?11-*/**/*",
         "??11-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?11-*/**/*) $(locations ??11-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?11-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5275,7 +5275,7 @@ java_genrule {
         "?12-*/**/*",
         "??12-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?12-*/**/*) $(locations ??12-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?12-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5295,7 +5295,7 @@ java_genrule {
         "?13-*/**/*",
         "??13-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?13-*/**/*) $(locations ??13-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?13-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5315,7 +5315,7 @@ java_genrule {
         "?14-*/**/*",
         "??14-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?14-*/**/*) $(locations ??14-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?14-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5335,7 +5335,7 @@ java_genrule {
         "?15-*/**/*",
         "??15-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?15-*/**/*) $(locations ??15-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?15-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5355,7 +5355,7 @@ java_genrule {
         "?16-*/**/*",
         "??16-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?16-*/**/*) $(locations ??16-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?16-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5375,7 +5375,7 @@ java_genrule {
         "?17-*/**/*",
         "??17-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?17-*/**/*) $(locations ??17-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?17-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5395,7 +5395,7 @@ java_genrule {
         "?18-*/**/*",
         "??18-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?18-*/**/*) $(locations ??18-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?18-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5415,7 +5415,7 @@ java_genrule {
         "?19-*/**/*",
         "??19-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?19-*/**/*) $(locations ??19-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?19-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5435,7 +5435,7 @@ java_genrule {
         "?20-*/**/*",
         "??20-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?20-*/**/*) $(locations ??20-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?20-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5455,7 +5455,7 @@ java_genrule {
         "?21-*/**/*",
         "??21-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?21-*/**/*) $(locations ??21-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?21-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5475,7 +5475,7 @@ java_genrule {
         "?22-*/**/*",
         "??22-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?22-*/**/*) $(locations ??22-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?22-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5495,7 +5495,7 @@ java_genrule {
         "?23-*/**/*",
         "??23-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?23-*/**/*) $(locations ??23-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?23-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5515,7 +5515,7 @@ java_genrule {
         "?24-*/**/*",
         "??24-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?24-*/**/*) $(locations ??24-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?24-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5535,7 +5535,7 @@ java_genrule {
         "?25-*/**/*",
         "??25-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?25-*/**/*) $(locations ??25-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?25-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5555,7 +5555,7 @@ java_genrule {
         "?26-*/**/*",
         "??26-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?26-*/**/*) $(locations ??26-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?26-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5575,7 +5575,7 @@ java_genrule {
         "?27-*/**/*",
         "??27-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?27-*/**/*) $(locations ??27-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?27-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5595,7 +5595,7 @@ java_genrule {
         "?28-*/**/*",
         "??28-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?28-*/**/*) $(locations ??28-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?28-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5615,7 +5615,7 @@ java_genrule {
         "?29-*/**/*",
         "??29-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?29-*/**/*) $(locations ??29-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?29-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5635,7 +5635,7 @@ java_genrule {
         "?30-*/**/*",
         "??30-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?30-*/**/*) $(locations ??30-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?30-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5655,7 +5655,7 @@ java_genrule {
         "?31-*/**/*",
         "??31-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?31-*/**/*) $(locations ??31-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?31-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5675,7 +5675,7 @@ java_genrule {
         "?32-*/**/*",
         "??32-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?32-*/**/*) $(locations ??32-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?32-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5695,7 +5695,7 @@ java_genrule {
         "?33-*/**/*",
         "??33-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?33-*/**/*) $(locations ??33-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?33-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5715,7 +5715,7 @@ java_genrule {
         "?34-*/**/*",
         "??34-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?34-*/**/*) $(locations ??34-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?34-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5735,7 +5735,7 @@ java_genrule {
         "?35-*/**/*",
         "??35-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?35-*/**/*) $(locations ??35-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?35-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5755,7 +5755,7 @@ java_genrule {
         "?36-*/**/*",
         "??36-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?36-*/**/*) $(locations ??36-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?36-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5775,7 +5775,7 @@ java_genrule {
         "?37-*/**/*",
         "??37-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?37-*/**/*) $(locations ??37-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?37-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5795,7 +5795,7 @@ java_genrule {
         "?38-*/**/*",
         "??38-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?38-*/**/*) $(locations ??38-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?38-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5815,7 +5815,7 @@ java_genrule {
         "?39-*/**/*",
         "??39-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?39-*/**/*) $(locations ??39-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?39-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5835,7 +5835,7 @@ java_genrule {
         "?40-*/**/*",
         "??40-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?40-*/**/*) $(locations ??40-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?40-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5855,7 +5855,7 @@ java_genrule {
         "?41-*/**/*",
         "??41-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?41-*/**/*) $(locations ??41-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?41-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5875,7 +5875,7 @@ java_genrule {
         "?42-*/**/*",
         "??42-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?42-*/**/*) $(locations ??42-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?42-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5895,7 +5895,7 @@ java_genrule {
         "?43-*/**/*",
         "??43-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?43-*/**/*) $(locations ??43-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?43-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5915,7 +5915,7 @@ java_genrule {
         "?44-*/**/*",
         "??44-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?44-*/**/*) $(locations ??44-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?44-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5935,7 +5935,7 @@ java_genrule {
         "?45-*/**/*",
         "??45-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?45-*/**/*) $(locations ??45-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?45-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5955,7 +5955,7 @@ java_genrule {
         "?46-*/**/*",
         "??46-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?46-*/**/*) $(locations ??46-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?46-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5975,7 +5975,7 @@ java_genrule {
         "?47-*/**/*",
         "??47-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?47-*/**/*) $(locations ??47-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?47-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -5995,7 +5995,7 @@ java_genrule {
         "?48-*/**/*",
         "??48-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?48-*/**/*) $(locations ??48-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?48-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6015,7 +6015,7 @@ java_genrule {
         "?49-*/**/*",
         "??49-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?49-*/**/*) $(locations ??49-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?49-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6035,7 +6035,7 @@ java_genrule {
         "?50-*/**/*",
         "??50-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?50-*/**/*) $(locations ??50-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?50-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6055,7 +6055,7 @@ java_genrule {
         "?51-*/**/*",
         "??51-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?51-*/**/*) $(locations ??51-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?51-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6075,7 +6075,7 @@ java_genrule {
         "?52-*/**/*",
         "??52-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?52-*/**/*) $(locations ??52-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?52-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6095,7 +6095,7 @@ java_genrule {
         "?53-*/**/*",
         "??53-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?53-*/**/*) $(locations ??53-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?53-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6115,7 +6115,7 @@ java_genrule {
         "?54-*/**/*",
         "??54-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?54-*/**/*) $(locations ??54-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?54-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6135,7 +6135,7 @@ java_genrule {
         "?55-*/**/*",
         "??55-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?55-*/**/*) $(locations ??55-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?55-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6155,7 +6155,7 @@ java_genrule {
         "?56-*/**/*",
         "??56-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?56-*/**/*) $(locations ??56-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?56-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6175,7 +6175,7 @@ java_genrule {
         "?57-*/**/*",
         "??57-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?57-*/**/*) $(locations ??57-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?57-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6195,7 +6195,7 @@ java_genrule {
         "?58-*/**/*",
         "??58-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?58-*/**/*) $(locations ??58-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?58-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6215,7 +6215,7 @@ java_genrule {
         "?59-*/**/*",
         "??59-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?59-*/**/*) $(locations ??59-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?59-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6235,7 +6235,7 @@ java_genrule {
         "?60-*/**/*",
         "??60-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?60-*/**/*) $(locations ??60-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?60-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6255,7 +6255,7 @@ java_genrule {
         "?61-*/**/*",
         "??61-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?61-*/**/*) $(locations ??61-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?61-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6275,7 +6275,7 @@ java_genrule {
         "?62-*/**/*",
         "??62-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?62-*/**/*) $(locations ??62-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?62-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6295,7 +6295,7 @@ java_genrule {
         "?63-*/**/*",
         "??63-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?63-*/**/*) $(locations ??63-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?63-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6315,7 +6315,7 @@ java_genrule {
         "?64-*/**/*",
         "??64-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?64-*/**/*) $(locations ??64-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?64-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6335,7 +6335,7 @@ java_genrule {
         "?65-*/**/*",
         "??65-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?65-*/**/*) $(locations ??65-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?65-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6355,7 +6355,7 @@ java_genrule {
         "?66-*/**/*",
         "??66-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?66-*/**/*) $(locations ??66-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?66-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6375,7 +6375,7 @@ java_genrule {
         "?67-*/**/*",
         "??67-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?67-*/**/*) $(locations ??67-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?67-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6395,7 +6395,7 @@ java_genrule {
         "?68-*/**/*",
         "??68-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?68-*/**/*) $(locations ??68-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?68-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6415,7 +6415,7 @@ java_genrule {
         "?69-*/**/*",
         "??69-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?69-*/**/*) $(locations ??69-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?69-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6435,7 +6435,7 @@ java_genrule {
         "?70-*/**/*",
         "??70-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?70-*/**/*) $(locations ??70-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?70-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6455,7 +6455,7 @@ java_genrule {
         "?71-*/**/*",
         "??71-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?71-*/**/*) $(locations ??71-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?71-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6475,7 +6475,7 @@ java_genrule {
         "?72-*/**/*",
         "??72-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?72-*/**/*) $(locations ??72-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?72-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6495,7 +6495,7 @@ java_genrule {
         "?73-*/**/*",
         "??73-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?73-*/**/*) $(locations ??73-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?73-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6515,7 +6515,7 @@ java_genrule {
         "?74-*/**/*",
         "??74-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?74-*/**/*) $(locations ??74-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?74-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6535,7 +6535,7 @@ java_genrule {
         "?75-*/**/*",
         "??75-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?75-*/**/*) $(locations ??75-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?75-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6555,7 +6555,7 @@ java_genrule {
         "?76-*/**/*",
         "??76-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?76-*/**/*) $(locations ??76-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?76-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6575,7 +6575,7 @@ java_genrule {
         "?77-*/**/*",
         "??77-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?77-*/**/*) $(locations ??77-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?77-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6595,7 +6595,7 @@ java_genrule {
         "?78-*/**/*",
         "??78-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?78-*/**/*) $(locations ??78-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?78-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6615,7 +6615,7 @@ java_genrule {
         "?79-*/**/*",
         "??79-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?79-*/**/*) $(locations ??79-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?79-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6635,7 +6635,7 @@ java_genrule {
         "?80-*/**/*",
         "??80-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?80-*/**/*) $(locations ??80-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?80-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6655,7 +6655,7 @@ java_genrule {
         "?81-*/**/*",
         "??81-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?81-*/**/*) $(locations ??81-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?81-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6675,7 +6675,7 @@ java_genrule {
         "?82-*/**/*",
         "??82-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?82-*/**/*) $(locations ??82-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?82-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6695,7 +6695,7 @@ java_genrule {
         "?83-*/**/*",
         "??83-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?83-*/**/*) $(locations ??83-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?83-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6715,7 +6715,7 @@ java_genrule {
         "?84-*/**/*",
         "??84-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?84-*/**/*) $(locations ??84-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?84-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6735,7 +6735,7 @@ java_genrule {
         "?85-*/**/*",
         "??85-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?85-*/**/*) $(locations ??85-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?85-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6755,7 +6755,7 @@ java_genrule {
         "?86-*/**/*",
         "??86-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?86-*/**/*) $(locations ??86-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?86-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6775,7 +6775,7 @@ java_genrule {
         "?87-*/**/*",
         "??87-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?87-*/**/*) $(locations ??87-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?87-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6795,7 +6795,7 @@ java_genrule {
         "?88-*/**/*",
         "??88-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?88-*/**/*) $(locations ??88-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?88-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6815,7 +6815,7 @@ java_genrule {
         "?89-*/**/*",
         "??89-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?89-*/**/*) $(locations ??89-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?89-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6835,7 +6835,7 @@ java_genrule {
         "?90-*/**/*",
         "??90-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?90-*/**/*) $(locations ??90-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?90-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6855,7 +6855,7 @@ java_genrule {
         "?91-*/**/*",
         "??91-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?91-*/**/*) $(locations ??91-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?91-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6875,7 +6875,7 @@ java_genrule {
         "?92-*/**/*",
         "??92-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?92-*/**/*) $(locations ??92-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?92-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6895,7 +6895,7 @@ java_genrule {
         "?93-*/**/*",
         "??93-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?93-*/**/*) $(locations ??93-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?93-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6915,7 +6915,7 @@ java_genrule {
         "?94-*/**/*",
         "??94-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?94-*/**/*) $(locations ??94-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?94-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6935,7 +6935,7 @@ java_genrule {
         "?95-*/**/*",
         "??95-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?95-*/**/*) $(locations ??95-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?95-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6955,7 +6955,7 @@ java_genrule {
         "?96-*/**/*",
         "??96-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?96-*/**/*) $(locations ??96-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?96-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6975,7 +6975,7 @@ java_genrule {
         "?97-*/**/*",
         "??97-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?97-*/**/*) $(locations ??97-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?97-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -6995,7 +6995,7 @@ java_genrule {
         "?98-*/**/*",
         "??98-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?98-*/**/*) $(locations ??98-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?98-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -7015,7 +7015,7 @@ java_genrule {
         "?99-*/**/*",
         "??99-*/**/*",
     ],
-    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm $(locations ?99-*/**/*) $(locations ??99-*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--mode jvm --test-dir-regex 'art/test/..?99-' $(in)",
     defaults: ["art-run-test-jvm-data-defaults"],
 }
 
@@ -7037,7 +7037,7 @@ java_genrule {
     ],
     defaults: ["art-run-test-jvm-data-defaults"],
     tools: ["hiddenapi"],
-    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode jvm $(locations ???-*hiddenapi*/**/*) $(locations ????-*hiddenapi*/**/*)",
+    cmd: TEST_BUILD_COMMON_ARGS + "--hiddenapi $(location hiddenapi) --mode jvm --test-dir-regex 'art/test/....?-[^/]*hiddenapi' $(in)",
 }
 
 // Install in the output directory to make it accessible for tests.
