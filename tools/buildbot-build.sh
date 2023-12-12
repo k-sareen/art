@@ -124,8 +124,8 @@ if [ -d frameworks/base ]; then
   # instead of using prebuilts.
   common_targets="$common_targets ${implementation_libs[*]}"
 else
-  # Allow to build successfully in master-art.
-  extra_args="SOONG_ALLOW_MISSING_DEPENDENCIES=true BUILD_BROKEN_DISABLE_BAZEL=true"
+  # Necessary to build successfully in master-art.
+  extra_args="SOONG_ALLOW_MISSING_DEPENDENCIES=true"
   # Switch the build system to unbundled mode in the reduced manifest branch.
   extra_args="$extra_args TARGET_BUILD_UNBUNDLED=true"
 fi
