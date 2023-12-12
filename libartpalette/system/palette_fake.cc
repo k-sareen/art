@@ -23,11 +23,12 @@
 #include "palette/palette.h"
 #include "palette_system.h"
 
-// Methods in version 1 API, corresponding to SDK level 31.
-
 // Cached thread priority for testing. No thread priorities are ever affected.
 static std::mutex g_tid_priority_map_mutex;
 static std::map<int32_t, int32_t> g_tid_priority_map;
+
+// Unless explicitly mentioned otherwise, the following methods have been
+// introduced in version 1 API, corresponding to SDK level 31.
 
 palette_status_t PaletteSchedSetPriority(int32_t tid, int32_t priority) {
   if (priority < art::palette::kMinManagedThreadPriority ||
@@ -126,8 +127,7 @@ palette_status_t PaletteNotifyEndJniInvocation([[maybe_unused]] JNIEnv* env) {
   return PALETTE_STATUS_OK;
 }
 
-// Methods in version 2 API, corresponding to SDK level 33.
-
+// Introduced in version 2 API, corresponding to SDK level 33.
 palette_status_t PaletteReportLockContention([[maybe_unused]] JNIEnv* env,
                                              [[maybe_unused]] int32_t wait_ms,
                                              [[maybe_unused]] const char* filename,
@@ -141,8 +141,7 @@ palette_status_t PaletteReportLockContention([[maybe_unused]] JNIEnv* env,
   return PALETTE_STATUS_OK;
 }
 
-// Methods in version 3 API, corresponding to SDK level 34.
-
+// Introduced in version 3 API, corresponding to SDK level 34.
 palette_status_t PaletteSetTaskProfiles([[maybe_unused]] int32_t tid,
                                         [[maybe_unused]] const char* const profiles[],
                                         [[maybe_unused]] size_t profiles_len) {

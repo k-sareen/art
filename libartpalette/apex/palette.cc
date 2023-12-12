@@ -110,7 +110,8 @@ PaletteLoader::PaletteLoader() :
 
 extern "C" {
 
-// Methods in version 1 API, corresponding to SDK level 31.
+// Unless explicitly mentioned otherwise, the following methods have been
+// introduced in version 1 API, corresponding to SDK level 31.
 
 palette_status_t PaletteSchedSetPriority(int32_t tid, int32_t java_priority) {
   PaletteSchedSetPriorityMethod m = PaletteLoader::Instance().GetPaletteSchedSetPriorityMethod();
@@ -220,8 +221,7 @@ palette_status_t PaletteNotifyEndJniInvocation(JNIEnv* env) {
   return m(env);
 }
 
-// Methods in version 2 API, corresponding to SDK level 33.
-
+// Introduced in version 2 API, corresponding to SDK level 33.
 palette_status_t PaletteReportLockContention(JNIEnv* env,
                                              int32_t wait_ms,
                                              const char* filename,
@@ -246,8 +246,7 @@ palette_status_t PaletteReportLockContention(JNIEnv* env,
            thread_name);
 }
 
-// Methods in version 3 API, corresponding to SDK level 34.
-
+// Introduced in version 3 API, corresponding to SDK level 34.
 palette_status_t PaletteSetTaskProfiles(int32_t tid,
                                         const char* const profiles[],
                                         size_t profiles_len) {
