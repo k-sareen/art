@@ -69,41 +69,205 @@
 
 // sget vAA, field@BBBB
 // Format 21c: AA|60 BBBB
-%def op_sget(load="", wide="", is_object=""):
-    unimp
+%def op_sget(width="32", zext=False):
+   // Fast path: NterpGetStaticField's resolved_field from thread-local cache.
+   // Stores cache value in a0 to match slow path's return from NterpGetStaticField.
+   FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
+.L${opcode}_slow_resume:
 
-%def op_sget_slow_path(load, wide, is_object):
-    unimp
+   lwu t0, ART_FIELD_OFFSET_OFFSET(a0)           // t0 := field offset
+   lwu a0, ART_FIELD_DECLARING_CLASS_OFFSET(a0)  // a0 := holder
+   srliw t1, xINST, 8                            // t1 := AA
+   TEST_IF_MARKING t2, .L${opcode}_mark
+.L${opcode}_mark_resume:
+
+   add t0, t0, a0      // t0 := field addr, after possible a0 update
+%  if width == "8" and zext:
+     lbu t2, (t0)
+%  elif width == "8":
+     lb t2, (t0)
+%  elif width == "16" and zext:
+     lhu t2, (t0)
+%  elif width == "16":
+     lh t2, (t0)
+%  elif width == "32":
+     lw t2, (t0)
+%  else:  # width = 64:
+     ld t2, (t0)
+%#:
+   FETCH_ADVANCE_INST 2
+%  is_wide = "1" if width == "64" else "0"
+   SET_VREG t2, t1, z0=t0, is_wide=$is_wide
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, holder
+   j .L${opcode}_mark_resume
+
+.L${opcode}_slow:
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, zero
+   EXPORT_PC
+   call nterp_get_static_field  // result a0 := resolved_field
+
+   // Test for volatile bit
+   slli t0, a0, 63
+   bgez t0, .L${opcode}_slow_resume
+%  volatile_path = add_slow_path(op_sget_volatile, width, zext, "t0", "t1", "t2")
+   tail $volatile_path
+
+
+// Volatile static store.
+// Temporaries: z0, z1, z2
+%def op_sget_volatile(width, zext, z0, z1, z2):
+   CLEAR_STATIC_VOLATILE_MARKER a0
+   lwu $z0, ART_FIELD_OFFSET_OFFSET(a0)          // z0 := field offset
+   lwu a0, ART_FIELD_DECLARING_CLASS_OFFSET(a0)  // a0 := holder
+   srliw $z1, xINST, 8                           // z1 := AA
+   TEST_IF_MARKING $z2, .L${opcode}_volatile_mark
+.L${opcode}_volatile_mark_resume:
+
+   add $z0, $z0, a0     // z0 := field addr, after possible a0 update
+   // Atomic load: "fence rw,rw ; LOAD ; fence r,rw"
+   fence rw, rw
+%  if width == "8" and zext:
+     lbu $z2, ($z0)
+%  elif width == "8":
+     lb $z2, ($z0)
+%  elif width == "16" and zext:
+     lhu $z2, ($z0)
+%  elif width == "16":
+     lh $z2, ($z0)
+%  elif width == "32":
+     lw $z2, ($z0)
+%  else:  # width = 64:
+     ld $z2, ($z0)
+%#:
+   fence r, rw
+
+   FETCH_ADVANCE_INST 2
+%  is_wide = "1" if width == "64" else "0"
+   SET_VREG $z2, $z1, z0=$z0, is_wide=$is_wide
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, holder
+   j .L${opcode}_volatile_mark_resume
+
 
 // sget-wide vAA, field@BBBB
 // Format 21c: AA|61 BBBB
 %def op_sget_wide():
-    unimp
+%  op_sget(width="64")
+
 
 // sget-object vAA, field@BBBB
 // Format 21c: AA|62 BBBB
+// Variant for object load contains extra logic for GC mark.
 %def op_sget_object():
-    unimp
+   // Fast path: NterpGetStaticField's resolved_field from thread-local cache.
+   // Stores cache value in a0 to match slow path's return from NterpGetStaticField.
+   FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
+.L${opcode}_slow_resume:
+
+   lwu t0, ART_FIELD_OFFSET_OFFSET(a0)           // t0 := field offset
+   lwu a0, ART_FIELD_DECLARING_CLASS_OFFSET(a0)  // a0 := holder
+   srliw t1, xINST, 8                            // t1 := AA
+   TEST_IF_MARKING t2, .L${opcode}_mark
+
+   add t0, t0, a0      // t0 := field addr
+   lwu a0, (t0)        // a0 := value (ref)
+
+.L${opcode}_mark_resume:
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, t1, z0=t0
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, holder
+   add t0, t0, a0      // t0 := field addr, after a0 update
+   lwu a0, (t0)        // a0 := value (ref)
+   call art_quick_read_barrier_mark_reg10  // a0, object
+   j .L${opcode}_mark_resume
+
+.L${opcode}_slow:
+%  slow_path = add_slow_path(op_sget_object_slow_path, "t0", "t1", "t2")
+   tail $slow_path
+
+
+// Static store, object variant. Contains both slow path and volatile path
+// due to handler size limitation in op_sget_object.
+// Hardcoded: a0, a1, a2, a3, xSELF, xPC, xINST, xFP, xREFS
+// Temporaries: z0, z1, z2
+%def op_sget_object_slow_path(z0, z1, z2):
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, zero
+   EXPORT_PC
+   call nterp_get_static_field  // result a0 := resolved_field
+
+   // Test for volatile bit
+   slli $z0, a0, 63
+   bltz $z0, .L${opcode}_volatile
+   tail .L${opcode}_slow_resume  // resume offset exceeds branch imm
+
+.L${opcode}_volatile:
+   CLEAR_STATIC_VOLATILE_MARKER a0
+   lwu $z0, ART_FIELD_OFFSET_OFFSET(a0)          // z0 := field offset
+   lwu a0, ART_FIELD_DECLARING_CLASS_OFFSET(a0)  // a0 := holder
+   srliw $z1, xINST, 8                           // z1 := AA
+   TEST_IF_MARKING $z2, .L${opcode}_volatile_mark
+
+   add $z0, $z0, a0  // z0 := field addr
+   fence rw, rw
+   lwu a0, ($z0)  // Atomic ref load: "fence rw,rw, ; LOAD ; fence r,rw"
+   fence r, rw
+
+.L${opcode}_volatile_mark_resume:
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, $z1, z0=$z2
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, holder
+   add $z0, $z0, a0  // z0 := field addr, after a0 update
+   fence rw, rw
+   lwu a0, ($z0)  // Atomic ref load: "fence rw,rw, ; LOAD ; fence r,rw"
+   fence r, rw
+   call art_quick_read_barrier_mark_reg10  // a0, object
+   j .L${opcode}_volatile_mark_resume
+
 
 // sget-boolean vAA, field@BBBB
 // Format 21c: AA|63 BBBB
 %def op_sget_boolean():
-    unimp
+%  op_sget(width="8", zext=True)
+
 
 // sget-byte vAA, field@BBBB
 // Format 21c: AA|64 BBBB
 %def op_sget_byte():
-    unimp
+%  op_sget(width="8")
+
 
 // sget-char vAA, field@BBBB
 // Format 21c: AA|65 BBBB
 %def op_sget_char():
-    unimp
+%  op_sget(width="16", zext=True)
+
 
 // sget-short vAA, field@BBBB
 // Format 21c: AA|66 BBBB
 %def op_sget_short():
-    unimp
+%  op_sget(width="16")
+
 
 // *** sput ***
 
@@ -128,7 +292,7 @@
    // Slow path: updates s7 if is_object, for possible GC movement.
    FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
 
-.L${opcode}_regular_resume:
+.L${opcode}_slow_resume:
    lwu t0, ART_FIELD_OFFSET_OFFSET(a0)
    lwu a0, ART_FIELD_DECLARING_CLASS_OFFSET(a0)  // a0 := holder
    TEST_IF_MARKING t1, .L${opcode}_mark
@@ -186,7 +350,7 @@
    // Test for volatile bit
    slli $z0, a0, 63
    bltz $z0, 1f
-   tail .L${opcode}_regular_resume  // resume offset exceeds branch imm
+   tail .L${opcode}_slow_resume  // resume offset exceeds branch imm
 1:
    // Volatile static store.
    CLEAR_STATIC_VOLATILE_MARKER a0
