@@ -137,6 +137,10 @@ class JNIMacroAssembler : public DeletableArenaObject<kArenaAllocAssembler> {
                                             ManagedRegister base,
                                             MemberOffset offs);
 
+  // Load reference from a `StackReference<>`. The default is to load as `jint`. Some architectures
+  // (say, RISC-V) override this to provide a different sign- or zero-extension.
+  virtual void LoadStackReference(ManagedRegister dest, FrameOffset offs);
+
   // Copying routines
 
   // Move arguments from `srcs` locations to `dests` locations.

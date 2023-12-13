@@ -71,6 +71,7 @@ class Riscv64JNIMacroAssembler  : public JNIMacroAssemblerFwd<Riscv64Assembler, 
   void LoadGcRootWithoutReadBarrier(ManagedRegister dest,
                                     ManagedRegister base,
                                     MemberOffset offs) override;
+  void LoadStackReference(ManagedRegister dest, FrameOffset offs) override;
 
   // Copying routines.
   void MoveArguments(ArrayRef<ArgumentLocation> dests,

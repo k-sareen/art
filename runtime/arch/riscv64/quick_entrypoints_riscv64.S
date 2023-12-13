@@ -168,7 +168,7 @@ END art_deliver_pending_exception
 
     // Load this (if instance method) and record the number of GPRs to fill.
     .ifc \sfx, _instance
-        lw   a1, (t0)                  // Load "this" parameter,
+        lwu  a1, (t0)                  // Load "this" parameter,
         addi t0, t0, 4                 // and increment arg pointer.
         .equ NUM_GPRS_TO_FILL, 6
     .else
@@ -1389,9 +1389,9 @@ ENTRY \name
     and t6, t6, t5
     CFI_REMEMBER_STATE
     bgez t6, .Lrb_full_\name
-    // Note: The mark bit which is shifted to the sign bit and sign-extended is
-    // always zero in the forwarding address state. No zero-extension is needed.
-    slliw \reg, t5, LOCK_WORD_STATE_FORWARDING_ADDRESS_SHIFT
+    // Extract and zero-extend the forwarding address.
+    slli \reg, t5, (LOCK_WORD_STATE_FORWARDING_ADDRESS_SHIFT + 32)
+    srli \reg, \reg, 32
     .ifc \reg, t5
       sd t5, (8*0)(sp)
     .endif

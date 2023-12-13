@@ -550,10 +550,10 @@ static JniCompiledMethod ArtJniCompileMethodInternal(const CompilerOptions& comp
       FrameOffset method_offset = mr_conv->MethodStackOffset();
       __ Load(temp, method_offset, kRawPointerSize);
       DCHECK_EQ(ArtMethod::DeclaringClassOffset().SizeValue(), 0u);
-      __ Load(to_lock, temp, MemberOffset(0u), kObjectReferenceSize);
+      __ LoadGcRootWithoutReadBarrier(to_lock, temp, MemberOffset(0u));
     } else {
       // Pass the `this` argument from its spill slot.
-      __ Load(to_lock, mr_conv->CurrentParamStackOffset(), kObjectReferenceSize);
+      __ LoadStackReference(to_lock, mr_conv->CurrentParamStackOffset());
     }
     __ CallFromThread(QUICK_ENTRYPOINT_OFFSET(kPointerSize, pJniUnlockObject));
   }

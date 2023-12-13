@@ -19,10 +19,12 @@
 #include "base/bit_utils_iterator.h"
 #include "dwarf/register.h"
 #include "entrypoints/quick/quick_entrypoints.h"
+#include "gc_root.h"
 #include "indirect_reference_table.h"
 #include "lock_word.h"
 #include "managed_register_riscv64.h"
 #include "offsets.h"
+#include "stack_reference.h"
 #include "thread.h"
 
 namespace art HIDDEN {
@@ -242,7 +244,18 @@ void Riscv64JNIMacroAssembler::LoadGcRootWithoutReadBarrier(ManagedRegister m_de
                                                             MemberOffset offs) {
   Riscv64ManagedRegister base = m_base.AsRiscv64();
   Riscv64ManagedRegister dest = m_dest.AsRiscv64();
+  static_assert(sizeof(uint32_t) == sizeof(GcRoot<mirror::Object>));
   __ Loadwu(dest.AsXRegister(), base.AsXRegister(), offs.Int32Value());
+}
+
+void Riscv64JNIMacroAssembler::LoadStackReference(ManagedRegister m_dest, FrameOffset offs) {
+  // `StackReference<>` and `GcRoot<>` have the same underlying representation, namely
+  // `CompressedReference<>`. And `StackReference<>` does not need a read barrier.
+  static_assert(sizeof(uint32_t) == sizeof(mirror::CompressedReference<mirror::Object>));
+  static_assert(sizeof(uint32_t) == sizeof(StackReference<mirror::Object>));
+  static_assert(sizeof(uint32_t) == sizeof(GcRoot<mirror::Object>));
+  LoadGcRootWithoutReadBarrier(
+      m_dest, Riscv64ManagedRegister::FromXRegister(SP), MemberOffset(offs.Int32Value()));
 }
 
 void Riscv64JNIMacroAssembler::MoveArguments(ArrayRef<ArgumentLocation> dests,
@@ -407,7 +420,7 @@ void Riscv64JNIMacroAssembler::DecodeJNITransitionOrLocalJObject(ManagedRegister
   __ Andi(TMP, reg, kGlobalOrWeakGlobalMask);
   __ Bnez(TMP, Riscv64JNIMacroLabel::Cast(slow_path)->AsRiscv64());
   __ Andi(reg, reg, ~kIndirectRefKindMask);
-  __ Loadw(reg, reg, 0);
+  __ Loadwu(reg, reg, 0);
 }
 
 void Riscv64JNIMacroAssembler::VerifyObject([[maybe_unused]] ManagedRegister m_src,

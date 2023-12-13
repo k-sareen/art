@@ -38,6 +38,7 @@
 #include "base/globals.h"
 #include "base/memory_region.h"
 #include "gc_root.h"
+#include "stack_reference.h"
 
 namespace art HIDDEN {
 
@@ -114,5 +115,18 @@ template
 void JNIMacroAssembler<PointerSize::k64>::LoadGcRootWithoutReadBarrier(ManagedRegister dest,
                                                                        ManagedRegister base,
                                                                        MemberOffset offs);
+
+template <PointerSize kPointerSize>
+void JNIMacroAssembler<kPointerSize>::LoadStackReference(ManagedRegister dest, FrameOffset offs) {
+  static_assert(sizeof(uint32_t) == sizeof(StackReference<mirror::Object>));
+  Load(dest, offs, sizeof(uint32_t));
+}
+
+template
+void JNIMacroAssembler<PointerSize::k32>::LoadStackReference(ManagedRegister dest,
+                                                             FrameOffset offs);
+template
+void JNIMacroAssembler<PointerSize::k64>::LoadStackReference(ManagedRegister dest,
+                                                             FrameOffset offs);
 
 }  // namespace art

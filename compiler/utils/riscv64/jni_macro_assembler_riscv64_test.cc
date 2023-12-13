@@ -272,6 +272,12 @@ TEST_F(JniMacroAssemblerRiscv64Test, Load) {
   expected += "addi t6, s2, 0x7f8\n"
               "lwu t1, 8(t6)\n";
 
+  __ LoadStackReference(AsManaged(T0), FrameOffset(0));
+  expected += "lwu t0, 0(sp)\n";
+  __ LoadStackReference(AsManaged(T1), FrameOffset(0x800));
+  expected += "addi t6, sp, 0x7f8\n"
+              "lwu t1, 8(t6)\n";
+
   DriverStr(expected, "Load");
 }
 
@@ -693,7 +699,7 @@ TEST_F(JniMacroAssemblerRiscv64Test, DecodeJNITransitionOrLocalJObject) {
               "andi t6, a0, " + std::to_string(kGlobalOrWeakGlobalMask) + "\n"
               "bnez t6, 2f\n"
               "andi a0, a0, ~" + std::to_string(kIndirectRefKindMask) + "\n"
-              "lw a0, (a0)\n";
+              "lwu a0, (a0)\n";
 
   __ Bind(resume.get());
   expected += "1:\n";
