@@ -51,6 +51,7 @@ static jit::Jit* GetJitIfEnabled() {
   bool can_jit =
       runtime != nullptr
       && runtime->GetJit() != nullptr
+      && runtime->UseJitCompilation()
       && runtime->GetInstrumentation()->GetCurrentInstrumentationLevel() !=
             instrumentation::Instrumentation::InstrumentationLevel::kInstrumentWithInterpreter;
   return can_jit ? runtime->GetJit() : nullptr;

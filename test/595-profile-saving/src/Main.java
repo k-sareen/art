@@ -23,6 +23,11 @@ public class Main {
   public static void main(String[] args) throws Exception {
     System.loadLibrary(args[0]);
 
+    if (!hasJit()) {
+      // Test requires JIT for creating profiling infos.
+      return;
+    }
+
     File file = null;
     File file2 = null;
     File file3 = null;
@@ -88,7 +93,9 @@ public class Main {
 
       testProfileNotExist(file2);
 
-      System.out.println("IsForBootImage: " + isForBootImage(file.getPath()));
+      if (!isForBootImage(file.getPath())) {
+        throw new Error("Expected profile to be for boot image");
+      }
     } finally {
       if (file != null) {
         file.delete();
@@ -129,13 +136,17 @@ public class Main {
   }
 
   // Ensure a method has a profiling info.
-  public static native void ensureProfilingInfo(Method method);
+  public static void ensureProfilingInfo(Method method) {
+    ensureJitBaselineCompiled(method.getDeclaringClass(), method.getName());
+  }
+  public static native void ensureJitBaselineCompiled(Class<?> cls, String methodName);
   // Ensures the profile saver does its usual processing.
   public static native void ensureProfileProcessing();
   // Checks if the profiles saver knows about the method.
   public static native boolean presentInProfile(String profile, Method method);
   // Returns true if the profile is for the boot image.
   public static native boolean isForBootImage(String profile);
+  public static native boolean hasJit();
 
   private static final String TEMP_FILE_NAME_PREFIX = "temp";
   private static final String TEMP_FILE_NAME_SUFFIX = "-file";

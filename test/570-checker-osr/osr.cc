@@ -98,21 +98,6 @@ extern "C" JNIEXPORT jboolean JNICALL Java_Main_isInInterpreter(JNIEnv* env,
   return in_interpreter;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_Main_ensureHasProfilingInfo(JNIEnv* env,
-                                                                   jclass,
-                                                                   jstring method_name) {
-  if (!Runtime::Current()->UseJitCompilation()) {
-    return;
-  }
-  ProcessMethodWithName(
-      env,
-      method_name,
-      [&](const art::StackVisitor* stack_visitor) REQUIRES_SHARED(Locks::mutator_lock_) {
-        ArtMethod* m = stack_visitor->GetMethod();
-        ProfilingInfo::Create(Thread::Current(), m);
-      });
-}
-
 extern "C" JNIEXPORT void JNICALL Java_Main_ensureHasOsrCode(JNIEnv* env,
                                                              jclass,
                                                              jstring method_name) {
