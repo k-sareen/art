@@ -497,3 +497,53 @@ linker_config {
     src: "linker.config.json",
     installable: false,
 }
+
+// sdk module types have 3 (maybe 4 for windows?) variants: linux, android, and common_os.
+// common_os depends on the linux/android variants and packages their artifacts into a zip file.
+// We want access to that zip file in art_release_zip, so we need to depend on only the common_os
+// variant of art-module-host-exports, which is what sdk_genrule does. Since sdk_genrule only has
+// 1 variant, we can then depend on it from a different type of genrule like regular genrule.
+sdk_genrule {
+    name: "art-module-host-exports-for-genrule",
+    defaults: ["art_module_source_build_genrule_defaults"],
+    srcs: [":art-module-host-exports"],
+    out: ["art-module-host-exports-current.zip"],
+    cmd: "cp $(in) $(out)",
+}
+
+// A zip containing ART binaries and ART bootclasspath jars.
+// At the time of writing, this is only for Compiler Explorer (https://godbolt.org).
+genrule {
+    name: "art_release_zip",
+    defaults: ["art_module_source_build_genrule_defaults"],
+    srcs: [
+        ":art-module-host-exports-for-genrule",
+        ":com.android.art",
+    ],
+    out: [
+        "art_release.zip",
+    ],
+    tools: [
+        "deapexer",
+        "debugfs",
+        "fsck.erofs",
+        "merge_zips",
+        "soong_zip",
+    ],
+    cmd: "$(location deapexer) " +
+        "--debugfs_path $(location debugfs) " +
+        "--fsckerofs_path $(location fsck.erofs) " +
+        "extract $(location :com.android.art) $(genDir)/extracted && " +
+
+        "$(location soong_zip) -o $(out).tmp -P bootjars -j " +
+        "-f $(genDir)/extracted/javalib/core-oj.jar " +
+        "-f $(genDir)/extracted/javalib/core-libart.jar " +
+        "-f $(genDir)/extracted/javalib/okhttp.jar " +
+        "-f $(genDir)/extracted/javalib/bouncycastle.jar " +
+        "-f $(genDir)/extracted/javalib/apache-xml.jar && " +
+
+        "$(location merge_zips) $(out) $(out).tmp $(location :art-module-host-exports-for-genrule)",
+    dist: {
+        targets: ["droidcore"],
+    },
+}
