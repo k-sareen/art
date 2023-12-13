@@ -1567,6 +1567,13 @@ END \name
 .endm
 
 
+// Entry from managed code that calls artHandleFillArrayDataFromCode and
+// delivers exception on failure.
+TWO_ARG_DOWNCALL art_quick_handle_fill_data, \
+                 artHandleFillArrayDataFromCode, \
+                 RETURN_OR_DEOPT_IF_INT_RESULT_IS_ZERO_OR_DELIVER
+
+
 // Generate the allocation entrypoints for each allocator.
 GENERATE_ALLOC_ENTRYPOINTS_FOR_NON_TLAB_ALLOCATORS
 // Comment out allocators that have riscv64 specific asm.

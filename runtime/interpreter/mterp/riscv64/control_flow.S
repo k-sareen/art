@@ -47,6 +47,17 @@
 %def op_return_object():
 %  op_return(is_object="1", is_void="0", is_wide="0")
 
+// throw vAA
+// Format 11x: AA|27
+// Throw the indicated exception.
+%def op_throw():
+   EXPORT_PC
+   srliw t0, xINST, 8      // t0 := AA
+   GET_VREG_OBJECT a0, t0  // a0 := exception object
+   mv a1, xSELF
+   call art_quick_deliver_exception  // args a0, a1
+   unimp
+
 %def bincmp(condition=""):
     unimp
 
@@ -106,6 +117,3 @@
 
 %def op_sparse_switch():
 %  op_packed_switch(func="NterpDoSparseSwitch")
-
-%def op_throw():
-    unimp
