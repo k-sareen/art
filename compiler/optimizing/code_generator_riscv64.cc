@@ -2884,6 +2884,12 @@ void LocationsBuilderRISCV64::VisitArraySet(HArraySet* instruction) {
   locations->SetInAt(0, Location::RequiresRegister());
   locations->SetInAt(1, Location::RegisterOrConstant(instruction->InputAt(1)));
   locations->SetInAt(2, ValueLocationForStore(instruction->GetValue()));
+  if (kPoisonHeapReferences &&
+      instruction->GetComponentType() == DataType::Type::kReference &&
+      !locations->InAt(1).IsConstant() &&
+      !locations->InAt(2).IsConstant()) {
+    locations->AddTemp(Location::RequiresRegister());
+  }
 }
 
 void InstructionCodeGeneratorRISCV64::VisitArraySet(HArraySet* instruction) {
@@ -2972,7 +2978,11 @@ void InstructionCodeGeneratorRISCV64::VisitArraySet(HArraySet* instruction) {
     Store(value, array, offset, value_type);
   } else {
     ScratchRegisterScope srs(GetAssembler());
-    XRegister tmp = srs.AllocateXRegister();
+    // Heap poisoning needs two scratch registers in `Store()`, except for null constants.
+    XRegister tmp =
+        (kPoisonHeapReferences && value_type == DataType::Type::kReference && !value.IsConstant())
+            ? locations->GetTemp(0).AsRegister<XRegister>()
+            : srs.AllocateXRegister();
     ShNAdd(tmp, index.AsRegister<XRegister>(), array, value_type);
     Store(value, tmp, data_offset, value_type);
   }

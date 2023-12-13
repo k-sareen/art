@@ -2022,6 +2022,9 @@ static void CreateUnsafePutLocations(ArenaAllocator* allocator, HInvoke* invoke)
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
   locations->SetInAt(3, Location::RequiresRegister());
+  if (kPoisonHeapReferences && invoke->InputAt(3)->GetType() == DataType::Type::kReference) {
+    locations->AddTemp(Location::RequiresRegister());
+  }
 }
 
 static void GenUnsafePut(HInvoke* invoke,
@@ -2038,7 +2041,10 @@ static void GenUnsafePut(HInvoke* invoke,
     // We use a block to end the scratch scope before the write barrier, thus
     // freeing the temporary registers so they can be used in `MarkGCCard()`.
     ScratchRegisterScope srs(assembler);
-    XRegister address = srs.AllocateXRegister();
+    // Heap poisoning needs two scratch registers in `Store()`.
+    XRegister address = (kPoisonHeapReferences && type == DataType::Type::kReference)
+        ? locations->GetTemp(0).AsRegister<XRegister>()
+        : srs.AllocateXRegister();
     __ Add(address, base, offset);
     GenerateSet(codegen, order, value, address, /*offset=*/ 0, type);
   }
@@ -2411,6 +2417,11 @@ void IntrinsicLocationsBuilderRISCV64::VisitJdkUnsafeCompareAndSetReference(HInv
     return;
   }
 
+  // TODO(riscv64): Fix this intrinsic for heap poisoning configuration.
+  if (kPoisonHeapReferences) {
+    return;
+  }
+
   CreateUnsafeCASLocations(allocator_, invoke, codegen_);
   if (codegen_->EmitReadBarrier()) {
     DCHECK(kUseBakerReadBarrier);
@@ -2572,6 +2583,11 @@ void IntrinsicCodeGeneratorRISCV64::VisitJdkUnsafeGetAndSetLong(HInvoke* invoke)
 }
 
 void IntrinsicLocationsBuilderRISCV64::VisitJdkUnsafeGetAndSetReference(HInvoke* invoke) {
+  // TODO(riscv64): Fix this intrinsic for heap poisoning configuration.
+  if (kPoisonHeapReferences) {
+    return;
+  }
+
   CreateUnsafeGetAndUpdateLocations(allocator_, invoke, codegen_);
 }
 
@@ -3184,6 +3200,14 @@ static void CreateVarHandleSetLocations(HInvoke* invoke, CodeGeneratorRISCV64* c
   }
 
   CreateVarHandleCommonLocations(invoke, codegen);
+  if (kPoisonHeapReferences && invoke->GetLocations() != nullptr) {
+    LocationSummary* locations = invoke->GetLocations();
+    uint32_t value_index = invoke->GetNumberOfArguments() - 1;
+    DataType::Type value_type = GetDataTypeFromShorty(invoke, value_index);
+    if (value_type == DataType::Type::kReference && !locations->InAt(value_index).IsConstant()) {
+      locations->AddTemp(Location::RequiresRegister());
+    }
+  }
 }
 
 static void GenerateVarHandleSet(HInvoke* invoke,
@@ -3208,7 +3232,11 @@ static void GenerateVarHandleSet(HInvoke* invoke,
 
   {
     ScratchRegisterScope srs(assembler);
-    XRegister address = srs.AllocateXRegister();
+    // Heap poisoning needs two scratch registers in `Store()`, except for null constants.
+    XRegister address =
+        (kPoisonHeapReferences && value_type == DataType::Type::kReference && !value.IsConstant())
+            ? invoke->GetLocations()->GetTemp(0).AsRegister<XRegister>()
+            : srs.AllocateXRegister();
     __ Add(address, target.object, target.offset);
 
     if (byte_swap) {
@@ -3299,6 +3327,11 @@ static void CreateVarHandleCompareAndSetOrExchangeLocations(HInvoke* invoke,
     // for CompareAndExchange, marking the old value after comparison failure may actually
     // return the reference to `expected`, erroneously indicating success even though we
     // did not set the new value. (And it also gets the memory visibility wrong.) b/173104084
+    return;
+  }
+
+  // TODO(riscv64): Fix this intrinsic for heap poisoning configuration.
+  if (kPoisonHeapReferences && value_type == DataType::Type::kReference) {
     return;
   }
 
@@ -3713,6 +3746,11 @@ static void CreateVarHandleGetAndUpdateLocations(HInvoke* invoke,
     // Unsupported for non-Baker read barrier because the artReadBarrierSlow() ignores
     // the passed reference and reloads it from the field, thus seeing the new value
     // that we have just stored. (And it also gets the memory visibility wrong.) b/173104084
+    return;
+  }
+
+  // TODO(riscv64): Fix this intrinsic for heap poisoning configuration.
+  if (kPoisonHeapReferences && invoke->GetType() == DataType::Type::kReference) {
     return;
   }
 

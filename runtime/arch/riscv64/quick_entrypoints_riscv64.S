@@ -1795,7 +1795,7 @@ GENERATE_ALLOC_OBJECT_RESOLVED_TLAB \
     mv    a0, \temp0
     add   \temp0, \temp0, \temp1
     sd    \temp0, THREAD_LOCAL_POS_OFFSET(xSELF)            // Store new thread_local_pos.
-    POISON_HEAP_REF class
+    POISON_HEAP_REF \class
     sw    \class, MIRROR_OBJECT_CLASS_OFFSET(a0)            // Store the class pointer.
     sw    \count, MIRROR_ARRAY_LENGTH_OFFSET(a0)            // Store the array length.
 // new-array is special. The class is loaded and immediately goes to the Initialized state

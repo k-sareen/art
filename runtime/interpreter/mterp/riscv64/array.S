@@ -150,6 +150,7 @@
    sh2add t0, t1, t0
    lwu a0, MIRROR_OBJECT_ARRAY_DATA_OFFSET(t0)
        // a0 := *(array obj + data offset + idx * elem_size)
+   UNPOISON_HEAP_REF a0
    TEST_IF_MARKING t1, .L${opcode}_mark
 .L${opcode}_mark_resume:
    srliw t1, xINST, 8  // t1 := AA

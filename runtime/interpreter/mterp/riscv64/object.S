@@ -125,6 +125,7 @@
    beqz t0, .L${opcode}_null
    add t0, a0, t0          // t0 := field addr
    lwu a0, (t0)            // a0 := object
+   UNPOISON_HEAP_REF a0
    TEST_IF_MARKING t1, .L${opcode}_mark
 .L${opcode}_mark_resume:
 
@@ -165,6 +166,7 @@
    fence rw, rw
    lwu a0, ($z0)              // a0 := object
    fence r, rw
+   UNPOISON_HEAP_REF a0
    TEST_IF_MARKING t1, .L${opcode}_volatile_mark
 .L${opcode}_volatile_mark_resume:
 
@@ -296,6 +298,7 @@
    GET_VREG_OBJECT t0, s7  // t0 := holder
    beqz t0, .L${opcode}_null
    add t1, a0, t0          // t1 := field addr
+   POISON_HEAP_REF s9      // Poisoning maps null to null for the null check in write barrier.
    sw s9, (t1)
 %  object_write_barrier(value="s9", holder="t0", z0="t1", z1="t2", uniq=f"{opcode}")
 
@@ -331,6 +334,7 @@
    beqz $z0, .L${opcode}_volatile_null
    sub $z1, $z0, a0              // z1 := field addr (holder - (-offset))
    // Ensure the volatile store is released.
+   POISON_HEAP_REF $value  // Poisoning maps null to null for the null check in write barrier.
    amoswap.w.rl zero, $value, ($z1)
 %  object_write_barrier(value=value, holder=z0, z0=z1, z1=z2, uniq=f"slow_{opcode}")
 
@@ -461,6 +465,7 @@
 
    add t0, t0, a0      // t0 := field addr
    lwu a0, (t0)        // a0 := value (ref)
+   UNPOISON_HEAP_REF a0
 
 .L${opcode}_mark_resume:
    FETCH_ADVANCE_INST 2
@@ -472,6 +477,7 @@
    call art_quick_read_barrier_mark_reg10  // a0, holder
    add t0, t0, a0      // t0 := field addr, after a0 update
    lwu a0, (t0)        // a0 := value (ref)
+   UNPOISON_HEAP_REF a0
    call art_quick_read_barrier_mark_reg10  // a0, object
    j .L${opcode}_mark_resume
 
@@ -507,6 +513,7 @@
    fence rw, rw
    lwu a0, ($z0)  // Atomic ref load: "fence rw,rw, ; LOAD ; fence r,rw"
    fence r, rw
+   UNPOISON_HEAP_REF a0
 
 .L${opcode}_volatile_mark_resume:
    FETCH_ADVANCE_INST 2
@@ -520,6 +527,7 @@
    fence rw, rw
    lwu a0, ($z0)  // Atomic ref load: "fence rw,rw, ; LOAD ; fence r,rw"
    fence r, rw
+   UNPOISON_HEAP_REF a0
    call art_quick_read_barrier_mark_reg10  // a0, object
    j .L${opcode}_volatile_mark_resume
 
@@ -652,6 +660,7 @@
 .L${opcode}_mark_resume:
 
    add t0, t0, a0          // t0 := field addr, after possible a0 update
+   POISON_HEAP_REF s8      // Poisoning maps null to null for the null check in write barrier.
    sw s8, (t0)             // store reference
 %  object_write_barrier(value="s8", holder="a0", z0="t0", z1="t1", uniq=f"{opcode}")
    FETCH_ADVANCE_INST 2
@@ -699,6 +708,7 @@
    // Ensure the volatile store is released.
    // \value must NOT be the destination register, the destination gets clobbered!
    // For refs, \value's original value is used in the write barrier below.
+   POISON_HEAP_REF $value  // Poisoning maps null to null for the null check in write barrier.
    amoswap.w.rl zero, $value, ($z0)
 %  object_write_barrier(value=value, holder="a0", z0=z0, z1=z1, uniq=f"slow_{opcode}")
 

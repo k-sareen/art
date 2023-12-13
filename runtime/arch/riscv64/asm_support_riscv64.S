@@ -94,6 +94,7 @@
 .macro POISON_HEAP_REF ref
 #ifdef USE_HEAP_POISONING
     neg \ref, \ref
+    zext.w \ref, \ref
 #endif  // USE_HEAP_POISONING
 .endm
 
@@ -102,6 +103,7 @@
 .macro UNPOISON_HEAP_REF ref
 #ifdef USE_HEAP_POISONING
     neg \ref, \ref
+    zext.w \ref, \ref
 #endif  // USE_HEAP_POISONING
 .endm
 

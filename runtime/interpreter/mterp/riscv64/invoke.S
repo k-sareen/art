@@ -65,6 +65,7 @@
    // Note: null case handled by SEGV handler.
    lwu t0, MIRROR_OBJECT_CLASS_OFFSET(a1)
                                     // t0 := klass object (32-bit addr)
+   UNPOISON_HEAP_REF t0
    // Entry address = entry's byte offset in vtable + vtable's byte offset in klass object.
    sh3add a0, a0, t0                // a0 := entry's byte offset
    ld a0, MIRROR_CLASS_VTABLE_OFFSET_64(a0)
@@ -169,6 +170,7 @@
    // Note: null case handled by SEGV handler.
    lwu t0, MIRROR_OBJECT_CLASS_OFFSET(a1)
                           // t0 := klass object (32-bit addr)
+   UNPOISON_HEAP_REF t0
    slliw t1, a0, 30       // test LSB #0 and #1
    bltz t1, 3f            // LSB #1 is set; handle default method
    bgtz t1, 4f            // LSB #0 is set; handle object method
