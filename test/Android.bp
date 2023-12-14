@@ -160,6 +160,24 @@ filegroup {
     srcs: ["art-gtests-target-standalone-with-boot-image-template.xml"],
 }
 
+// When soong builds the tests in a sandbox, the targets of symlinks
+// must be declared as inputs to soong modules that use them, or else
+// it will be a dangling symlink in the sandbox.
+filegroup {
+    name: "test_build_symlink_targets",
+    srcs: [
+        "jvmti-common/*.java",
+        "1953-pop-frame/src/art/SuspendEvents.java",
+        "1953-pop-frame/src/art/Test1953.java",
+        "993-breakpoints/src/art/Test993.java",
+        "988-method-trace/src/art/Test988.java",
+        "988-method-trace/src/art/Test988Intrinsics.java",
+    ],
+    visibility: [
+        "//art/test:__subpackages__",
+    ],
+}
+
 art_cc_defaults {
     name: "art_standalone_test_defaults",
     defaults: [
@@ -477,6 +495,10 @@ java_defaults {
         "art-run-test-checker",
     ],
     min_sdk_version: "31",
+
+    compile_data: [
+        ":test_build_symlink_targets",
+    ],
 }
 
 art_cc_test_library {
