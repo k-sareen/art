@@ -99,9 +99,7 @@ class BranchCache {
 class ProfilingInfo {
  public:
   // Create a ProfilingInfo for 'method'.
-  static ProfilingInfo* Create(Thread* self,
-                               ArtMethod* method,
-                               const std::vector<uint32_t>& inline_cache_entries)
+  static ProfilingInfo* Create(Thread* self, ArtMethod* method)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Add information from an executed INVOKE instruction to the profile.

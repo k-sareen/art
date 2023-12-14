@@ -20,6 +20,7 @@ def run(ctx, args):
   # --compiler-filter=verify to make sure that the test is not compiled AOT
   # and to make sure the test is not compiled  when loaded (by PathClassLoader)
   # -Xjitsaveprofilinginfo to enable profile saving
+  # -Xusejit:false to disable jit and only test profiles.
   # -Xjitinitialsize:32M to prevent profiling info creation failure.
   ctx.default_run(
       args,
@@ -28,5 +29,6 @@ def run(ctx, args):
           "-Xcompiler-option --compiler-filter=verify",
           "-Xjitinitialsize:32M",
           "-Xjitsaveprofilinginfo",
+          "-Xusejit:false",
           "-Xps-profile-boot-class-path",
       ])
