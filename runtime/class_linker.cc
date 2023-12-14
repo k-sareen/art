@@ -2443,7 +2443,7 @@ void ClassLinker::VisitClassRoots(RootVisitor* visitor, VisitRootFlags flags) {
     if ((flags & kVisitRootFlagClassLoader) != 0 || tracing_enabled || is_jit_active) {
       for (const ClassLoaderData& data : class_loaders_) {
         GcRoot<mirror::Object> root(GcRoot<mirror::Object>(self->DecodeJObject(data.weak_root)));
-        root.VisitRoot(visitor, RootInfo(kRootVMInternal));
+        root.VisitRootIfNonNull(visitor, RootInfo(kRootVMInternal));
       }
     }
   } else if (!gUseReadBarrier && (flags & kVisitRootFlagNewRoots) != 0) {
