@@ -7313,6 +7313,16 @@ class HLoadMethodHandle final : public HInstruction {
 
 class HLoadMethodType final : public HInstruction {
  public:
+  // Determines how to load the MethodType.
+  enum class LoadKind {
+    // Load from an entry in the .bss section using a PC-relative load.
+    kBssEntry,
+    // Load using a single runtime call.
+    kRuntimeCall,
+
+    kLast = kRuntimeCall,
+  };
+
   HLoadMethodType(HCurrentMethod* current_method,
                   dex::ProtoIndex proto_index,
                   const DexFile& dex_file,
@@ -7324,6 +7334,7 @@ class HLoadMethodType final : public HInstruction {
         special_input_(HUserRecord<HInstruction*>(current_method)),
         proto_index_(proto_index),
         dex_file_(dex_file) {
+    SetPackedField<LoadKindField>(LoadKind::kRuntimeCall);
   }
 
   using HInstruction::GetInputRecords;  // Keep the const version visible.
@@ -7333,6 +7344,12 @@ class HLoadMethodType final : public HInstruction {
   }
 
   bool IsClonable() const override { return true; }
+
+  void SetLoadKind(LoadKind load_kind);
+
+  LoadKind GetLoadKind() const {
+    return GetPackedField<LoadKindField>();
+  }
 
   dex::ProtoIndex GetProtoIndex() const { return proto_index_; }
 
@@ -7352,12 +7369,31 @@ class HLoadMethodType final : public HInstruction {
   DEFAULT_COPY_CONSTRUCTOR(LoadMethodType);
 
  private:
+  static constexpr size_t kFieldLoadKind = kNumberOfGenericPackedBits;
+  static constexpr size_t kFieldLoadKindSize =
+      MinimumBitsToStore(static_cast<size_t>(LoadKind::kLast));
+  static constexpr size_t kNumberOfLoadMethodTypePackedBits = kFieldLoadKind + kFieldLoadKindSize;
+  static_assert(kNumberOfLoadMethodTypePackedBits <= kMaxNumberOfPackedBits,
+      "Too many packed fields.");
+  using LoadKindField = BitField<LoadKind, kFieldLoadKind, kFieldLoadKindSize>;
+
   // The special input is the HCurrentMethod for kRuntimeCall.
   HUserRecord<HInstruction*> special_input_;
 
   const dex::ProtoIndex proto_index_;
   const DexFile& dex_file_;
 };
+
+std::ostream& operator<<(std::ostream& os, HLoadMethodType::LoadKind rhs);
+
+// Note: defined outside class to see operator<<(., HLoadMethodType::LoadKind).
+inline void HLoadMethodType::SetLoadKind(LoadKind load_kind) {
+  // The load kind should be determined before inserting the instruction to the graph.
+  DCHECK(GetBlock() == nullptr);
+  DCHECK(GetEnvironment() == nullptr);
+  DCHECK_EQ(GetLoadKind(), LoadKind::kRuntimeCall);
+  SetPackedField<LoadKindField>(load_kind);
+}
 
 /**
  * Performs an initialization check on its Class object input.

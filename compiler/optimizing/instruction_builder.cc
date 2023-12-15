@@ -2699,6 +2699,9 @@ void HInstructionBuilder::BuildLoadMethodType(dex::ProtoIndex proto_index, uint3
   const DexFile& dex_file = *dex_compilation_unit_->GetDexFile();
   HLoadMethodType* load_method_type =
       new (allocator_) HLoadMethodType(graph_->GetCurrentMethod(), proto_index, dex_file, dex_pc);
+  if (!code_generator_->GetCompilerOptions().IsJitCompiler()) {
+    load_method_type->SetLoadKind(HLoadMethodType::LoadKind::kBssEntry);
+  }
   AppendInstruction(load_method_type);
 }
 

@@ -270,6 +270,38 @@ class BoundsCheckSlowPathX86_64 : public SlowPathCode {
   DISALLOW_COPY_AND_ASSIGN(BoundsCheckSlowPathX86_64);
 };
 
+class LoadMethodTypeSlowPathX86_64: public SlowPathCode {
+ public:
+  explicit LoadMethodTypeSlowPathX86_64(HLoadMethodType* mt) : SlowPathCode(mt) {}
+
+  void EmitNativeCode(CodeGenerator* codegen) override {
+    LocationSummary* locations = instruction_->GetLocations();
+    DCHECK(!locations->GetLiveRegisters()->ContainsCoreRegister(locations->Out().reg()));
+
+    CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
+    __ Bind(GetEntryLabel());
+    SaveLiveRegisters(codegen, locations);
+
+    const dex::ProtoIndex proto_index = instruction_->AsLoadMethodType()->GetProtoIndex();
+    // Custom calling convention: RAX serves as both input and output.
+    __ movl(CpuRegister(RAX), Immediate(proto_index.index_));
+    x86_64_codegen->InvokeRuntime(kQuickResolveMethodType,
+                                  instruction_,
+                                  instruction_->GetDexPc(),
+                                  this);
+    CheckEntrypointTypes<kQuickResolveMethodType, void*, uint32_t>();
+    x86_64_codegen->Move(locations->Out(), Location::RegisterLocation(RAX));
+    RestoreLiveRegisters(codegen, locations);
+
+    __ jmp(GetExitLabel());
+  }
+
+  const char* GetDescription() const override { return "LoadMethodTypeSlowPathX86_64"; }
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(LoadMethodTypeSlowPathX86_64);
+};
+
 class LoadClassSlowPathX86_64 : public SlowPathCode {
  public:
   LoadClassSlowPathX86_64(HLoadClass* cls, HInstruction* at)
@@ -529,6 +561,7 @@ class ReadBarrierMarkSlowPathX86_64 : public SlowPathCode {
            instruction_->IsArrayGet() ||
            instruction_->IsArraySet() ||
            instruction_->IsLoadClass() ||
+           instruction_->IsLoadMethodType() ||
            instruction_->IsLoadString() ||
            instruction_->IsInstanceOf() ||
            instruction_->IsCheckCast() ||
@@ -1319,6 +1352,12 @@ Label* CodeGeneratorX86_64::NewStringBssEntryPatch(HLoadString* load_string) {
   return &string_bss_entry_patches_.back().label;
 }
 
+Label* CodeGeneratorX86_64::NewMethodTypeBssEntryPatch(HLoadMethodType* load_method_type) {
+  method_type_bss_entry_patches_.emplace_back(
+      &load_method_type->GetDexFile(), load_method_type->GetProtoIndex().index_);
+  return &method_type_bss_entry_patches_.back().label;
+}
+
 void CodeGeneratorX86_64::RecordBootImageJniEntrypointPatch(HInvokeStaticOrDirect* invoke) {
   boot_image_jni_entrypoint_patches_.emplace_back(invoke->GetResolvedMethodReference().dex_file,
                                                   invoke->GetResolvedMethodReference().index);
@@ -1406,6 +1445,7 @@ void CodeGeneratorX86_64::EmitLinkerPatches(ArenaVector<linker::LinkerPatch>* li
       package_type_bss_entry_patches_.size() +
       boot_image_string_patches_.size() +
       string_bss_entry_patches_.size() +
+      method_type_bss_entry_patches_.size() +
       boot_image_jni_entrypoint_patches_.size() +
       boot_image_other_patches_.size();
   linker_patches->reserve(size);
@@ -1438,6 +1478,8 @@ void CodeGeneratorX86_64::EmitLinkerPatches(ArenaVector<linker::LinkerPatch>* li
       package_type_bss_entry_patches_, linker_patches);
   EmitPcRelativeLinkerPatches<linker::LinkerPatch::StringBssEntryPatch>(
       string_bss_entry_patches_, linker_patches);
+  EmitPcRelativeLinkerPatches<linker::LinkerPatch::MethodTypeBssEntryPatch>(
+      method_type_bss_entry_patches_, linker_patches);
   EmitPcRelativeLinkerPatches<linker::LinkerPatch::RelativeJniEntrypointPatch>(
       boot_image_jni_entrypoint_patches_, linker_patches);
   DCHECK_EQ(size, linker_patches->size());
@@ -1562,6 +1604,7 @@ CodeGeneratorX86_64::CodeGeneratorX86_64(HGraph* graph,
       package_type_bss_entry_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
       boot_image_string_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
       string_bss_entry_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
+      method_type_bss_entry_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
       boot_image_jni_entrypoint_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
       boot_image_other_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
       jit_string_patches_(graph->GetAllocator()->Adapter(kArenaAllocCodeGenerator)),
@@ -6673,13 +6716,50 @@ void InstructionCodeGeneratorX86_64::VisitLoadMethodHandle(HLoadMethodHandle* lo
 }
 
 void LocationsBuilderX86_64::VisitLoadMethodType(HLoadMethodType* load) {
-  // Custom calling convention: RAX serves as both input and output.
-  Location location = Location::RegisterLocation(RAX);
-  CodeGenerator::CreateLoadMethodTypeRuntimeCallLocationSummary(load, location, location);
+  LocationSummary* locations =
+      new (GetGraph()->GetAllocator()) LocationSummary(load, LocationSummary::kCallOnSlowPath);
+  if (load->GetLoadKind() == HLoadMethodType::LoadKind::kRuntimeCall) {
+      Location location = Location::RegisterLocation(RAX);
+      CodeGenerator::CreateLoadMethodTypeRuntimeCallLocationSummary(load, location, location);
+  } else {
+    DCHECK_EQ(load->GetLoadKind(), HLoadMethodType::LoadKind::kBssEntry);
+    locations->SetOut(Location::RequiresRegister());
+    if (codegen_->EmitNonBakerReadBarrier()) {
+      // For non-Baker read barrier we have a temp-clobbering call.
+    } else {
+      // Rely on the pResolveMethodType to save everything.
+      locations->SetCustomSlowPathCallerSaves(OneRegInReferenceOutSaveEverythingCallerSaves());
+    }
+  }
 }
 
 void InstructionCodeGeneratorX86_64::VisitLoadMethodType(HLoadMethodType* load) {
-  codegen_->GenerateLoadMethodTypeRuntimeCall(load);
+  LocationSummary* locations = load->GetLocations();
+  Location out_loc = locations->Out();
+  CpuRegister out = out_loc.AsRegister<CpuRegister>();
+
+  switch (load->GetLoadKind()) {
+    case HLoadMethodType::LoadKind::kBssEntry: {
+      Address address = Address::Absolute(CodeGeneratorX86_64::kPlaceholder32BitOffset,
+                                          /* no_rip= */ false);
+      Label* fixup_label = codegen_->NewMethodTypeBssEntryPatch(load);
+      // /* GcRoot<mirror::MethodType> */ out = *address  /* PC-relative */
+      GenerateGcRootFieldLoad(
+          load, out_loc, address, fixup_label, codegen_->GetCompilerReadBarrierOption());
+      // No need for memory fence, thanks to the x86-64 memory model.
+      SlowPathCode* slow_path =
+          new (codegen_->GetScopedAllocator()) LoadMethodTypeSlowPathX86_64(load);
+      codegen_->AddSlowPath(slow_path);
+      __ testl(out, out);
+      __ j(kEqual, slow_path->GetEntryLabel());
+      __ Bind(slow_path->GetExitLabel());
+      return;
+    }
+    default:
+      DCHECK_EQ(load->GetLoadKind(), HLoadMethodType::LoadKind::kRuntimeCall);
+      codegen_->GenerateLoadMethodTypeRuntimeCall(load);
+      break;
+  }
 }
 
 void InstructionCodeGeneratorX86_64::VisitClinitCheck(HClinitCheck* check) {

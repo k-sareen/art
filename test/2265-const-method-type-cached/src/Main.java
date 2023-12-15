@@ -22,7 +22,11 @@ import java.util.Objects;
 public class Main {
     public static void main(String... args) throws Throwable {
         testEquality();
+        // Subsequent const-method-type call should take value from from .bss.
+        testEquality();
         testNonEquality();
+        testNonEquality();
+        testWithUninitializableClass();
     }
 
     private static void unreachable() {
@@ -64,6 +68,7 @@ public class Main {
             int[].class);
 
         assertSame(expected, actual);
+        assertSame(takesEverythingReturnsVoid(), takesEverythingReturnsVoid());
     }
 
     public static void testNonEquality() throws Throwable {
@@ -83,6 +88,32 @@ public class Main {
             int[].class);
 
         assertNotEqual(expected, actual);
+    }
+
+    @ConstantMethodType(
+        returnType = void.class,
+        parameterTypes = { UnloadableClass.class })
+    private static MethodType takesUnloadableReturnsVoid() {
+        unreachable();
+        return null;
+    }
+
+    public static volatile int x = 0;
+
+    private static class UnloadableClass {
+        static {
+            if (x == x) {
+                throw new RuntimeException("don't init me");
+            }
+        }
+    }
+
+    public static void testWithUninitializableClass() {
+        MethodType actual = takesUnloadableReturnsVoid();
+
+        MethodType expected = MethodType.methodType(void.class, UnloadableClass.class);
+
+        assertSame(expected, actual);
     }
 
     public static void assertNotEqual(Object expected, Object actual) {

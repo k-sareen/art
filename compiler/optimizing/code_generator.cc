@@ -1682,6 +1682,7 @@ void CodeGenerator::ValidateInvokeRuntimeWithoutRecordingPcInfo(HInstruction* in
          instruction->IsArrayGet() ||
          instruction->IsArraySet() ||
          instruction->IsLoadClass() ||
+         instruction->IsLoadMethodType() ||
          instruction->IsLoadString() ||
          instruction->IsInstanceOf() ||
          instruction->IsCheckCast() ||

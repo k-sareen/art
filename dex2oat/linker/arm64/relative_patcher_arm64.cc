@@ -71,6 +71,7 @@ inline bool IsAdrpPatch(const LinkerPatch& patch) {
     case LinkerPatch::Type::kPackageTypeBssEntry:
     case LinkerPatch::Type::kStringRelative:
     case LinkerPatch::Type::kStringBssEntry:
+    case LinkerPatch::Type::kMethodTypeBssEntry:
       return patch.LiteralOffset() == patch.PcInsnOffset();
   }
 }

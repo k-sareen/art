@@ -32,6 +32,7 @@
 #include "dex/compact_dex_level.h"
 #include "dex/method_reference.h"
 #include "dex/string_reference.h"
+#include "dex/proto_reference.h"
 #include "dex/type_reference.h"
 #include "linker/relative_patcher.h"  // For RelativePatcherTargetProvider.
 #include "mirror/class.h"
@@ -321,7 +322,8 @@ class OatWriter {
                                      uint32_t type_bss_mapping_offset,
                                      uint32_t public_type_bss_mapping_offset,
                                      uint32_t package_type_bss_mapping_offset,
-                                     uint32_t string_bss_mapping_offset);
+                                     uint32_t string_bss_mapping_offset,
+                                     uint32_t method_type_bss_mapping_offset);
   size_t InitIndexBssMappingsHelper(size_t offset,
                                     const DexFile* dex_file,
                                     /*inout*/ size_t& number_of_method_dex_files,
@@ -329,11 +331,13 @@ class OatWriter {
                                     /*inout*/ size_t& number_of_public_type_dex_files,
                                     /*inout*/ size_t& number_of_package_type_dex_files,
                                     /*inout*/ size_t& number_of_string_dex_files,
+                                    /*inout*/ size_t& number_of_method_type_dex_files,
                                     /*inout*/ uint32_t& method_bss_mapping_offset,
                                     /*inout*/ uint32_t& type_bss_mapping_offset,
                                     /*inout*/ uint32_t& public_type_bss_mapping_offset,
                                     /*inout*/ uint32_t& package_type_bss_mapping_offset,
-                                    /*inout*/ uint32_t& string_bss_mapping_offset);
+                                    /*inout*/ uint32_t& string_bss_mapping_offset,
+                                    /*inout*/ uint32_t& method_type_bss_mapping_offset);
 
   bool RecordOatDataOffset(OutputStream* out);
   void InitializeTypeLookupTables(
@@ -449,6 +453,9 @@ class OatWriter {
   // Map for recording references to GcRoot<mirror::String> entries in .bss.
   SafeMap<const DexFile*, BitVector> bss_string_entry_references_;
 
+  // Map for recording references to GcRoot<mirror::MethodType> entries in .bss.
+  SafeMap<const DexFile*, BitVector> bss_method_type_entry_references_;
+
   // Map for allocating ArtMethod entries in .bss. Indexed by MethodReference for the target
   // method in the dex file with the "method reference value comparator" for deduplication.
   // The value is the target offset for patching, starting at `bss_start_ + bss_methods_offset_`.
@@ -473,6 +480,11 @@ class OatWriter {
   // string in the dex file with the "string value comparator" for deduplication. The value
   // is the target offset for patching, starting at `bss_start_ + bss_roots_offset_`.
   SafeMap<StringReference, size_t, StringReferenceValueComparator> bss_string_entries_;
+
+  // Map for allocating MethodType entries in .bss. Indexed by ProtoReference for the source
+  // proto in the dex file with the "proto value comparator" for deduplication. The value
+  // is the target offset for patching, starting at `bss_start_ + bss_roots_offset_`.
+  SafeMap<ProtoReference, size_t, ProtoReferenceValueComparator> bss_method_type_entries_;
 
   // Offset of the oat data from the start of the mmapped region of the elf file.
   size_t oat_data_offset_;
@@ -540,12 +552,14 @@ class OatWriter {
   uint32_t size_oat_dex_file_public_type_bss_mapping_offset_ = 0;
   uint32_t size_oat_dex_file_package_type_bss_mapping_offset_ = 0;
   uint32_t size_oat_dex_file_string_bss_mapping_offset_ = 0;
+  uint32_t size_oat_dex_file_method_type_bss_mapping_offset_ = 0;
   uint32_t size_bcp_bss_info_size_ = 0;
   uint32_t size_bcp_bss_info_method_bss_mapping_offset_ = 0;
   uint32_t size_bcp_bss_info_type_bss_mapping_offset_ = 0;
   uint32_t size_bcp_bss_info_public_type_bss_mapping_offset_ = 0;
   uint32_t size_bcp_bss_info_package_type_bss_mapping_offset_ = 0;
   uint32_t size_bcp_bss_info_string_bss_mapping_offset_ = 0;
+  uint32_t size_bcp_bss_info_method_type_bss_mapping_offset_ = 0;
   uint32_t size_oat_class_offsets_alignment_ = 0;
   uint32_t size_oat_class_offsets_ = 0;
   uint32_t size_oat_class_type_ = 0;
@@ -558,6 +572,7 @@ class OatWriter {
   uint32_t size_public_type_bss_mappings_ = 0;
   uint32_t size_package_type_bss_mappings_ = 0;
   uint32_t size_string_bss_mappings_ = 0;
+  uint32_t size_method_type_bss_mappings_ = 0;
 
   // The helper for processing relative patches is external so that we can patch across oat files.
   MultiOatRelativePatcher* relative_patcher_;

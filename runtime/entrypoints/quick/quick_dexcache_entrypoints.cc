@@ -162,9 +162,47 @@ static inline void StoreStringInBss(ArtMethod* caller,
   // Perform the update if we found a mapping.
   if (mapping != nullptr) {
     size_t bss_offset = IndexBssMappingLookup::GetBssOffset(
-        mapping, string_idx.index_, dex_file->NumStringIds(), sizeof(GcRoot<mirror::Class>));
+        mapping, string_idx.index_, dex_file->NumStringIds(), sizeof(GcRoot<mirror::String>));
     if (bss_offset != IndexBssMappingLookup::npos) {
       StoreObjectInBss(outer_method, outer_oat_file, bss_offset, resolved_string);
+    }
+  }
+}
+
+static inline void StoreMethodTypeInBss(ArtMethod* caller,
+                                        dex::ProtoIndex proto_idx,
+                                        ObjPtr<mirror::MethodType> resolved_method_type,
+                                        ArtMethod* outer_method)
+    REQUIRES_SHARED(Locks::mutator_lock_) {
+  const DexFile* dex_file = caller->GetDexFile();
+  DCHECK_NE(dex_file, nullptr);
+
+  if (outer_method->GetDexFile()->GetOatDexFile() == nullptr ||
+      outer_method->GetDexFile()->GetOatDexFile()->GetOatFile() == nullptr) {
+    // No OatFile to update.
+    return;
+  }
+  const OatFile* outer_oat_file = outer_method->GetDexFile()->GetOatDexFile()->GetOatFile();
+
+  const OatDexFile* oat_dex_file = dex_file->GetOatDexFile();
+  const IndexBssMapping* mapping = nullptr;
+  if (oat_dex_file != nullptr && oat_dex_file->GetOatFile() == outer_oat_file) {
+    // DexFiles compiled together to an oat file case.
+    mapping = oat_dex_file->GetMethodTypeBssMapping();
+  } else {
+    // Try to find the DexFile in the BCP of the outer_method.
+    const OatFile::BssMappingInfo* mapping_info = outer_oat_file->FindBcpMappingInfo(dex_file);
+    if (mapping_info != nullptr) {
+      mapping = mapping_info->method_type_bss_mapping;
+    }
+  }
+
+  // Perform the update if we found a mapping.
+  if (mapping != nullptr) {
+    size_t bss_offset = IndexBssMappingLookup::GetBssOffset(
+        mapping, proto_idx.index_, dex_file->NumProtoIds(), sizeof(GcRoot<mirror::MethodType>));
+    if (bss_offset != IndexBssMappingLookup::npos) {
+      StoreObjectInBss(outer_method, outer_oat_file, bss_offset, resolved_method_type);
     }
   }
 }
@@ -243,6 +281,10 @@ extern "C" mirror::MethodType* artResolveMethodTypeFromCode(uint32_t proto_idx, 
                                                                   CalleeSaveType::kSaveEverything);
   ArtMethod* caller = caller_and_outer.caller;
   ObjPtr<mirror::MethodType> result = ResolveMethodTypeFromCode(caller, dex::ProtoIndex(proto_idx));
+  ArtMethod* outer_method = caller_and_outer.outer_method;
+  if (LIKELY(result != nullptr)) {
+    StoreMethodTypeInBss(caller, dex::ProtoIndex(proto_idx), result, outer_method);
+  }
   return result.Ptr();
 }
 
