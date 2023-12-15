@@ -16,5 +16,8 @@
 
 class Main {
     public static void main(String args[]) {
+      // Empty loop to avoid the method to be pattern matched (it's used in 595-profile-saving and
+      // we expect the method to be baseline compiled there).
+      for (int i = 0; i < 100; i++) {}
     }
 }
