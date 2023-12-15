@@ -386,12 +386,11 @@ class StatsdBackend : public MetricsBackend {
         EncodeCompileFilter(session_data_.compiler_filter),
         EncodeCompilationReason(session_data_.compilation_reason),
         current_timestamp_,
-        0,  // TODO: collect and report thread type (0 means UNKNOWN, but that
-            // constant is not present in all branches)
+        0,  // deprecated - was ArtThreadType
         datum_id.value(),
         static_cast<int64_t>(value),
-        statsd::ART_DATUM_REPORTED__DEX_METADATA_TYPE__ART_DEX_METADATA_TYPE_UNKNOWN,
-        statsd::ART_DATUM_REPORTED__APK_TYPE__ART_APK_TYPE_UNKNOWN,
+        0,  // deprecated - was ArtDexMetadataType
+        0,  // deprecated - was ArtApkType
         EncodeInstructionSet(kRuntimeISA),
         EncodeGcCollectorType(Runtime::Current()->GetHeap()->GetForegroundCollectorType()),
         EncodeUffdMinorFaultSupport());
