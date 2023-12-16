@@ -15,57 +15,358 @@
 
 // *** iget ***
 
-%def op_iget(load="", wide="", is_object=""):
-    unimp
+%def load(dst, src, width, zext):
+%  if width == "8" and zext:
+     lbu $dst, ($src)
+%  elif width == "8":
+     lb $dst, ($src)
+%  elif width == "16" and zext:
+     lhu $dst, ($src)
+%  elif width == "16":
+     lh $dst, ($src)
+%  elif width == "32":
+     lw $dst, ($src)
+%  else:  # width = 64:
+     ld $dst, ($src)
+%#:
 
-%def op_iget_slow_path(load, wide, is_object):
-    unimp
 
-%def op_iget_boolean():
-    unimp
+%def store(src, dst, width):
+%  if width == "8":
+     sb $src, ($dst)
+%  elif width == "16":
+     sh $src, ($dst)
+%  elif width == "32":
+     sw $src, ($dst)
+%  else:  # width 64:
+     sd $src, ($dst)
+%#:
 
-%def op_iget_byte():
-    unimp
 
-%def op_iget_char():
-    unimp
+// iget vA, vB, field@CCCC
+// Format 22c: B|A|52 CCCC
+// Here, vB has the holder object, and vA is the destination vreg.
+%def op_iget(width="32", zext=False):
+   srliw s7, xINST, 12     // s7 := B
+   srliw s8, xINST, 8
+   andi s8, s8, 0xF        // s8 := A
 
-%def op_iget_short():
-    unimp
+   // Fast path: NterpGetInstanceFieldOffset's byte offset from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*field_offset*/a0, .L${opcode}_slow, t1, t2
+.L${opcode}_slow_resume:
 
+   GET_VREG_OBJECT t0, s7  // t0 := holder
+   beqz t0, .L${opcode}_null
+   add t0, a0, t0          // t0 := field addr
+%  load(dst="t1", src="t0", width=width, zext=zext)
+                           // t1 := value
+   FETCH_ADVANCE_INST 2
+%  is_wide = "1" if width == "64" else "0"
+   SET_VREG t1, s8, z0=t0, is_wide=$is_wide
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_slow:
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, zero
+   EXPORT_PC
+   call nterp_get_instance_field_offset  // result a0 := field_offset
+
+   // Test for volatile (negative value).
+   bgez a0, .L${opcode}_slow_resume
+%  volatile_path = add_slow_path(op_iget_volatile, width, zext, "s7", "s8", "t0", "t1")
+   tail $volatile_path
+
+.L${opcode}_null:
+   tail common_errNullObject
+
+
+%def op_iget_volatile(width, zext, holder, dst, z0, z1):
+   GET_VREG_OBJECT $z0, $holder  // z0 := holder
+   beqz $z0, .L${opcode}_volatile_null
+   sub $z0, $z0, a0           // z0 := field addr (holder - (-offset))
+   // Atomic load: "fence rw,rw ; LOAD ; fence r,rw"
+   fence rw, rw
+%  load(dst=z1, src=z0, width=width, zext=zext)
+   fence r, rw
+                              // t1 := value
+   FETCH_ADVANCE_INST 2
+%  is_wide = "1" if width == "64" else "0"
+   SET_VREG $z1, $dst, z0=$z0, is_wide=$is_wide
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_null:
+   tail common_errNullObject
+
+
+// iget-wide vA, vB, field@CCCC
+// Format 22c: B|A|53 CCCC
 %def op_iget_wide():
-    unimp
+%  op_iget(width="64")
 
+
+// iget-object vA, vB, field@CCCC
+// Format 22c: B|A|54 CCCC
 %def op_iget_object():
-    unimp
+   srliw s7, xINST, 12     // s7 := B
+   srliw s8, xINST, 8
+   andi s8, s8, 0xF        // s8 := A
+
+   // Fast path: NterpGetInstanceFieldOffset's byte offset from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*field_offset*/a0, .L${opcode}_slow, t1, t2
+.L${opcode}_slow_resume:
+
+   GET_VREG_OBJECT t0, s7  // t0 := holder
+   beqz t0, .L${opcode}_null
+   add t0, a0, t0          // t0 := field addr
+   lwu a0, (t0)            // a0 := object
+   TEST_IF_MARKING t1, .L${opcode}_mark
+.L${opcode}_mark_resume:
+
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, s8, z0=t0
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, object
+   j .L${opcode}_mark_resume
+
+.L${opcode}_slow:
+%  slow_path = add_slow_path(op_iget_object_slow_path, "s7", "s8", "t0", "t1")
+   tail $slow_path
+
+.L${opcode}_null:
+   tail common_errNullObject
+
+
+%def op_iget_object_slow_path(holder, dst, z0, z1):
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, zero
+   EXPORT_PC
+   call nterp_get_instance_field_offset  // result a0 := field_offset
+
+   // Test for volatile (negative value).
+   bltz a0, .L${opcode}_volatile
+   tail .L${opcode}_slow_resume  // resume offset exceeds branch imm
+
+.L${opcode}_volatile:
+   GET_VREG_OBJECT $z0, $holder  // z0 := holder
+   beqz $z0, .L${opcode}_volatile_null
+   sub $z0, $z0, a0           // z0 := field addr (holder - (-offset))
+   // Atomic load: "fence rw,rw ; LOAD ; fence r,rw"
+   fence rw, rw
+   lwu a0, ($z0)              // a0 := object
+   fence r, rw
+   TEST_IF_MARKING t1, .L${opcode}_volatile_mark
+.L${opcode}_volatile_mark_resume:
+
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, $dst, z0=$z0
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, object
+   j .L${opcode}_volatile_mark_resume
+
+.L${opcode}_volatile_null:
+   tail common_errNullObject
+
+
+// iget-boolean vA, vB, field@CCCC
+// Format 22c: B|A|55 CCCC
+%def op_iget_boolean():
+%  op_iget(width="8", zext=True)
+
+
+// iget-byte vA, vB, field@CCCC
+// Format 22c: B|A|56 CCCC
+%def op_iget_byte():
+%  op_iget(width="8")
+
+
+// iget-char vA, vB, field@CCCC
+// Format 22c: B|A|57 CCCC
+%def op_iget_char():
+%  op_iget(width="16", zext=True)
+
+
+// iget-short vA, vB, field@CCCC
+// Format 22c: B|A|58 CCCC
+%def op_iget_short():
+%  op_iget(width="16")
+
 
 // *** iput ***
 
-%def op_iput(wide="", is_object=""):
-    unimp
+// iput vA, vB, field@CCCC
+// Format 22c: B|A|59 CCCC
+// Here, vB has the holder object, and vA is the source vreg.
+%def op_iput(width="32", zext=False):
+   srliw s7, xINST, 12     // s7 := B
+   srliw s8, xINST, 8
+   andi s8, s8, 0xF        // s8 := A
+%  is_wide = "1" if (width == "64") else "0"
+   GET_VREG s8, s8, is_wide=$is_wide  // s8 := value, held across slow path call
 
-%def op_iput_slow_path(wide, is_object):
-    unimp
+   // Fast path: NterpGetInstanceFieldOffset's byte offset from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
+.L${opcode}_slow_resume:
 
-%def op_iput_boolean():
-    unimp
+   GET_VREG_OBJECT t0, s7  // t0 := holder
+   beqz t0, .L${opcode}_null
+   add t0, a0, t0          // t0 := field addr
+   FETCH_ADVANCE_INST 2
+%  store(src="s8", dst="t0", width=width)
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
 
-%def op_iput_byte():
-    unimp
+.L${opcode}_slow:
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, zero
+   EXPORT_PC
+   call nterp_get_instance_field_offset  // result a0 := field_offset
 
-%def op_iput_char():
-    unimp
+   // Test for volatile (negative value).
+   bgez a0, .L${opcode}_slow_resume
+%  volatile_path = add_slow_path(op_iput_volatile, width, "s7", "s8", "t0", "t1")
+   tail $volatile_path
 
-%def op_iput_short():
-    unimp
+.L${opcode}_null:
+   tail common_errNullObject
 
+
+%def op_iput_volatile(width, holder, value, z0, z1):
+   GET_VREG_OBJECT $z0, $holder  // z0 := holder
+   beqz $z0, .L${opcode}_volatile_null
+   sub $z0, $z0, a0              // z0 := field addr (holder - (-offset))
+   // Ensure the volatile store is released.
+%  if width == "8":
+     fence rw, w
+     sb $value, ($z0)
+     fence rw, rw
+%  elif width == "16":
+     fence rw, w
+     sh $value, ($z0)
+     fence rw, rw
+%  elif width == "32":
+     amoswap.w.rl zero, $value, ($z0)
+%  else:  # width == 64:
+     amoswap.d.rl zero, $value, ($z0)
+%#:
+
+   FETCH_ADVANCE_INST 2
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_null:
+   tail common_errNullObject
+
+
+// iput-wide vA, vB, field@CCCC
+// Format 22c: B|A|5a CCCC
 %def op_iput_wide():
-    unimp
+%  op_iput(width="64")
 
+
+// iput-object vA, vB, field@CCCC
+// Format 22c: B|A|5b CCCC
 %def op_iput_object():
-    unimp
+   srliw s7, xINST, 12     // s7 := B
+   srliw s8, xINST, 8
+   andi s8, s8, 0xF        // s8 := A
+   GET_VREG_OBJECT s9, s8  // s9 := reference
+
+   // Fast path: NterpGetInstanceFieldOffset's byte offset from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
+.L${opcode}_slow_resume:   // s9 := reference (slow path only)
+
+   GET_VREG_OBJECT t0, s7  // t0 := holder
+   beqz t0, .L${opcode}_null
+   add t1, a0, t0          // t1 := field addr
+   sw s9, (t1)
+%  object_write_barrier(value="s9", holder="t0", z0="t1", z1="t2", uniq=f"{opcode}")
+
+   FETCH_ADVANCE_INST 2
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_slow:
+%  slow_path = add_slow_path(op_iput_object_slow_path, "s7", "s8", "s9", "t0", "t1", "t2")
+   tail $slow_path
+
+.L${opcode}_null:
+   tail common_errNullObject
+
+
+%def op_iput_object_slow_path(holder, src, value, z0, z1, z2):
+   mv a0, xSELF
+   ld a1, (sp)  // a1 := caller ArtMethod*
+   mv a2, xPC
+   mv a3, $value
+   EXPORT_PC
+   call nterp_get_instance_field_offset  // result a0 := field_offset
+
+   // Reload value, object may have moved.
+   GET_VREG_OBJECT $value, $src  // value := v[A]
+
+   // Test for volatile (negative value).
+   bltz a0, .L${opcode}_volatile
+   tail .L${opcode}_slow_resume  // resume offset exceeds branch imm
+
+.L${opcode}_volatile:
+   GET_VREG_OBJECT $z0, $holder  // z0 := holder
+   beqz $z0, .L${opcode}_volatile_null
+   sub $z1, $z0, a0              // z1 := field addr (holder - (-offset))
+   // Ensure the volatile store is released.
+   amoswap.w.rl zero, $value, ($z1)
+%  object_write_barrier(value=value, holder=z0, z0=z1, z1=z2, uniq=f"slow_{opcode}")
+
+   FETCH_ADVANCE_INST 2
+   GET_INST_OPCODE $z0
+   GOTO_OPCODE $z0
+
+.L${opcode}_volatile_null:
+   tail common_errNullObject
+
+
+// iput-boolean vA, vB, field@CCCC
+// Format 22c: B|A|5c CCCC
+%def op_iput_boolean():
+%  op_iput(width="8", zext=True)
+
+
+// iput-byte vA, vB, field@CCCC
+// Format 22c: B|A|5d CCCC
+%def op_iput_byte():
+%  op_iput(width="8")
+
+
+// iput-char vA, vB, field@CCCC
+// Format 22c: B|A|5e CCCC
+%def op_iput_char():
+%  op_iput(width="16", zext=True)
+
+
+// iput-short vA, vB, field@CCCC
+// Format 22c: B|A|5f CCCC
+%def op_iput_short():
+%  op_iput(width="16")
+
 
 // *** sget ***
+
+.macro CLEAR_STATIC_VOLATILE_MARKER reg
+    andi \reg, \reg, ~0x1
+.endm
 
 // sget vAA, field@BBBB
 // Format 21c: AA|60 BBBB
@@ -82,22 +383,11 @@
 .L${opcode}_mark_resume:
 
    add t0, t0, a0      // t0 := field addr, after possible a0 update
-%  if width == "8" and zext:
-     lbu t2, (t0)
-%  elif width == "8":
-     lb t2, (t0)
-%  elif width == "16" and zext:
-     lhu t2, (t0)
-%  elif width == "16":
-     lh t2, (t0)
-%  elif width == "32":
-     lw t2, (t0)
-%  else:  # width = 64:
-     ld t2, (t0)
-%#:
+%  load(dst="t1", src="t0", width=width, zext=zext)
+                       // t1 := value
    FETCH_ADVANCE_INST 2
 %  is_wide = "1" if width == "64" else "0"
-   SET_VREG t2, s7, z0=t0, is_wide=$is_wide
+   SET_VREG t1, s7, z0=t0, is_wide=$is_wide
    GET_INST_OPCODE t0
    GOTO_OPCODE t0
 
@@ -129,24 +419,12 @@
    TEST_IF_MARKING $z1, .L${opcode}_volatile_mark
 .L${opcode}_volatile_mark_resume:
 
-   add $z0, $z0, a0     // z0 := field addr, after possible a0 update
+   add $z0, $z0, a0  // z0 := field addr, after possible a0 update
    // Atomic load: "fence rw,rw ; LOAD ; fence r,rw"
    fence rw, rw
-%  if width == "8" and zext:
-     lbu $z1, ($z0)
-%  elif width == "8":
-     lb $z1, ($z0)
-%  elif width == "16" and zext:
-     lhu $z1, ($z0)
-%  elif width == "16":
-     lh $z1, ($z0)
-%  elif width == "32":
-     lw $z1, ($z0)
-%  else:  # width = 64:
-     ld $z1, ($z0)
-%#:
+%  load(dst=z1, src=z0, width=width, zext=zext)
    fence r, rw
-
+       // z1 := value
    FETCH_ADVANCE_INST 2
 %  is_wide = "1" if width == "64" else "0"
    SET_VREG $z1, $dst_vreg, z0=$z0, is_wide=$is_wide
@@ -269,10 +547,6 @@
 
 // *** sput ***
 
-.macro CLEAR_STATIC_VOLATILE_MARKER reg
-    andi \reg, \reg, ~0x1
-.endm
-
 // sput vAA, field@BBBB
 // Format 21c: AA|67 BBBB
 // Clobbers: t0, t1, t2, a0
@@ -292,16 +566,8 @@
 .L${opcode}_mark_resume:
 
    add t0, t0, a0  // t0 := field addr, after possible a0 update
-%  if width == "8":
-     sb s7, (t0)
-%  elif width == "16":
-     sh s7, (t0)
-%  elif width == "32":
-     sw s7, (t0)
-%  else:  # width 64:
-     sd s7, (t0)
-%#:
    FETCH_ADVANCE_INST 2
+%  store(src="s7", dst="t0", width=width)
    GET_INST_OPCODE t0
    GOTO_OPCODE t0
 
