@@ -50,22 +50,16 @@ uint16_t ProfilingInfo::GetOptimizeThreshold() {
   return Runtime::Current()->GetJITOptions()->GetOptimizeThreshold();
 }
 
-ProfilingInfo* ProfilingInfo::Create(Thread* self, ArtMethod* method) {
+ProfilingInfo* ProfilingInfo::Create(Thread* self,
+                                     ArtMethod* method,
+                                     const std::vector<uint32_t>& inline_cache_entries) {
   // Walk over the dex instructions of the method and keep track of
   // instructions we are interested in profiling.
   DCHECK(!method->IsNative());
 
-  std::vector<uint32_t> inline_cache_entries;
   std::vector<uint32_t> branch_cache_entries;
   for (const DexInstructionPcPair& inst : method->DexInstructions()) {
     switch (inst->Opcode()) {
-      case Instruction::INVOKE_VIRTUAL:
-      case Instruction::INVOKE_VIRTUAL_RANGE:
-      case Instruction::INVOKE_INTERFACE:
-      case Instruction::INVOKE_INTERFACE_RANGE:
-        inline_cache_entries.push_back(inst.DexPc());
-        break;
-
       case Instruction::IF_EQ:
       case Instruction::IF_EQZ:
       case Instruction::IF_NE:
@@ -102,9 +96,7 @@ InlineCache* ProfilingInfo::GetInlineCache(uint32_t dex_pc) {
       return &caches[i];
     }
   }
-  ScopedObjectAccess soa(Thread::Current());
-  LOG(FATAL) << "No inline cache found for "  << ArtMethod::PrettyMethod(method_) << "@" << dex_pc;
-  UNREACHABLE();
+  return nullptr;
 }
 
 BranchCache* ProfilingInfo::GetBranchCache(uint32_t dex_pc) {

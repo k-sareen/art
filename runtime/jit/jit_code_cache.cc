@@ -1682,18 +1682,6 @@ bool JitCodeCache::NotifyCompilationOf(ArtMethod* method,
   } else {
     if (compilation_kind == CompilationKind::kBaseline) {
       DCHECK(CanAllocateProfilingInfo());
-      bool has_profiling_info = false;
-      {
-        MutexLock mu(self, *Locks::jit_lock_);
-        has_profiling_info = (profiling_infos_.find(method) != profiling_infos_.end());
-      }
-      if (!has_profiling_info) {
-        if (ProfilingInfo::Create(self, method) == nullptr) {
-          VLOG(jit) << method->PrettyMethod() << " needs a ProfilingInfo to be compiled baseline";
-          ClearMethodCounter(method, /*was_warm=*/ false);
-          return false;
-        }
-      }
     }
   }
   return true;

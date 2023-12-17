@@ -297,8 +297,11 @@ public class Main {
 
   public static native boolean isInOsrCode(String methodName);
   public static native boolean isInInterpreter(String methodName);
-  public static native void ensureHasProfilingInfo(String methodName);
+  public static void ensureHasProfilingInfo(String methodName) {
+    ensureJitBaselineCompiled(Main.class, methodName);
+  }
   public static native void ensureHasOsrCode(String methodName);
+  public static native void ensureJitBaselineCompiled(Class<?> cls, String methodName);
 }
 
 class SubMain extends Main {

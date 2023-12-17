@@ -177,6 +177,7 @@ art_cc_defaults {
         "optimizing/optimizing_compiler.cc",
         "optimizing/parallel_move_resolver.cc",
         "optimizing/prepare_for_register_allocation.cc",
+        "optimizing/profiling_info_builder.cc",
         "optimizing/reference_type_propagation.cc",
         "optimizing/register_allocation_resolver.cc",
         "optimizing/register_allocator.cc",

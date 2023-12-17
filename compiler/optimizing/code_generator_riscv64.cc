@@ -34,6 +34,7 @@
 #include "linker/linker_patch.h"
 #include "mirror/class-inl.h"
 #include "optimizing/nodes.h"
+#include "optimizing/profiling_info_builder.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 #include "stack_map_stream.h"
@@ -6720,32 +6721,35 @@ void CodeGeneratorRISCV64::GenerateStaticOrDirectCall(HInvokeStaticOrDirect* inv
 
 void CodeGeneratorRISCV64::MaybeGenerateInlineCacheCheck(HInstruction* instruction,
                                                          XRegister klass) {
-  // We know the destination of an intrinsic, so no need to record inline caches.
-  if (!instruction->GetLocations()->Intrinsified() &&
-      GetGraph()->IsCompilingBaseline() &&
-      !Runtime::Current()->IsAotCompiler()) {
-    DCHECK(!instruction->GetEnvironment()->IsFromInlinedInvoke());
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = info->GetInlineCache(instruction->GetDexPc());
-    uint64_t address = reinterpret_cast64<uint64_t>(cache);
-    Riscv64Label done;
-    // The `art_quick_update_inline_cache` expects the inline cache in T5.
-    XRegister ic_reg = T5;
-    ScratchRegisterScope srs(GetAssembler());
-    DCHECK_EQ(srs.AvailableXRegisters(), 2u);
-    srs.ExcludeXRegister(ic_reg);
-    DCHECK_EQ(srs.AvailableXRegisters(), 1u);
-    __ LoadConst64(ic_reg, address);
-    {
-      ScratchRegisterScope srs2(GetAssembler());
-      XRegister tmp = srs2.AllocateXRegister();
-      __ Loadd(tmp, ic_reg, InlineCache::ClassesOffset().Int32Value());
-      // Fast path for a monomorphic cache.
-      __ Beq(klass, tmp, &done);
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    if (cache != nullptr) {
+      uint64_t address = reinterpret_cast64<uint64_t>(cache);
+      Riscv64Label done;
+      // The `art_quick_update_inline_cache` expects the inline cache in T5.
+      XRegister ic_reg = T5;
+      ScratchRegisterScope srs(GetAssembler());
+      DCHECK_EQ(srs.AvailableXRegisters(), 2u);
+      srs.ExcludeXRegister(ic_reg);
+      DCHECK_EQ(srs.AvailableXRegisters(), 1u);
+      __ LoadConst64(ic_reg, address);
+      {
+        ScratchRegisterScope srs2(GetAssembler());
+        XRegister tmp = srs2.AllocateXRegister();
+        __ Loadd(tmp, ic_reg, InlineCache::ClassesOffset().Int32Value());
+        // Fast path for a monomorphic cache.
+        __ Beq(klass, tmp, &done);
+      }
+      InvokeRuntime(kQuickUpdateInlineCache, instruction, instruction->GetDexPc());
+      __ Bind(&done);
+    } else {
+      // This is unexpected, but we don't guarantee stable compilation across
+      // JIT runs so just warn about it.
+      ScopedObjectAccess soa(Thread::Current());
+      LOG(WARNING) << "Missing inline cache for " << GetGraph()->GetArtMethod()->PrettyMethod();
     }
-    InvokeRuntime(kQuickUpdateInlineCache, instruction, instruction->GetDexPc());
-    __ Bind(&done);
   }
 }
 

@@ -45,6 +45,7 @@
 #include "offsets.h"
 #include "optimizing/common_arm64.h"
 #include "optimizing/nodes.h"
+#include "profiling_info_builder.h"
 #include "thread.h"
 #include "trace.h"
 #include "utils/arm64/assembler_arm64.h"
@@ -4593,24 +4594,26 @@ void LocationsBuilderARM64::VisitInvokeInterface(HInvokeInterface* invoke) {
 void CodeGeneratorARM64::MaybeGenerateInlineCacheCheck(HInstruction* instruction,
                                                        Register klass) {
   DCHECK_EQ(klass.GetCode(), 0u);
-  // We know the destination of an intrinsic, so no need to record inline
-  // caches.
-  if (!instruction->GetLocations()->Intrinsified() &&
-      GetGraph()->IsCompilingBaseline() &&
-      !Runtime::Current()->IsAotCompiler()) {
-    DCHECK(!instruction->GetEnvironment()->IsFromInlinedInvoke());
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = info->GetInlineCache(instruction->GetDexPc());
-    uint64_t address = reinterpret_cast64<uint64_t>(cache);
-    vixl::aarch64::Label done;
-    __ Mov(x8, address);
-    __ Ldr(w9, MemOperand(x8, InlineCache::ClassesOffset().Int32Value()));
-    // Fast path for a monomorphic cache.
-    __ Cmp(klass.W(), w9);
-    __ B(eq, &done);
-    InvokeRuntime(kQuickUpdateInlineCache, instruction, instruction->GetDexPc());
-    __ Bind(&done);
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    if (cache != nullptr) {
+      uint64_t address = reinterpret_cast64<uint64_t>(cache);
+      vixl::aarch64::Label done;
+      __ Mov(x8, address);
+      __ Ldr(w9, MemOperand(x8, InlineCache::ClassesOffset().Int32Value()));
+      // Fast path for a monomorphic cache.
+      __ Cmp(klass.W(), w9);
+      __ B(eq, &done);
+      InvokeRuntime(kQuickUpdateInlineCache, instruction, instruction->GetDexPc());
+      __ Bind(&done);
+    } else {
+      // This is unexpected, but we don't guarantee stable compilation across
+      // JIT runs so just warn about it.
+      ScopedObjectAccess soa(Thread::Current());
+      LOG(WARNING) << "Missing inline cache for " << GetGraph()->GetArtMethod()->PrettyMethod();
+    }
   }
 }
 

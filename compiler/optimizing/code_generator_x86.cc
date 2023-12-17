@@ -37,6 +37,7 @@
 #include "mirror/class-inl.h"
 #include "mirror/var_handle.h"
 #include "optimizing/nodes.h"
+#include "profiling_info_builder.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread.h"
 #include "trace.h"
@@ -2798,7 +2799,7 @@ void LocationsBuilderX86::VisitInvokeVirtual(HInvokeVirtual* invoke) {
 
   HandleInvoke(invoke);
 
-  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(invoke, codegen_)) {
     // Add one temporary for inline cache update.
     invoke->GetLocations()->AddTemp(Location::RegisterLocation(EBP));
   }
@@ -2826,7 +2827,7 @@ void LocationsBuilderX86::VisitInvokeInterface(HInvokeInterface* invoke) {
   // Add the hidden argument.
   invoke->GetLocations()->AddTemp(Location::FpuRegisterLocation(XMM7));
 
-  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(invoke, codegen_)) {
     // Add one temporary for inline cache update.
     invoke->GetLocations()->AddTemp(Location::RegisterLocation(EBP));
   }
@@ -2844,29 +2845,30 @@ void LocationsBuilderX86::VisitInvokeInterface(HInvokeInterface* invoke) {
 
 void CodeGeneratorX86::MaybeGenerateInlineCacheCheck(HInstruction* instruction, Register klass) {
   DCHECK_EQ(EAX, klass);
-  // We know the destination of an intrinsic, so no need to record inline
-  // caches (also the intrinsic location builder doesn't request an additional
-  // temporary).
-  if (!instruction->GetLocations()->Intrinsified() &&
-      GetGraph()->IsCompilingBaseline() &&
-      !Runtime::Current()->IsAotCompiler()) {
-    DCHECK(!instruction->GetEnvironment()->IsFromInlinedInvoke());
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = info->GetInlineCache(instruction->GetDexPc());
-    uint32_t address = reinterpret_cast32<uint32_t>(cache);
-    if (kIsDebugBuild) {
-      uint32_t temp_index = instruction->GetLocations()->GetTempCount() - 1u;
-      CHECK_EQ(EBP, instruction->GetLocations()->GetTemp(temp_index).AsRegister<Register>());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    if (cache != nullptr) {
+      uint32_t address = reinterpret_cast32<uint32_t>(cache);
+      if (kIsDebugBuild) {
+        uint32_t temp_index = instruction->GetLocations()->GetTempCount() - 1u;
+        CHECK_EQ(EBP, instruction->GetLocations()->GetTemp(temp_index).AsRegister<Register>());
+      }
+      Register temp = EBP;
+      NearLabel done;
+      __ movl(temp, Immediate(address));
+      // Fast path for a monomorphic cache.
+      __ cmpl(klass, Address(temp, InlineCache::ClassesOffset().Int32Value()));
+      __ j(kEqual, &done);
+      GenerateInvokeRuntime(GetThreadOffset<kX86PointerSize>(kQuickUpdateInlineCache).Int32Value());
+      __ Bind(&done);
+    } else {
+      // This is unexpected, but we don't guarantee stable compilation across
+      // JIT runs so just warn about it.
+      ScopedObjectAccess soa(Thread::Current());
+      LOG(WARNING) << "Missing inline cache for " << GetGraph()->GetArtMethod()->PrettyMethod();
     }
-    Register temp = EBP;
-    NearLabel done;
-    __ movl(temp, Immediate(address));
-    // Fast path for a monomorphic cache.
-    __ cmpl(klass, Address(temp, InlineCache::ClassesOffset().Int32Value()));
-    __ j(kEqual, &done);
-    GenerateInvokeRuntime(GetThreadOffset<kX86PointerSize>(kQuickUpdateInlineCache).Int32Value());
-    __ Bind(&done);
   }
 }
 

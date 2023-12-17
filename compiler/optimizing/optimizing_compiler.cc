@@ -53,6 +53,7 @@
 #include "oat_quick_method_header.h"
 #include "optimizing/write_barrier_elimination.h"
 #include "prepare_for_register_allocation.h"
+#include "profiling_info_builder.h"
 #include "reference_type_propagation.h"
 #include "register_allocator_linear_scan.h"
 #include "select_generator.h"
@@ -835,8 +836,6 @@ CodeGenerator* OptimizingCompiler::TryCompile(ArenaAllocator* allocator,
   jit::Jit* jit = Runtime::Current()->GetJit();
   if (jit != nullptr) {
     ProfilingInfo* info = jit->GetCodeCache()->GetProfilingInfo(method, Thread::Current());
-    DCHECK_IMPLIES(compilation_kind == CompilationKind::kBaseline, info != nullptr)
-        << "Compiling a method baseline should always have a ProfilingInfo";
     graph->SetProfilingInfo(info);
   }
 
@@ -920,6 +919,21 @@ CodeGenerator* OptimizingCompiler::TryCompile(ArenaAllocator* allocator,
                     &pass_observer,
                     regalloc_strategy,
                     compilation_stats_.get());
+  // If we are compiling baseline and we haven't created a profiling info for
+  // this method already, do it now.
+  if (jit != nullptr &&
+      compilation_kind == CompilationKind::kBaseline &&
+      graph->GetProfilingInfo() == nullptr) {
+    ProfilingInfoBuilder(
+        graph, codegen->GetCompilerOptions(), codegen.get(), compilation_stats_.get()).Run();
+    // We expect a profiling info to be created and attached to the graph.
+    // However, we may have run out of memory trying to create it, so in this
+    // case just abort the compilation.
+    if (graph->GetProfilingInfo() == nullptr) {
+      MaybeRecordStat(compilation_stats_.get(), MethodCompilationStat::kJitOutOfMemoryForCommit);
+      return nullptr;
+    }
+  }
 
   codegen->Compile();
   pass_observer.DumpDisassembly();

@@ -38,6 +38,7 @@
 #include "mirror/object_reference.h"
 #include "mirror/var_handle.h"
 #include "optimizing/nodes.h"
+#include "profiling_info_builder.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread.h"
 #include "trace.h"
@@ -3094,23 +3095,26 @@ void LocationsBuilderX86_64::VisitInvokeInterface(HInvokeInterface* invoke) {
 void CodeGeneratorX86_64::MaybeGenerateInlineCacheCheck(HInstruction* instruction,
                                                         CpuRegister klass) {
   DCHECK_EQ(RDI, klass.AsRegister());
-  // We know the destination of an intrinsic, so no need to record inline
-  // caches.
-  if (!instruction->GetLocations()->Intrinsified() &&
-      GetGraph()->IsCompilingBaseline() &&
-      !Runtime::Current()->IsAotCompiler()) {
+  if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = info->GetInlineCache(instruction->GetDexPc());
-    uint64_t address = reinterpret_cast64<uint64_t>(cache);
-    NearLabel done;
-    __ movq(CpuRegister(TMP), Immediate(address));
-    // Fast path for a monomorphic cache.
-    __ cmpl(Address(CpuRegister(TMP), InlineCache::ClassesOffset().Int32Value()), klass);
-    __ j(kEqual, &done);
-    GenerateInvokeRuntime(
-        GetThreadOffset<kX86_64PointerSize>(kQuickUpdateInlineCache).Int32Value());
-    __ Bind(&done);
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    if (cache != nullptr) {
+      uint64_t address = reinterpret_cast64<uint64_t>(cache);
+      NearLabel done;
+      __ movq(CpuRegister(TMP), Immediate(address));
+      // Fast path for a monomorphic cache.
+      __ cmpl(Address(CpuRegister(TMP), InlineCache::ClassesOffset().Int32Value()), klass);
+      __ j(kEqual, &done);
+      GenerateInvokeRuntime(
+          GetThreadOffset<kX86_64PointerSize>(kQuickUpdateInlineCache).Int32Value());
+      __ Bind(&done);
+    } else {
+      // This is unexpected, but we don't guarantee stable compilation across
+      // JIT runs so just warn about it.
+      ScopedObjectAccess soa(Thread::Current());
+      LOG(WARNING) << "Missing inline cache for " << GetGraph()->GetArtMethod()->PrettyMethod();
+    }
   }
 }
 
