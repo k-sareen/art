@@ -1478,16 +1478,21 @@ void* JitCodeCache::MoreCore(const void* mspace, intptr_t increment) {
 void JitCodeCache::GetProfiledMethods(const std::set<std::string>& dex_base_locations,
                                       std::vector<ProfileMethodInfo>& methods,
                                       uint16_t inline_cache_threshold) {
+  ScopedTrace trace(__FUNCTION__);
   Thread* self = Thread::Current();
   WaitUntilInlineCacheAccessible(self);
+  std::vector<ProfilingInfo*> copies;
   // TODO: Avoid read barriers for potentially dead methods.
   // ScopedDebugDisallowReadBarriers sddrb(self);
-  MutexLock mu(self, *Locks::jit_lock_);
-  ScopedTrace trace(__FUNCTION__);
-  for (const auto& entry : profiling_infos_) {
-    ArtMethod* method = entry.first;
-    ProfilingInfo* info = entry.second;
-    DCHECK_EQ(method, info->GetMethod());
+  {
+    MutexLock mu(self, *Locks::jit_lock_);
+    copies.reserve(profiling_infos_.size());
+    for (const auto& entry : profiling_infos_) {
+      copies.push_back(entry.second);
+    }
+  }
+  for (ProfilingInfo* info : copies) {
+    ArtMethod* method = info->GetMethod();
     const DexFile* dex_file = method->GetDexFile();
     const std::string base_location = DexFileLoader::GetBaseLocation(dex_file->GetLocation());
     if (!ContainsElement(dex_base_locations, base_location)) {
