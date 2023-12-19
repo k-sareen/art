@@ -236,12 +236,7 @@ static ArtMethod* FindVirtualOrInterfaceTarget(HInvoke* invoke, ReferenceTypeInf
     return resolved_method;
   }
 
-  if (!info.IsExact()) {
-    // We currently only support inlining with known receivers.
-    // TODO: Remove this check, we should be able to inline final methods
-    // on unknown receivers.
-    return nullptr;
-  } else if (info.GetTypeHandle()->IsInterface()) {
+  if (info.GetTypeHandle()->IsInterface()) {
     // Statically knowing that the receiver has an interface type cannot
     // help us find what is the target method.
     return nullptr;
