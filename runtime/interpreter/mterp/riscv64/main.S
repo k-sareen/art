@@ -635,6 +635,7 @@ NTERP_TRAMPOLINE nterp_get_instance_field_offset, NterpGetInstanceFieldOffset
 NTERP_TRAMPOLINE nterp_get_method, NterpGetMethod
 NTERP_TRAMPOLINE nterp_get_static_field, NterpGetStaticField
 NTERP_TRAMPOLINE nterp_hot_method, NterpHotMethod
+NTERP_TRAMPOLINE nterp_load_object, NterpLoadObject
 
 ENTRY nterp_deliver_pending_exception
     DELIVER_PENDING_EXCEPTION

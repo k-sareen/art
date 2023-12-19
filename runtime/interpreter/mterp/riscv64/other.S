@@ -218,34 +218,85 @@
                           // fp[AA] := BBBB000000000000
     GOTO_OPCODE t3        // continue to next
 
-// Common helper.
-%def op_const_object(jumbo="0", helper="nterp_load_object"):
-    unimp
 
 // const-string vAA, string@BBBB
 // Format 21c: AA|1a BBBB
-%def op_const_string():
-    unimp
+%def op_const_string(jumbo=False):
+   // Fast path: string from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*object*/a0, .L${opcode}_slow, t0, t1
+   TEST_IF_MARKING t2, .L${opcode}_mark
+
+.L${opcode}_resume:
+   srliw t0, xINST, 8  // t0 := AA
+%  code_units = "3" if jumbo else "2"
+   FETCH_ADVANCE_INST $code_units
+   SET_VREG_OBJECT a0, t0, z0=t1
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, string
+   j .L${opcode}_resume
+.L${opcode}_slow:
+   EXPORT_PC
+   mv a0, xSELF
+   ld a1, (sp)  // caller ArtMethod*
+   mv a2, xPC
+   call nterp_load_object  // return a0 := string
+   j .L${opcode}_resume
+
 
 // const-string/jumbo vAA, string@BBBBBBBB
 // Format 31c: AA|1b BBBB(lo) BBBB(hi)
 %def op_const_string_jumbo():
-    unimp
+%  op_const_string(jumbo=True)
 
 // const-class vAA, type@BBBB
 // Format 21c: AA|1c BBBB
 %def op_const_class():
-    unimp
+   // Fast path: klass reference from thread-local cache.
+   FETCH_FROM_THREAD_CACHE /*object*/a0, .L${opcode}_slow, t0, t1
+   TEST_IF_MARKING t2, .L${opcode}_mark
+
+.L${opcode}_resume:
+   srliw t0, xINST, 8  // t0 := AA
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, t0, z0=t1
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, klass
+   j .L${opcode}_resume
+.L${opcode}_slow:
+   EXPORT_PC
+   mv a0, xSELF
+   ld a1, (sp)  // caller ArtMethod*
+   mv a2, xPC
+   call nterp_get_class  // return a0 := klass
+   j .L${opcode}_resume
+
 
 // const-method-handle vAA, method_handle@BBBB
 // Format 21c: AA|fe BBBB
 %def op_const_method_handle():
-    unimp
+   // Method handle and method type are not cached, just call helper directly.
+   EXPORT_PC
+   mv a0, xSELF
+   ld a1, (sp)  // caller ArtMethod*
+   mv a2, xPC
+   call nterp_load_object  // return a0 := method handle or method type
+   srliw t0, xINST, 8  // t0 := AA
+   FETCH_ADVANCE_INST 2
+   SET_VREG_OBJECT a0, t0, z0=t1
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
 
 // const-method-type vAA, proto@BBBB
 // Format 21c: AA|ff BBBB
 %def op_const_method_type():
-    unimp
+%  op_const_method_handle()
 
 
 // monitor-enter vAA
