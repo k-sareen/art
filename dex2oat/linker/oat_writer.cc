@@ -3228,7 +3228,11 @@ bool OatWriter::WriteDexFiles(File* file,
 
     // Extend the file and include the full page at the end as we need to write
     // additional data there and do not want to mmap that page twice.
-    size_t page_aligned_size = RoundUp(vdex_size_with_dex_files, kElfSegmentAlignment);
+    //
+    // The page size value here is used to figure out the size of the mapping below,
+    // however it doesn't affect the file contents or its size, so should not be
+    // replaced with kElfSegmentAlignment.
+    size_t page_aligned_size = RoundUp(vdex_size_with_dex_files, MemMap::GetPageSize());
     if (!use_existing_vdex) {
       if (file->SetLength(page_aligned_size) != 0) {
         PLOG(ERROR) << "Failed to resize vdex file " << file->GetPath();
@@ -3607,7 +3611,8 @@ bool OatWriter::FinishVdexFile(File* vdex_file, verifier::VerifierDeps* verifier
   if (extract_dex_files_into_vdex_) {
     DCHECK(vdex_begin != nullptr);
     // Write data to the last already mmapped page of the vdex file.
-    size_t mmapped_vdex_size = RoundUp(old_vdex_size, kElfSegmentAlignment);
+    // The size should match the page_aligned_size in the OatWriter::WriteDexFiles.
+    size_t mmapped_vdex_size = RoundUp(old_vdex_size, MemMap::GetPageSize());
     size_t first_chunk_size = std::min(buffer.size(), mmapped_vdex_size - old_vdex_size);
     memcpy(vdex_begin + old_vdex_size, buffer.data(), first_chunk_size);
 
@@ -3696,7 +3701,11 @@ bool OatWriter::FinishVdexFile(File* vdex_file, verifier::VerifierDeps* verifier
     if (extract_dex_files_into_vdex_) {
       // Note: We passed the ownership of the vdex dex file MemMap to the caller,
       // so we need to use msync() for the range explicitly.
-      if (msync(vdex_begin, RoundUp(old_vdex_size, kElfSegmentAlignment), MS_SYNC) != 0) {
+      //
+      // The page size here is not replaced with kElfSegmentAlignment as the
+      // rounded up size should match the page_aligned_size in OatWriter::WriteDexFiles
+      // which is the size the original (non-extra) mapping created there.
+      if (msync(vdex_begin, RoundUp(old_vdex_size, MemMap::GetPageSize()), MS_SYNC) != 0) {
         PLOG(ERROR) << "Failed to sync vdex file contents" << vdex_file->GetPath();
         return false;
       }
@@ -3714,7 +3723,12 @@ bool OatWriter::FinishVdexFile(File* vdex_file, verifier::VerifierDeps* verifier
 
   // Note: If `extract_dex_files_into_vdex_`, we passed the ownership of the vdex dex file
   // MemMap to the caller, so we need to use msync() for the range explicitly.
-  if (msync(vdex_begin, kElfSegmentAlignment, MS_SYNC) != 0) {
+  //
+  // The page size here should not be replaced with kElfSegmentAlignment as the size
+  // here should match the header size rounded up to the page size. Any higher value
+  // might happen to be larger than the size of the mapping which can in some circumstances
+  // cause msync to fail.
+  if (msync(vdex_begin, MemMap::GetPageSize(), MS_SYNC) != 0) {
     PLOG(ERROR) << "Failed to sync vdex file header " << vdex_file->GetPath();
     return false;
   }
