@@ -1595,6 +1595,7 @@ static dwarf::Reg DWARFReg(FloatRegister reg) {
 void LocationsBuilderX86_64::VisitMethodEntryHook(HMethodEntryHook* method_hook) {
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
+  locations->SetInAt(0, Location::Any());
   // We use rdtsc to record the timestamp for method profiling. rdtsc returns
   // two 32-bit values in EAX + EDX even on 64-bit architectures.
   locations->AddTemp(Location::RegisterLocation(RAX));
@@ -1631,7 +1632,7 @@ void InstructionCodeGeneratorX86_64::GenerateMethodEntryExitHook(HInstruction* i
   __ j(kGreater, slow_path->GetEntryLabel());
 
   // Check if there is place in the buffer for a new entry, if no, take slow path.
-  CpuRegister index = locations->GetTemp(0).AsRegister<CpuRegister>();
+  Register index = locations->GetTemp(0).AsRegister<Register>();
   CpuRegister entry_addr = CpuRegister(TMP);
   uint64_t trace_buffer_index_offset =
       Thread::TraceBufferIndexOffset<kX86_64PointerSize>().SizeValue();
@@ -1652,15 +1653,21 @@ void InstructionCodeGeneratorX86_64::GenerateMethodEntryExitHook(HInstruction* i
           Address(CpuRegister(entry_addr), CpuRegister(index), TIMES_8, 0));
 
   // Record method pointer and action.
-  CpuRegister method = index;
-  __ movq(CpuRegister(method), Address(CpuRegister(RSP), kCurrentMethodStackOffset));
+  Register method = index;
+  Location method_location = locations->InAt(0);
+  if (method_location.IsDoubleStackSlot()) {
+    __ movq(CpuRegister(method), Address(CpuRegister(RSP), method_location.GetStackIndex()));
+  } else {
+    DCHECK(method_location.IsRegister()) << method_location;
+    method = method_location.AsRegister<Register>();
+  }
   // Use last two bits to encode trace method action. For MethodEntry it is 0
   // so no need to set the bits since they are 0 already.
   if (instruction->IsMethodExitHook()) {
     DCHECK_GE(ArtMethod::Alignment(kRuntimePointerSize), static_cast<size_t>(4));
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodEnter) == 0);
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodExit) == 1);
-    __ orq(method, Immediate(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
+    __ orq(CpuRegister(method), Immediate(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
   }
   __ movq(Address(entry_addr, kMethodOffsetInBytes), CpuRegister(method));
   // Get the timestamp. rdtsc returns timestamp in RAX + RDX even in 64-bit architectures.
@@ -1677,8 +1684,8 @@ void InstructionCodeGeneratorX86_64::VisitMethodEntryHook(HMethodEntryHook* inst
   GenerateMethodEntryExitHook(instruction);
 }
 
-void SetInForReturnValue(HInstruction* instr, LocationSummary* locations) {
-  switch (instr->InputAt(0)->GetType()) {
+void SetInForReturnValue(HInstruction* instr, LocationSummary* locations, int input_index) {
+  switch (instr->InputAt(input_index)->GetType()) {
     case DataType::Type::kReference:
     case DataType::Type::kBool:
     case DataType::Type::kUint8:
@@ -1687,27 +1694,28 @@ void SetInForReturnValue(HInstruction* instr, LocationSummary* locations) {
     case DataType::Type::kInt16:
     case DataType::Type::kInt32:
     case DataType::Type::kInt64:
-      locations->SetInAt(0, Location::RegisterLocation(RAX));
+      locations->SetInAt(input_index, Location::RegisterLocation(RAX));
       break;
 
     case DataType::Type::kFloat32:
     case DataType::Type::kFloat64:
-      locations->SetInAt(0, Location::FpuRegisterLocation(XMM0));
+      locations->SetInAt(input_index, Location::FpuRegisterLocation(XMM0));
       break;
 
     case DataType::Type::kVoid:
-      locations->SetInAt(0, Location::NoLocation());
+      locations->SetInAt(input_index, Location::NoLocation());
       break;
 
     default:
-      LOG(FATAL) << "Unexpected return type " << instr->InputAt(0)->GetType();
+      LOG(FATAL) << "Unexpected return type " << instr->InputAt(input_index)->GetType();
   }
 }
 
 void LocationsBuilderX86_64::VisitMethodExitHook(HMethodExitHook* method_hook) {
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
-  SetInForReturnValue(method_hook, locations);
+  locations->SetInAt(0, Location::Any());
+  SetInForReturnValue(method_hook, locations, /* input_index= */ 1);
   // We use rdtsc to record the timestamp for method profiling. rdtsc returns
   // two 32-bit values in EAX + EDX even on 64-bit architectures.
   locations->AddTemp(Location::RegisterLocation(RAX));
@@ -2829,7 +2837,7 @@ void InstructionCodeGeneratorX86_64::VisitReturnVoid([[maybe_unused]] HReturnVoi
 void LocationsBuilderX86_64::VisitReturn(HReturn* ret) {
   LocationSummary* locations =
       new (GetGraph()->GetAllocator()) LocationSummary(ret, LocationSummary::kNoCall);
-  SetInForReturnValue(ret, locations);
+  SetInForReturnValue(ret, locations, /* input_index= */ 0);
 }
 
 void InstructionCodeGeneratorX86_64::VisitReturn(HReturn* ret) {
