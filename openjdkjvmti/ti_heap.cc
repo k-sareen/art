@@ -975,6 +975,13 @@ class FollowReferencesHelper final {
     jvmtiHeapReferenceKind GetReferenceKind(const art::RootInfo& info,
                                             jvmtiHeapReferenceInfo* ref_info)
         REQUIRES_SHARED(art::Locks::mutator_lock_) {
+      // We do not necessarily hold thread_list_lock_ here, but we may if we are called from
+      // VisitThreadRoots, which can happen from JVMTI FollowReferences. If it was acquired in
+      // ThreadList::VisitRoots, it's unsafe to temporarily release it. Thus we act as if we did
+      // not hold the thread_list_lock_ here, and relax CHECKs appropriately. If it does happen,
+      // we are in a SuspendAll situation with concurrent GC disabled, and should not need to run
+      // flip functions. TODO: Find a way to clean this up.
+
       // TODO: Fill in ref_info.
       memset(ref_info, 0, sizeof(jvmtiHeapReferenceInfo));
 

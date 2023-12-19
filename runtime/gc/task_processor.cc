@@ -103,9 +103,31 @@ bool TaskProcessor::IsRunning() const {
   return is_running_;
 }
 
-Thread* TaskProcessor::GetRunningThread() const {
-  MutexLock mu(Thread::Current(), lock_);
-  return running_thread_;
+bool TaskProcessor::WaitForThread(Thread* self) {
+  // Waiting for too little time here may cause us to fail to get stack traces, since we can't
+  // safely do so without identifying a HeapTaskDaemon to avoid it. Waiting too long could
+  // conceivably deadlock if we somehow try to get a stack trace on the way to starting the
+  // HeapTaskDaemon. Under normal circumstances. this should terminate immediately, since
+  // HeapTaskDaemon should normally be running.
+  constexpr int kTotalWaitMillis = 100;
+  for (int i = 0; i < kTotalWaitMillis; ++i) {
+    if (is_running_) {
+      return true;
+    }
+    cond_.TimedWait(self, 1 /*msecs*/, 0 /*nsecs*/);
+  }
+  LOG(ERROR) << "No identifiable HeapTaskDaemon; unsafe to get thread stacks.";
+  return false;
+}
+
+bool TaskProcessor::IsRunningThread(Thread* t, bool wait) {
+  Thread* self = Thread::Current();
+  MutexLock mu(self, lock_);
+  if (wait && !WaitForThread(self)) {
+    // If Wait failed, either answer may be correct; in our case, true is safer.
+    return true;
+  }
+  return running_thread_ == t;
 }
 
 void TaskProcessor::Stop(Thread* self) {
