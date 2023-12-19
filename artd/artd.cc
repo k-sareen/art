@@ -562,10 +562,13 @@ ScopedAStatus Artd::getDexoptStatus(const std::string& in_dexFile,
   }
 
   std::string ignored_odex_status;
+  // TODO(jiakaiz): Make use of the location.
+  OatFileAssistant::Location ignored_location;
   oat_file_assistant->GetOptimizationStatus(&_aidl_return->locationDebugString,
                                             &_aidl_return->compilerFilter,
                                             &_aidl_return->compilationReason,
-                                            &ignored_odex_status);
+                                            &ignored_odex_status,
+                                            &ignored_location);
 
   // We ignore odex_status because it is not meaningful. It can only be either "up-to-date",
   // "apk-more-recent", or "io-error-no-oat", which means it doesn't give us information in addition

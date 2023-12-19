@@ -232,8 +232,9 @@ std::vector<std::unique_ptr<const DexFile>> OatFileManager::OpenDexFilesFromOat(
     std::string compilation_filter;
     std::string compilation_reason;
     std::string odex_status;
+    OatFileAssistant::Location ignored_location;
     oat_file_assistant->GetOptimizationStatus(
-        &odex_location, &compilation_filter, &compilation_reason, &odex_status);
+        &odex_location, &compilation_filter, &compilation_reason, &odex_status, &ignored_location);
 
     ScopedTrace odex_loading(StringPrintf(
         "location=%s status=%s filter=%s reason=%s",
