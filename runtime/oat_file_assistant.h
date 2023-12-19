@@ -433,10 +433,10 @@ class OatFileAssistant {
     // the OatFileInfo object.
     std::unique_ptr<OatFile> ReleaseFileForUse();
 
-    // Check if we should reject vdex containing cdex code as part of the
-    // disable_cdex experiment.
+    // Check if we should reject vdex containing cdex code as part of the cdex
+    // deprecation.
     // TODO(b/256664509): Clean this up.
-    bool CheckDisableCompactDexExperiment();
+    bool CheckDisableCompactDex();
 
    private:
     // Returns true if the oat file is usable but at least one dexopt trigger is matched. This
