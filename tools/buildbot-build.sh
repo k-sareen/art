@@ -168,7 +168,7 @@ if [[ $build_target == "yes" ]]; then
   # Targets required to generate a linker configuration for device within the
   # chroot environment. The *.libraries.txt targets are required by
   # the source linkerconfig but not included in the prebuilt one.
-  make_command+=" linkerconfig conv_linker_config sanitizer.libraries.txt vndkcorevariant.libraries.txt"
+  make_command+=" linkerconfig conv_linker_config sanitizer.libraries.txt llndk.libraries.txt"
   # Additional targets needed for the chroot environment.
   make_command+=" event-log-tags"
   # Needed to extract prebuilt APEXes.
@@ -433,12 +433,5 @@ EOF
   msginfo "Generating linkerconfig" "in $linkerconfig_out"
   rm -rf $linkerconfig_out
   mkdir -p $linkerconfig_out
-  if [[ $TARGET_ARCH = "riscv64" ]]; then
-    # TODO(b/300291157): One command line for all arches (VNDK flag was dropped as a workaround).
-    $ANDROID_HOST_OUT/bin/linkerconfig --target $linkerconfig_out --root $linkerconfig_root
-  else
-    # TODO(b/300291157): Remove VNDK versions and enable Treble once VNDK deprecation is set as default
-    $ANDROID_HOST_OUT/bin/linkerconfig --target $linkerconfig_out --root $linkerconfig_root --vndk $platform_version --product_vndk $platform_version
-  fi
-  msgnote "Don't be scared by \"Unable to access VNDK APEX\" message, it's not fatal"
+  $ANDROID_HOST_OUT/bin/linkerconfig --target $linkerconfig_out --root $linkerconfig_root
 fi
