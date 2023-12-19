@@ -1573,5 +1573,12 @@
         "description": "ASAN issue.",
         "variant": "host",
         "env_vars": {"SANITIZE_HOST": "address"}
+    },
+    {
+      "tests": ["2271-profile-inline-cache"],
+      "variant": "jit-on-first-use",
+      "description": ["Test relies on profiling done by baseline compiled code. Meanwhile, it",
+                      "can't use --baseline because it has a test case checking the behavior when",
+                      "a method is optimized compiled."]
     }
 ]
