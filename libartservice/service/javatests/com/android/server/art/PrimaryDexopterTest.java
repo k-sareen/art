@@ -16,7 +16,6 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.GetDexoptNeededResult.ArtifactsLocation;
 import static com.android.server.art.model.DexoptResult.DexContainerFileDexoptResult;
 import static com.android.server.art.testing.TestingUtils.deepEq;
 

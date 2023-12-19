@@ -16,8 +16,6 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.GetDexoptNeededResult.ArtifactsLocation;
-
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.argThat;

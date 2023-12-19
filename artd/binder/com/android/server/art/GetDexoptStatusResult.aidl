@@ -26,4 +26,11 @@ parcelable GetDexoptStatusResult {
     @utf8InCpp String compilerFilter;
     @utf8InCpp String compilationReason;
     @utf8InCpp String locationDebugString;
+
+    /**
+     * The location of the best usable artifacts (the ones picked by OatFileAssistant::GetBestInfo
+     * and used by the runtime).
+     */
+    com.android.server.art.ArtifactsLocation artifactsLocation =
+            com.android.server.art.ArtifactsLocation.NONE_OR_ERROR;
 }

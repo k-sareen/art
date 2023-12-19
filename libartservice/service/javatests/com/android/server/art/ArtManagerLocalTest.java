@@ -339,23 +339,24 @@ public class ArtManagerLocalTest {
 
     @Test
     public void testGetDexoptStatus() throws Exception {
-        doReturn(createGetDexoptStatusResult(
-                         "speed", "compilation-reason-0", "location-debug-string-0"))
+        doReturn(createGetDexoptStatusResult("speed", "compilation-reason-0",
+                         "location-debug-string-0", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/app/foo/base.apk", "arm64", "PCL[]");
-        doReturn(createGetDexoptStatusResult(
-                         "speed-profile", "compilation-reason-1", "location-debug-string-1"))
+        doReturn(createGetDexoptStatusResult("speed-profile", "compilation-reason-1",
+                         "location-debug-string-1", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/app/foo/base.apk", "arm", "PCL[]");
-        doReturn(createGetDexoptStatusResult(
-                         "verify", "compilation-reason-2", "location-debug-string-2"))
+        doReturn(createGetDexoptStatusResult("verify", "compilation-reason-2",
+                         "location-debug-string-2", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/app/foo/split_0.apk", "arm64", "PCL[base.apk]");
-        doReturn(createGetDexoptStatusResult(
-                         "extract", "compilation-reason-3", "location-debug-string-3"))
+        doReturn(createGetDexoptStatusResult("extract", "compilation-reason-3",
+                         "location-debug-string-3", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/app/foo/split_0.apk", "arm", "PCL[base.apk]");
-        doReturn(createGetDexoptStatusResult("run-from-apk", "unknown", "unknown"))
+        doReturn(createGetDexoptStatusResult(
+                         "run-from-apk", "unknown", "unknown", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/user/0/foo/1.apk", "arm64", "CLC");
 
@@ -1025,25 +1026,30 @@ public class ArtManagerLocalTest {
     @Test
     public void testCleanup() throws Exception {
         // It should keep all artifacts, but not runtime images.
-        doReturn(createGetDexoptStatusResult("speed-profile", "bg-dexopt", "location"))
+        doReturn(createGetDexoptStatusResult(
+                         "speed-profile", "bg-dexopt", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm64"), any());
-        doReturn(createGetDexoptStatusResult("verify", "cmdline", "location"))
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "cmdline", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus(eq("/data/user/0/foo/1.apk"), eq("arm64"), any());
 
         // It should keep all artifacts and runtime images.
-        doReturn(createGetDexoptStatusResult("verify", "bg-dexopt", "location"))
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "bg-dexopt", "location", ArtifactsLocation.DALVIK_CACHE))
                 .when(mArtd)
                 .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm64"), any());
 
         // It should only keep VDEX files and runtime images.
-        doReturn(createGetDexoptStatusResult("verify", "vdex", "location"))
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "vdex", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm"), any());
 
         // It should not keep any artifacts or runtime images.
-        doReturn(createGetDexoptStatusResult("run-from-apk", "unknown", "unknown"))
+        doReturn(createGetDexoptStatusResult(
+                         "run-from-apk", "unknown", "unknown", ArtifactsLocation.NONE_OR_ERROR))
                 .when(mArtd)
                 .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm"), any());
 
@@ -1063,14 +1069,14 @@ public class ArtManagerLocalTest {
                                 1 /* userId */, PKG_NAME_1, "split_0.split"),
                         AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk"),
                         AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/1.apk")),
-                inAnyOrderDeepEquals(AidlUtils.buildArtifactsPath(
-                                             "/data/app/foo/base.apk", "arm64", mIsInDalvikCache),
+                inAnyOrderDeepEquals(AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm64",
+                                             false /* isInDalvikCache */),
                         AidlUtils.buildArtifactsPath(
                                 "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */),
                         AidlUtils.buildArtifactsPath(
-                                "/data/app/foo/split_0.apk", "arm64", mIsInDalvikCache)),
+                                "/data/app/foo/split_0.apk", "arm64", true /* isInDalvikCache */)),
                 inAnyOrderDeepEquals(VdexPath.artifactsPath(AidlUtils.buildArtifactsPath(
-                        "/data/app/foo/split_0.apk", "arm", mIsInDalvikCache))),
+                        "/data/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))),
                 inAnyOrderDeepEquals(AidlUtils.buildRuntimeArtifactsPath(
                                              PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64"),
                         AidlUtils.buildRuntimeArtifactsPath(
@@ -1154,12 +1160,13 @@ public class ArtManagerLocalTest {
         return List.of(pkgState1, pkgState2, pkgHibernatingState, nonDexoptablePkgState);
     }
 
-    private GetDexoptStatusResult createGetDexoptStatusResult(
-            String compilerFilter, String compilationReason, String locationDebugString) {
+    private GetDexoptStatusResult createGetDexoptStatusResult(String compilerFilter,
+            String compilationReason, String locationDebugString, @ArtifactsLocation int location) {
         var getDexoptStatusResult = new GetDexoptStatusResult();
         getDexoptStatusResult.compilerFilter = compilerFilter;
         getDexoptStatusResult.compilationReason = compilationReason;
         getDexoptStatusResult.locationDebugString = locationDebugString;
+        getDexoptStatusResult.artifactsLocation = location;
         return getDexoptStatusResult;
     }
 

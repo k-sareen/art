@@ -958,7 +958,6 @@ public final class ArtManagerLocal {
                     continue;
                 }
                 AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
-                boolean isInDalvikCache = Utils.isInDalvikCache(pkgState, mInjector.getArtd());
                 boolean keepArtifacts = !Utils.shouldSkipDexoptDueToHibernation(
                         pkgState, mInjector.getAppHibernationManager());
                 for (DetailedPrimaryDexInfo dexInfo :
@@ -972,8 +971,7 @@ public final class ArtManagerLocal {
                     if (keepArtifacts) {
                         for (Abi abi : Utils.getAllAbis(pkgState)) {
                             maybeKeepArtifacts(artifactsToKeep, vdexFilesToKeep,
-                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi,
-                                    isInDalvikCache);
+                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi);
                         }
                     }
                 }
@@ -987,8 +985,7 @@ public final class ArtManagerLocal {
                     if (keepArtifacts) {
                         for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
                             maybeKeepArtifacts(artifactsToKeep, vdexFilesToKeep,
-                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi,
-                                    false /* isInDalvikCache */);
+                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi);
                         }
                     }
                 }
@@ -1009,18 +1006,15 @@ public final class ArtManagerLocal {
     private void maybeKeepArtifacts(@NonNull List<ArtifactsPath> artifactsToKeep,
             @NonNull List<VdexPath> vdexFilesToKeep,
             @NonNull List<RuntimeArtifactsPath> runtimeArtifactsToKeep,
-            @NonNull PackageState pkgState, @NonNull DetailedDexInfo dexInfo, @NonNull Abi abi,
-            boolean isInDalvikCache) throws RemoteException {
+            @NonNull PackageState pkgState, @NonNull DetailedDexInfo dexInfo, @NonNull Abi abi)
+            throws RemoteException {
         try {
             GetDexoptStatusResult result = mInjector.getArtd().getDexoptStatus(
                     dexInfo.dexPath(), abi.isa(), dexInfo.classLoaderContext());
-            if (DexFile.isValidCompilerFilter(result.compilerFilter)) {
-                // TODO(b/263579377): This is a bit inaccurate. We may be keeping the artifacts in
-                // dalvik-cache while OatFileAssistant actually picks the ones not in dalvik-cache.
-                // However, this isn't a big problem because it is an edge case and it only causes
-                // us to delete less rather than deleting more.
-                ArtifactsPath artifacts =
-                        AidlUtils.buildArtifactsPath(dexInfo.dexPath(), abi.isa(), isInDalvikCache);
+            if (result.artifactsLocation == ArtifactsLocation.DALVIK_CACHE
+                    || result.artifactsLocation == ArtifactsLocation.NEXT_TO_DEX) {
+                ArtifactsPath artifacts = AidlUtils.buildArtifactsPath(dexInfo.dexPath(), abi.isa(),
+                        result.artifactsLocation == ArtifactsLocation.DALVIK_CACHE);
                 if (result.compilationReason.equals(ArtConstants.REASON_VDEX)) {
                     // Only the VDEX file is usable.
                     vdexFilesToKeep.add(VdexPath.artifactsPath(artifacts));

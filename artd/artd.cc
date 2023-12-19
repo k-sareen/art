@@ -87,6 +87,7 @@ namespace artd {
 namespace {
 
 using ::aidl::com::android::server::art::ArtdDexoptResult;
+using ::aidl::com::android::server::art::ArtifactsLocation;
 using ::aidl::com::android::server::art::ArtifactsPath;
 using ::aidl::com::android::server::art::CopyAndRewriteProfileResult;
 using ::aidl::com::android::server::art::DexMetadataPath;
@@ -119,7 +120,6 @@ using ::art::service::ValidateDexPath;
 using ::art::tools::CmdlineBuilder;
 using ::ndk::ScopedAStatus;
 
-using ArtifactsLocation = GetDexoptNeededResult::ArtifactsLocation;
 using TmpProfilePath = ProfilePath::TmpProfilePath;
 
 constexpr const char* kServiceName = "artd";
@@ -562,13 +562,13 @@ ScopedAStatus Artd::getDexoptStatus(const std::string& in_dexFile,
   }
 
   std::string ignored_odex_status;
-  // TODO(jiakaiz): Make use of the location.
-  OatFileAssistant::Location ignored_location;
+  OatFileAssistant::Location location;
   oat_file_assistant->GetOptimizationStatus(&_aidl_return->locationDebugString,
                                             &_aidl_return->compilerFilter,
                                             &_aidl_return->compilationReason,
                                             &ignored_odex_status,
-                                            &ignored_location);
+                                            &location);
+  _aidl_return->artifactsLocation = ArtifactsLocationToAidl(location);
 
   // We ignore odex_status because it is not meaningful. It can only be either "up-to-date",
   // "apk-more-recent", or "io-error-no-oat", which means it doesn't give us information in addition

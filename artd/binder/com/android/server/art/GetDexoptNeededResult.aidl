@@ -26,24 +26,17 @@ parcelable GetDexoptNeededResult {
     boolean isDexoptNeeded;
     /** Whether there is a usable VDEX file. Note that this can be true even if dexopt is needed. */
     boolean isVdexUsable;
-    /** The location of the best usable artifacts. */
-    ArtifactsLocation artifactsLocation = ArtifactsLocation.NONE_OR_ERROR;
+
+    /**
+     * The location of the best usable artifacts (the ones picked by OatFileAssistant::GetBestInfo
+     * and used by the runtime).
+     */
+    com.android.server.art.ArtifactsLocation artifactsLocation =
+            com.android.server.art.ArtifactsLocation.NONE_OR_ERROR;
     /**
      * True if the dex file has dex code. (The dex file is a .jar/.apk file that has .dex entries,
      * or is a .dex file.) False otherwise. (The dex file is a .jar/.apk file that has no .dex
      * entries.)
      */
     boolean hasDexCode;
-
-    @Backing(type="int")
-    enum ArtifactsLocation {
-        /** No usable artifacts. */
-        NONE_OR_ERROR = 0,
-        /** In the global "dalvik-cache" folder. */
-        DALVIK_CACHE = 1,
-        /** In the "oat" folder next to the dex file. */
-        NEXT_TO_DEX = 2,
-        /** In the dex metadata file. This means the only usable artifact is the VDEX file. */
-        DM = 3,
-    }
 }
