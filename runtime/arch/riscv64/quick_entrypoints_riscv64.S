@@ -810,12 +810,12 @@ NO_ARG_RUNTIME_EXCEPTION_SAVE_EVERYTHING art_quick_throw_div_zero, artThrowDivZe
 
 
 // Called by managed code to create and deliver an ArrayIndexOutOfBoundsException.
-// Arg1 holds index, arg2 holds limit.
+// Arg0 holds index, arg1 holds limit.
 TWO_ARG_RUNTIME_EXCEPTION_SAVE_EVERYTHING art_quick_throw_array_bounds, artThrowArrayBoundsFromCode
 
 
 // Called by managed code to create and deliver a StringIndexOutOfBoundsException
-// as if thrown from a call to String.charAt(). Arg1 holds index, arg2 holds limit.
+// as if thrown from a call to String.charAt(). Arg0 holds index, arg1 holds limit.
 TWO_ARG_RUNTIME_EXCEPTION_SAVE_EVERYTHING \
         art_quick_throw_string_bounds, artThrowStringBoundsFromCode
 

@@ -45,7 +45,7 @@
 
 // iget vA, vB, field@CCCC
 // Format 22c: B|A|52 CCCC
-// Here, vB has the holder object, and vA is the destination vreg.
+// vA := vB.field
 %def op_iget(width="32", zext=False):
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
@@ -207,7 +207,7 @@
 
 // iput vA, vB, field@CCCC
 // Format 22c: B|A|59 CCCC
-// Here, vB has the holder object, and vA is the source vreg.
+// vB.field := vA
 %def op_iput(width="32", zext=False):
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
@@ -370,6 +370,7 @@
 
 // sget vAA, field@BBBB
 // Format 21c: AA|60 BBBB
+// vAA := klass.field
 %def op_sget(width="32", zext=False):
    srliw s7, xINST, 8  // s7 := AA (live through volatile path)
    // Fast path: NterpGetStaticField's resolved_field from thread-local cache.
@@ -549,7 +550,7 @@
 
 // sput vAA, field@BBBB
 // Format 21c: AA|67 BBBB
-// Clobbers: t0, t1, t2, a0
+// klass.field := vAA
 %def op_sput(width="32"):
    srliw t2, xINST, 8                 // t2 := AA
 %  is_wide = "1" if (width == "64") else "0"
