@@ -246,9 +246,11 @@ class TraceWriter {
   std::unordered_map<pid_t, uint16_t> thread_id_map_ GUARDED_BY(tracing_lock_);
   uint16_t current_thread_index_;
 
-  // Buffer to store trace data in non-streaming mode. This is only accessed in
-  // SuspendAll scope to flush the data from all threads into this buffer. This
-  // is only used in non-streaming mode
+  // Buffer used when generating trace data from the raw entries.
+  // In streaming mode, the trace data is flushed to file when the per-thread buffer gets full.
+  // In non-streaming mode, this data is flushed at the end of tracing. If the buffer gets full
+  // we stop tracing and following trace events are ignored. The size of this buffer is
+  // specified by the user in non-streaming mode.
   std::unique_ptr<uint8_t[]> buf_;
 
   // The cur_offset_ into the buf_. Accessed only in SuspendAll scope when flushing data from the
