@@ -1,5 +1,5 @@
 %def unused():
-    ebreak
+   ebreak
 
 // nop
 // Format 10x: 00|00
@@ -10,127 +10,128 @@
 
 // move vA, vB
 // Format 12x: B|A|01
-%def op_move(is_object="0", is_wide="0"):
-    srliw t1, xINST, 12   // t1 := B
-    srliw t2, xINST, 8    // t2 := B|A
-    GET_VREG t1, t1, is_wide=$is_wide
-                          // t1 := fp[B]
-    and t2, t2, 0xF       // t2 := A
-    FETCH_ADVANCE_INST 1  // advance xPC, load xINST
-    GET_INST_OPCODE t3    // t3 holds next opcode
-    .if $is_object
-      SET_VREG_OBJECT t1, t2, z0=t0
-                          // refs[A] := fp[B]
-    .else
-      SET_VREG t1, t2, z0=t0, is_wide=$is_wide
-                         // fp[A] := fp[B]
-    .endif
-    GOTO_OPCODE t3       // continue to next
+%def op_move(is_object=False, is_wide="0"):
+   srliw t1, xINST, 12   // t1 := B
+   srliw t2, xINST, 8    // t2 := B|A
+%  if is_object:
+     GET_VREG_OBJECT t1, t1  // t1 := refs[B]
+%  else:
+     GET_VREG t1, t1, is_wide=$is_wide  // t1 := fp[B]
+%#:
+   and t2, t2, 0xF       // t2 := A
+   FETCH_ADVANCE_INST 1  // advance xPC, load xINST
+   GET_INST_OPCODE t3    // t3 holds next opcode
+%  if is_object:
+     SET_VREG_OBJECT t1, t2, z0=t0 // refs[A] := fp[B]
+%  else:
+     SET_VREG t1, t2, z0=t0, is_wide=$is_wide // fp[A] := fp[B]
+%#:
+   GOTO_OPCODE t3       // continue to next
 
 // move/from16 vAA, vBBBB
 // Format 22x: AA|16 BBBB
-%def op_move_from16(is_object="0", is_wide="0"):
-    FETCH t1, count=1     // t1 := BBBB
-    srliw t2, xINST, 8    // t2 := AA
-    GET_VREG t1, t1, is_wide=$is_wide
-                          // t1 := fp[BBBB]
-    FETCH_ADVANCE_INST 2  // advance xPC, load xINST
-    GET_INST_OPCODE t3    // t3 := next opcode
-    .if $is_object
-      SET_VREG_OBJECT t1, t2, z0=t0
-                          // refs[AA] := fp[BBBB]
-    .else
-      SET_VREG t1, t2, z0=t0, is_wide=$is_wide
-                          // fp[AA] := fp[BBBB]
-    .endif
-    GOTO_OPCODE t3        // continue to next
+%def op_move_from16(is_object=False, is_wide="0"):
+   FETCH t1, count=1     // t1 := BBBB
+   srliw t2, xINST, 8    // t2 := AA
+%  if is_object:
+     GET_VREG_OBJECT t1, t1  // t1 := refs[BBBB]
+%  else:
+     GET_VREG t1, t1, is_wide=$is_wide // t1 := fp[BBBB]
+%#:
+   FETCH_ADVANCE_INST 2  // advance xPC, load xINST
+   GET_INST_OPCODE t3    // t3 := next opcode
+%  if is_object:
+     SET_VREG_OBJECT t1, t2, z0=t0 // refs[AA] := fp[BBBB]
+%  else:
+     SET_VREG t1, t2, z0=t0, is_wide=$is_wide // fp[AA] := fp[BBBB]
+%#:
+   GOTO_OPCODE t3        // continue to next
 
 // move/16 vAAAA, vBBBB
 // Format 32x: 00|03 AAAA BBBB
-%def op_move_16(is_object="0", is_wide="0"):
-    FETCH t1, count=2     // t1 := BBBB
-    FETCH t2, count=1     // t2 := AAAA
-    GET_VREG t1, t1, is_wide=$is_wide
-                          // t1 := fp[BBBB]
-    FETCH_ADVANCE_INST 3  // advance xPC, load xINST
-    GET_INST_OPCODE t3    // t3 := next opcode
-    .if $is_object
-      SET_VREG_OBJECT t1, t2, z0=t0
-                          // refs[AAAA] := fp[BBBB]
-    .else
-      SET_VREG t1, t2, z0=t0, is_wide=$is_wide
-                          // fp[AAAA] := fp[BBBB]
-    .endif
-    GOTO_OPCODE t3        // continue to next
+%def op_move_16(is_object=False, is_wide="0"):
+   FETCH t1, count=2     // t1 := BBBB
+   FETCH t2, count=1     // t2 := AAAA
+%  if is_object:
+     GET_VREG_OBJECT t1, t1  // t1 := refs[BBBB]
+%  else:
+     GET_VREG t1, t1, is_wide=$is_wide // t1 := fp[BBBB]
+%#:
+   FETCH_ADVANCE_INST 3  // advance xPC, load xINST
+   GET_INST_OPCODE t3    // t3 := next opcode
+%  if is_object:
+     SET_VREG_OBJECT t1, t2, z0=t0 // refs[AAAA] := fp[BBBB]
+%  else:
+     SET_VREG t1, t2, z0=t0, is_wide=$is_wide // fp[AAAA] := fp[BBBB]
+%#:
+   GOTO_OPCODE t3        // continue to next
 
 // move-wide vA, vB
 // Format 12x: B|A|04
 // NOTE: vregs can overlap, e.g. "move-wide v6,v7" or "move-wide v7,v6"
 %def op_move_wide():
-%   op_move(is_wide="1")
+%  op_move(is_wide="1")
 
 // move-wide/from16 vAA, vBBBB
 // Format 22x: AA|05 BBBB
 // NOTE: vregs can overlap, e.g. "move-wide v6,v7" or "move-wide v7,v6"
 %def op_move_wide_from16():
-%   op_move_from16(is_wide="1")
+%  op_move_from16(is_wide="1")
 
 // move-wide/16, vAAAA, vBBBB
 // Format 32x: 00|06 AAAA BBBB
 // NOTE: vregs can overlap, e.g. "move-wide v6,v7" or "move-wide v7,v6"
 %def op_move_wide_16():
-%   op_move_16(is_wide="1")
+%  op_move_16(is_wide="1")
 
 // move-object vA, vB
 // Format 12x: B|A|07
 %def op_move_object():
-%   op_move(is_object="1")
+%  op_move(is_object=True)
 
 // move-object/from16 vAA, vBBBB
 // Format 22x: AA|08 BBBB
 %def op_move_object_from16():
-%   op_move_from16(is_object="1")
+%  op_move_from16(is_object=True)
 
 // move-object/16 vAAAA, vBBBB
 // Format 32x: 00|09 AAAA BBBB
 %def op_move_object_16():
-%   op_move_16(is_object="1")
+%  op_move_16(is_object=True)
 
 // move-result vAA
 // Format 11x: AA|0a
-%def op_move_result(is_object="0", is_wide="0"):
-    srliw t1, xINST, 8    // t1 := AA
-    FETCH_ADVANCE_INST 1  // advance xPC, load xINST
-    GET_INST_OPCODE t2    // t2 := next opcode
-    .if $is_object
-      SET_VREG_OBJECT a0, t1, z0=t0
-                          // refs[AA] := a0
-    .else
-      SET_VREG a0, t1, z0=t0, is_wide=$is_wide
-                          // fp[AA] := a0
-    .endif
-    GOTO_OPCODE t2        // continue to next
+%def op_move_result(is_object=False, is_wide="0"):
+   srliw t1, xINST, 8    // t1 := AA
+   FETCH_ADVANCE_INST 1  // advance xPC, load xINST
+   GET_INST_OPCODE t2    // t2 := next opcode
+%  if is_object:
+     SET_VREG_OBJECT a0, t1, z0=t0 // refs[AA] := a0
+%  else:
+     SET_VREG a0, t1, z0=t0, is_wide=$is_wide // fp[AA] := a0
+%#:
+   GOTO_OPCODE t2        // continue to next
 
 // move-result-wide vAA
 // Format 11x: AA|0b
 %def op_move_result_wide():
-%   op_move_result(is_wide="1")
+%  op_move_result(is_wide="1")
 
 // move-result-object vAA
 // Format 11x: AA|0c
 %def op_move_result_object():
-%   op_move_result(is_object="1")
+%  op_move_result(is_object=True)
 
 // move-exception vAA
 // Format 11x: AA|0d
 %def op_move_exception():
-    ld t1, THREAD_EXCEPTION_OFFSET(xSELF)    // t1 := exception object
-    srliw t2, xINST, 8                       // t2 := AA
-    FETCH_ADVANCE_INST 1                     // advance xPC, load xINST
-    SET_VREG_OBJECT t1, t2, z0=t0            // refs[AA] := exception object
-    GET_INST_OPCODE t3                       // t3 := next opcode
-    sd zero, THREAD_EXCEPTION_OFFSET(xSELF)  // clear exception
-    GOTO_OPCODE t3                           // continue to next
+   ld t1, THREAD_EXCEPTION_OFFSET(xSELF)    // t1 := exception object
+   srliw t2, xINST, 8                       // t2 := AA
+   FETCH_ADVANCE_INST 1                     // advance xPC, load xINST
+   SET_VREG_OBJECT t1, t2, z0=t0            // refs[AA] := exception object
+   GET_INST_OPCODE t3                       // t3 := next opcode
+   sd zero, THREAD_EXCEPTION_OFFSET(xSELF)  // clear exception
+   GOTO_OPCODE t3                           // continue to next
 
 // const/4 vA, #+B
 // Format 11n: B|A|12
