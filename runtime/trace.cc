@@ -809,7 +809,7 @@ TraceWriter::TraceWriter(File* trace_file,
   // to stop and start this thread pool. Method tracing on zygote isn't a frequent use case and
   // it is okay to flush on the main thread in such cases.
   if (!Runtime::Current()->IsZygote()) {
-    thread_pool_.reset(new ThreadPool("Trace writer pool", 1));
+    thread_pool_.reset(ThreadPool::Create("Trace writer pool", 1));
     thread_pool_->StartWorkers(Thread::Current());
   }
 }

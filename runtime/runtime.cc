@@ -1259,7 +1259,8 @@ void Runtime::InitNonZygoteOrPostFork(
         std::min(static_cast<size_t>(std::thread::hardware_concurrency()), kMaxRuntimeWorkers);
     MutexLock mu(Thread::Current(), *Locks::runtime_thread_pool_lock_);
     CHECK(thread_pool_ == nullptr);
-    thread_pool_.reset(new ThreadPool("Runtime", num_workers, /*create_peers=*/false, kStackSize));
+    thread_pool_.reset(
+        ThreadPool::Create("Runtime", num_workers, /*create_peers=*/false, kStackSize));
     thread_pool_->StartWorkers(Thread::Current());
   }
 

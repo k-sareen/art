@@ -1183,7 +1183,7 @@ void Jit::CreateThreadPool() {
 
   // We need peers as we may report the JIT thread, e.g., in the debugger.
   constexpr bool kJitPoolNeedsPeers = true;
-  thread_pool_.reset(new ThreadPool("Jit thread pool", 1, kJitPoolNeedsPeers));
+  thread_pool_.reset(ThreadPool::Create("Jit thread pool", 1, kJitPoolNeedsPeers));
 
   Runtime* runtime = Runtime::Current();
   thread_pool_->SetPthreadPriority(

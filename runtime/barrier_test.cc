@@ -64,15 +64,16 @@ int32_t BarrierTest::num_threads = 4;
 // Check that barrier wait and barrier increment work.
 TEST_F(BarrierTest, CheckWait) {
   Thread* self = Thread::Current();
-  ThreadPool thread_pool("Barrier test thread pool", num_threads);
+  std::unique_ptr<ThreadPool> thread_pool(
+      ThreadPool::Create("Barrier test thread pool", num_threads));
   Barrier barrier(num_threads + 1);  // One extra Wait() in main thread.
   Barrier timeout_barrier(0);  // Only used for sleeping on timeout.
   AtomicInteger count1(0);
   AtomicInteger count2(0);
   for (int32_t i = 0; i < num_threads; ++i) {
-    thread_pool.AddTask(self, new CheckWaitTask(&barrier, &count1, &count2));
+    thread_pool->AddTask(self, new CheckWaitTask(&barrier, &count1, &count2));
   }
-  thread_pool.StartWorkers(self);
+  thread_pool->StartWorkers(self);
   while (count1.load(std::memory_order_relaxed) != num_threads) {
     timeout_barrier.Increment(self, 1, 100);  // sleep 100 msecs
   }
@@ -81,7 +82,7 @@ TEST_F(BarrierTest, CheckWait) {
   // Perform one additional Wait(), allowing pool threads to proceed.
   barrier.Wait(self);
   // Wait for all the threads to finish.
-  thread_pool.Wait(self, true, false);
+  thread_pool->Wait(self, true, false);
   // Both counts should be equal to num_threads now.
   EXPECT_EQ(count1.load(std::memory_order_relaxed), num_threads);
   EXPECT_EQ(count2.load(std::memory_order_relaxed), num_threads);
@@ -115,15 +116,16 @@ class CheckPassTask : public Task {
 // Check that barrier pass through works.
 TEST_F(BarrierTest, CheckPass) {
   Thread* self = Thread::Current();
-  ThreadPool thread_pool("Barrier test thread pool", num_threads);
+  std::unique_ptr<ThreadPool> thread_pool(
+      ThreadPool::Create("Barrier test thread pool", num_threads));
   Barrier barrier(0);
   AtomicInteger count(0);
   const int32_t num_tasks = num_threads * 4;
   const int32_t num_sub_tasks = 128;
   for (int32_t i = 0; i < num_tasks; ++i) {
-    thread_pool.AddTask(self, new CheckPassTask(&barrier, &count, num_sub_tasks));
+    thread_pool->AddTask(self, new CheckPassTask(&barrier, &count, num_sub_tasks));
   }
-  thread_pool.StartWorkers(self);
+  thread_pool->StartWorkers(self);
   const int32_t expected_total_tasks = num_sub_tasks * num_tasks;
   // Wait for all the tasks to complete using the barrier.
   barrier.Increment(self, expected_total_tasks);

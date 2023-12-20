@@ -161,14 +161,15 @@ void LargeObjectSpaceTest::RaceTest() {
     }
 
     Thread* self = Thread::Current();
-    ThreadPool thread_pool("Large object space test thread pool", kNumThreads);
+    std::unique_ptr<ThreadPool> thread_pool(
+        ThreadPool::Create("Large object space test thread pool", kNumThreads));
     for (size_t i = 0; i < kNumThreads; ++i) {
-      thread_pool.AddTask(self, new AllocRaceTask(i, kNumIterations, 16 * KB, los));
+      thread_pool->AddTask(self, new AllocRaceTask(i, kNumIterations, 16 * KB, los));
     }
 
-    thread_pool.StartWorkers(self);
+    thread_pool->StartWorkers(self);
 
-    thread_pool.Wait(self, true, false);
+    thread_pool->Wait(self, true, false);
 
     delete los;
   }

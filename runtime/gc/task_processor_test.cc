@@ -63,7 +63,7 @@ class WorkUntilDoneTask : public SelfDeletingTask {
 };
 
 TEST_F(TaskProcessorTest, Interrupt) {
-  ThreadPool thread_pool("task processor test", 1U);
+  std::unique_ptr<ThreadPool> thread_pool(ThreadPool::Create("task processor test", 1U));
   Thread* const self = Thread::Current();
   TaskProcessor task_processor;
   static constexpr size_t kRecursion = 10;
@@ -72,8 +72,8 @@ TEST_F(TaskProcessorTest, Interrupt) {
   task_processor.AddTask(self, new RecursiveTask(&task_processor, &counter, kRecursion));
   task_processor.Start(self);
   // Add a task which will wait until interrupted to the thread pool.
-  thread_pool.AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
-  thread_pool.StartWorkers(self);
+  thread_pool->AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
+  thread_pool->StartWorkers(self);
   ASSERT_FALSE(done_running);
   // Wait until all the tasks are done, but since we didn't interrupt, done_running should be 0.
   while (counter.load(std::memory_order_seq_cst) != kRecursion) {
@@ -81,7 +81,7 @@ TEST_F(TaskProcessorTest, Interrupt) {
   }
   ASSERT_FALSE(done_running);
   task_processor.Stop(self);
-  thread_pool.Wait(self, true, false);
+  thread_pool->Wait(self, true, false);
   // After the interrupt and wait, the WorkUntilInterruptedTasktask should have terminated and
   // set done_running_ to true.
   ASSERT_TRUE(done_running.load(std::memory_order_seq_cst));
@@ -93,9 +93,9 @@ TEST_F(TaskProcessorTest, Interrupt) {
   // working until all the tasks are completed.
   task_processor.Stop(self);
   task_processor.AddTask(self, new RecursiveTask(&task_processor, &counter, kRecursion));
-  thread_pool.AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
-  thread_pool.StartWorkers(self);
-  thread_pool.Wait(self, true, false);
+  thread_pool->AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
+  thread_pool->StartWorkers(self);
+  thread_pool->Wait(self, true, false);
   ASSERT_TRUE(done_running.load(std::memory_order_seq_cst));
   ASSERT_EQ(counter.load(std::memory_order_seq_cst), kRecursion);
 }
@@ -133,13 +133,13 @@ TEST_F(TaskProcessorTest, Ordering) {
     auto* task = new TestOrderTask(pair.first, pair.second, &counter);
     task_processor.AddTask(self, task);
   }
-  ThreadPool thread_pool("task processor test", 1U);
+  std::unique_ptr<ThreadPool> thread_pool(ThreadPool::Create("task processor test", 1U));
   Atomic<bool> done_running(false);
   // Add a task which will wait until interrupted to the thread pool.
-  thread_pool.AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
+  thread_pool->AddTask(self, new WorkUntilDoneTask(&task_processor, &done_running));
   ASSERT_FALSE(done_running.load(std::memory_order_seq_cst));
-  thread_pool.StartWorkers(self);
-  thread_pool.Wait(self, true, false);
+  thread_pool->StartWorkers(self);
+  thread_pool->Wait(self, true, false);
   ASSERT_TRUE(done_running.load(std::memory_order_seq_cst));
   ASSERT_EQ(counter, kNumTasks);
 }

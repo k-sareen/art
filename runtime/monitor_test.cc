@@ -278,15 +278,15 @@ static void CommonWaitSetup(MonitorTest* test, ClassLinker* class_linker, uint64
 
   // Need to drop the mutator lock to allow barriers.
   ScopedThreadSuspension sts(soa.Self(), ThreadState::kNative);
-  ThreadPool thread_pool(pool_name, 3);
-  thread_pool.AddTask(self, new CreateTask(test, create_sleep, c_millis, c_expected));
+  std::unique_ptr<ThreadPool> thread_pool(ThreadPool::Create(pool_name, 3));
+  thread_pool->AddTask(self, new CreateTask(test, create_sleep, c_millis, c_expected));
   if (interrupt) {
-    thread_pool.AddTask(self, new InterruptTask(test, use_sleep, static_cast<uint64_t>(u_millis)));
+    thread_pool->AddTask(self, new InterruptTask(test, use_sleep, static_cast<uint64_t>(u_millis)));
   } else {
-    thread_pool.AddTask(self, new UseTask(test, use_sleep, u_millis, u_expected));
+    thread_pool->AddTask(self, new UseTask(test, use_sleep, u_millis, u_expected));
   }
-  thread_pool.AddTask(self, new WatchdogTask(test));
-  thread_pool.StartWorkers(self);
+  thread_pool->AddTask(self, new WatchdogTask(test));
+  thread_pool->StartWorkers(self);
 
   // Wait on completion barrier.
   test->complete_barrier_->Wait(self);
@@ -300,7 +300,7 @@ static void CommonWaitSetup(MonitorTest* test, ClassLinker* class_linker, uint64
     watchdog_obj->MonitorExit(self);      // Release the lock.
   }
 
-  thread_pool.StopWorkers(self);
+  thread_pool->StopWorkers(self);
 }
 
 
@@ -361,7 +361,7 @@ TEST_F(MonitorTest, TestTryLock) {
   ScopedLogSeverity sls(LogSeverity::FATAL);
 
   Thread* const self = Thread::Current();
-  ThreadPool thread_pool("the pool", 2);
+  std::unique_ptr<ThreadPool> thread_pool(ThreadPool::Create("the pool", 2));
   ScopedObjectAccess soa(self);
   StackHandleScope<1> hs(self);
   Handle<mirror::Object> obj1(
@@ -375,10 +375,10 @@ TEST_F(MonitorTest, TestTryLock) {
       EXPECT_TRUE(trylock.Acquired());
     }
     // Test failure case.
-    thread_pool.AddTask(self, new TryLockTask(g_obj1));
-    thread_pool.StartWorkers(self);
+    thread_pool->AddTask(self, new TryLockTask(g_obj1));
+    thread_pool->StartWorkers(self);
     ScopedThreadSuspension sts(self, ThreadState::kSuspended);
-    thread_pool.Wait(Thread::Current(), /*do_work=*/false, /*may_hold_locks=*/false);
+    thread_pool->Wait(Thread::Current(), /*do_work=*/false, /*may_hold_locks=*/false);
   }
   // Test that the trylock actually locks the object.
   {
@@ -388,7 +388,7 @@ TEST_F(MonitorTest, TestTryLock) {
     // Since we hold the lock there should be no monitor state exeception.
     self->AssertNoPendingException();
   }
-  thread_pool.StopWorkers(self);
+  thread_pool->StopWorkers(self);
 }
 
 

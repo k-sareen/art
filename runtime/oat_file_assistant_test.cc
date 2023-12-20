@@ -1607,17 +1607,18 @@ TEST_F(OatFileAssistantBaseTest, RaceToGenerate) {
 
   const size_t kNumThreads = 16;
   Thread* self = Thread::Current();
-  ThreadPool thread_pool("Oat file assistant test thread pool", kNumThreads);
+  std::unique_ptr<ThreadPool> thread_pool(
+      ThreadPool::Create("Oat file assistant test thread pool", kNumThreads));
   std::vector<std::unique_ptr<RaceGenerateTask>> tasks;
   Mutex lock("RaceToGenerate");
   for (size_t i = 0; i < kNumThreads; i++) {
     std::unique_ptr<RaceGenerateTask> task(
         new RaceGenerateTask(*this, dex_location, oat_location, &lock));
-    thread_pool.AddTask(self, task.get());
+    thread_pool->AddTask(self, task.get());
     tasks.push_back(std::move(task));
   }
-  thread_pool.StartWorkers(self);
-  thread_pool.Wait(self, /* do_work= */ true, /* may_hold_locks= */ false);
+  thread_pool->StartWorkers(self);
+  thread_pool->Wait(self, /* do_work= */ true, /* may_hold_locks= */ false);
 
   // Verify that tasks which got an oat file got a unique one.
   std::set<const OatFile*> oat_files;

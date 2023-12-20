@@ -254,7 +254,7 @@ void ElfWriterQuick<ElfTypes>::PrepareDebugInfo(const debug::DebugInfo& debug_in
         builder_->GetDex()->Exists() ? builder_->GetDex()->GetAddress() : 0,
         dex_section_size_,
         debug_info);
-    debug_info_thread_pool_ = std::make_unique<ThreadPool>("Mini-debug-info writer", 1);
+    debug_info_thread_pool_.reset(ThreadPool::Create("Mini-debug-info writer", 1));
     debug_info_thread_pool_->AddTask(self, debug_info_task_.get());
     debug_info_thread_pool_->StartWorkers(self);
   }

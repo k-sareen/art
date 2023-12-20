@@ -853,7 +853,7 @@ void OatFileManager::RunBackgroundVerification(const std::vector<const DexFile*>
     WriterMutexLock mu(self, *Locks::oat_file_manager_lock_);
     if (verification_thread_pool_ == nullptr) {
       verification_thread_pool_.reset(
-          new ThreadPool("Verification thread pool", /* num_threads= */ 1));
+          ThreadPool::Create("Verification thread pool", /* num_threads= */ 1));
       verification_thread_pool_->StartWorkers(self);
     }
   }
