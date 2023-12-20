@@ -370,7 +370,6 @@ art_cc_defaults {
         "external/dex_file_ext_test.cc",
     ],
     shared_libs: [
-        "libartbase",
         "libdexfile",
     ],
     header_libs: [
@@ -387,6 +386,9 @@ art_cc_test {
         "art_test_defaults",
         "art_libdexfile_external_tests_defaults",
     ],
+    shared_libs: [
+        "libartbase",
+    ],
 }
 
 // Standalone version of ART gtest `art_libdexfile_external_tests`, not bundled with the ART APEX on
@@ -396,6 +398,9 @@ art_cc_test {
     defaults: [
         "art_standalone_test_defaults",
         "art_libdexfile_external_tests_defaults",
+    ],
+    static_libs: [
+        "libartbase",
     ],
 
     // Support multilib variants (using different suffix per sub-architecture), which is needed on

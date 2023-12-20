@@ -111,9 +111,6 @@ art_cc_library {
 art_cc_defaults {
     name: "art_libartpalette_tests_defaults",
     srcs: ["apex/palette_test.cc"],
-    shared_libs: [
-        "libartpalette",
-    ],
 }
 
 // Version of ART gtest `art_libartpalette_tests` bundled with the ART APEX on target.
@@ -125,6 +122,7 @@ art_cc_test {
         "art_libartpalette_tests_defaults",
     ],
     shared_libs: [
+        "libartpalette",
         "libnativehelper",
     ],
     host_supported: true,
@@ -139,6 +137,7 @@ art_cc_test {
         "art_libartpalette_tests_defaults",
     ],
     static_libs: [
+        "libartpalette",
         // libnativehelper_lazy has the glue we need to dlsym the platform-only
         // APIs we need, like JniInvocationInit.
         "libnativehelper_lazy",
