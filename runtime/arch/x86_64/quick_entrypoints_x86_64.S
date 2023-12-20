@@ -1248,6 +1248,15 @@ DEFINE_FUNCTION art_quick_aput_obj
     movq %gs:THREAD_CARD_TABLE_OFFSET, %rdx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %edi
     movb %dl, (%rdx, %rdi)
+#else
+    PUSH_ARG rsi
+    subq LITERAL(8), %rsp            // Alignment padding.
+    CFI_ADJUST_CFA_OFFSET(8)
+    leaq MIRROR_OBJECT_ARRAY_DATA_OFFSET(%rdi, %rsi, 4), %rsi
+    call SYMBOL(art_quick_write_barrier_post) // (rdi=src, rsi=slot, rdx=target)
+    addq LITERAL(8), %rsp
+    CFI_ADJUST_CFA_OFFSET(-8)
+    POP_ARG rsi
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
@@ -1280,6 +1289,15 @@ DEFINE_FUNCTION art_quick_aput_obj
     movq %gs:THREAD_CARD_TABLE_OFFSET, %rdx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %edi
     movb %dl, (%rdx, %rdi)
+#else
+    PUSH_ARG rsi
+    subq LITERAL(8), %rsp            // Alignment padding.
+    CFI_ADJUST_CFA_OFFSET(8)
+    leaq MIRROR_OBJECT_ARRAY_DATA_OFFSET(%rdi, %rsi, 4), %rsi
+    call SYMBOL(art_quick_write_barrier_post) // (rdi=src, rsi=slot, rdx=target)
+    addq LITERAL(8), %rsp
+    CFI_ADJUST_CFA_OFFSET(-8)
+    POP_ARG rsi
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
@@ -1920,6 +1938,30 @@ DEFINE_FUNCTION art_quick_read_barrier_for_root_slow
     RESTORE_FP_CALLEE_SAVE_FRAME
     ret
 END_FUNCTION art_quick_read_barrier_for_root_slow
+
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+DEFINE_FUNCTION art_quick_write_barrier_post
+    SETUP_FP_CALLEE_SAVE_FRAME
+    subq LITERAL(8), %rsp            // Alignment padding.
+    CFI_ADJUST_CFA_OFFSET(8)
+    call SYMBOL(artWriteBarrierPost) // artWriteBarrierPost(src, slot, target)
+    addq LITERAL(8), %rsp
+    CFI_ADJUST_CFA_OFFSET(-8)
+    RESTORE_FP_CALLEE_SAVE_FRAME
+    ret
+END_FUNCTION art_quick_write_barrier_post
+
+DEFINE_FUNCTION art_quick_array_copy_barrier_post
+    SETUP_FP_CALLEE_SAVE_FRAME
+    subq LITERAL(8), %rsp                // Alignment padding.
+    CFI_ADJUST_CFA_OFFSET(8)
+    call SYMBOL(artArrayCopyBarrierPost) // artArrayCopyBarrierPost(src, dst, offset)
+    addq LITERAL(8), %rsp
+    CFI_ADJUST_CFA_OFFSET(-8)
+    RESTORE_FP_CALLEE_SAVE_FRAME
+    ret
+END_FUNCTION art_quick_array_copy_barrier_post
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
     /*
      * On stack replacement stub.

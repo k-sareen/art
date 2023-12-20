@@ -382,8 +382,13 @@ class MANAGED DexCache final : public Object {
   template <VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
             ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
             typename Visitor>
+#if !ART_USE_MMTK
   void VisitNativeRoots(const Visitor& visitor)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_);
+#else
+  void VisitNativeRoots(const Visitor& visitor)
+      NO_THREAD_SAFETY_ANALYSIS;
+#endif  // !ART_USE_MMTK
 
   // Sets null to dex cache array fields which were allocated with the startup
   // allocator.

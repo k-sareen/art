@@ -1208,6 +1208,19 @@ void IntrinsicCodeGeneratorX86_64::VisitSystemArrayCopy(HInvoke* invoke) {
   } else {
     // Non read barrier code.
 
+#if ART_USE_MMTK
+    if (gUseWriteBarrier) {
+      __ pushq(temp1);
+      __ pushq(temp2);
+      if (length.IsConstant()) {
+        int32_t constant = length.GetConstant()->AsIntConstant()->GetValue();
+        __ pushq(Immediate(constant));
+      } else {
+        __ pushq(length.AsRegister<CpuRegister>());
+      }
+    }
+#endif  // ART_USE_MMTK
+
     // Iterate over the arrays and do a raw copy of the objects. We don't need to
     // poison/unpoison.
     NearLabel loop, done;
@@ -1227,6 +1240,45 @@ void IntrinsicCodeGeneratorX86_64::VisitSystemArrayCopy(HInvoke* invoke) {
   if (gUseWriteBarrier) {
 #if !ART_USE_MMTK
     codegen_->MarkGCCard(temp1, temp2, dest, CpuRegister(kNoRegister), /* emit_null_check= */ false);
+#else
+    __ popq(temp3);
+    __ popq(temp2);
+    __ popq(temp1);
+
+    // InvokeRuntimeCallingConvention calling_convention;
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(2)));
+
+    // HParallelMove parallel_move(codegen_->GetGraph()->GetAllocator());
+    // parallel_move.AddMove(Location::RegisterLocation(temp1.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(Location::RegisterLocation(temp2.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(1)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(Location::RegisterLocation(temp3.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+    //                       DataType::Type::kInt32,
+    //                       nullptr);
+    // codegen_->GetMoveResolver()->EmitNativeCode(&parallel_move);
+
+    // // codegen_->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), Location::RegisterLocation(temp1.AsRegister()));
+    // // codegen_->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(1)), Location::RegisterLocation(temp2.AsRegister()));
+    // // codegen_->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), Location::RegisterLocation(temp3.AsRegister()));
+
+    // // There is no need to update the stack mask, as this runtime call will not
+    // // trigger a garbage collection.
+    // int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pArrayCopyBarrierPost).Int32Value();
+    // codegen_->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, nullptr, nullptr);
+
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(2)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    codegen_->GenerateArrayCopyBarrierPost(invoke, Location::RegisterLocation(temp1.AsRegister()),
+        Location::RegisterLocation(temp2.AsRegister()), Location::RegisterLocation(temp3.AsRegister()));
 #endif  // !ART_USE_MMTK
   }
 
@@ -1926,6 +1978,11 @@ static bool UnsafeGetIntrinsicOnCallList(Intrinsics intrinsic) {
     case Intrinsics::kJdkUnsafeGetObject:
     case Intrinsics::kJdkUnsafeGetObjectVolatile:
     case Intrinsics::kJdkUnsafeGetObjectAcquire:
+    case Intrinsics::kUnsafePutObject:
+    case Intrinsics::kUnsafePutObjectVolatile:
+    case Intrinsics::kJdkUnsafePutObject:
+    case Intrinsics::kJdkUnsafePutObjectVolatile:
+    case Intrinsics::kJdkUnsafePutObjectRelease:
       return true;
     default:
       break;
@@ -2050,8 +2107,13 @@ void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafeGetObjectAcquire(HInvoke* invok
 static void CreateIntIntIntIntToVoidPlusTempsLocations(ArenaAllocator* allocator,
                                                        DataType::Type type,
                                                        HInvoke* invoke) {
-  LocationSummary* locations =
-      new (allocator) LocationSummary(invoke, LocationSummary::kNoCall, kIntrinsified);
+  LocationSummary* locations;
+  if (type == DataType::Type::kReference) {
+    locations = new (allocator) LocationSummary(invoke, LocationSummary::kCallOnSlowPath, kIntrinsified);
+  } else {
+    locations = new (allocator) LocationSummary(invoke, LocationSummary::kNoCall, kIntrinsified);
+  }
+
   locations->SetInAt(0, Location::NoLocation());        // Unused receiver.
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
@@ -2130,9 +2192,10 @@ void IntrinsicLocationsBuilderX86_64::VisitJdkUnsafePutLongRelease(HInvoke* invo
 
 // We don't care for ordered: it requires an AnyStore barrier, which is already given by the x86
 // memory model.
-static void GenUnsafePut(LocationSummary* locations, DataType::Type type, bool is_volatile,
+static void GenUnsafePut(HInvoke* invoke, DataType::Type type, bool is_volatile,
                          CodeGeneratorX86_64* codegen) {
   X86_64Assembler* assembler = down_cast<X86_64Assembler*>(codegen->GetAssembler());
+  LocationSummary* locations = invoke->GetLocations();
   CpuRegister base = locations->InAt(1).AsRegister<CpuRegister>();
   CpuRegister offset = locations->InAt(2).AsRegister<CpuRegister>();
   CpuRegister value = locations->InAt(3).AsRegister<CpuRegister>();
@@ -2160,6 +2223,38 @@ static void GenUnsafePut(LocationSummary* locations, DataType::Type type, bool i
                         base,
                         value,
                         value_can_be_null);
+#else
+    // InvokeRuntimeCallingConvention calling_convention;
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(2)));
+
+    // HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    // parallel_move.AddMove(Location::RegisterLocation(base.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(Location::RegisterLocation(value.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    // __ leal(CpuRegister(calling_convention.GetRegisterAt(1)), Address(base, offset, ScaleFactor::TIMES_1, 0));
+
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), Location::RegisterLocation(base.AsRegister()));
+    // // __ movl(CpuRegister(calling_convention.GetRegisterAt(1)), Address(base, offset, ScaleFactor::TIMES_1, 0));
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), Location::RegisterLocation(value.AsRegister()));
+
+    // // There is no need to update the stack mask, as this runtime call will not
+    // // trigger a garbage collection.
+    // int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
+    // codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, nullptr, nullptr);
+
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(2)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    codegen->GenerateWriteBarrierPost(invoke, Location::RegisterLocation(base.AsRegister()),
+        Address(base, offset, ScaleFactor::TIMES_1, 0), Location::RegisterLocation(value.AsRegister()));
 #endif  // !ART_USE_MMTK
   }
 }
@@ -2193,49 +2288,46 @@ void IntrinsicCodeGeneratorX86_64::VisitUnsafePutLongVolatile(HInvoke* invoke) {
 }
 
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePut(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt32, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt32, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutOrdered(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt32, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt32, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutVolatile(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt32, /*is_volatile=*/ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt32, /*is_volatile=*/ true, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutRelease(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt32, /* is_volatile= */ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt32, /* is_volatile= */ true, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutObject(HInvoke* invoke) {
-  GenUnsafePut(
-      invoke->GetLocations(), DataType::Type::kReference, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kReference, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutObjectOrdered(HInvoke* invoke) {
-  GenUnsafePut(
-      invoke->GetLocations(), DataType::Type::kReference, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kReference, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutObjectVolatile(HInvoke* invoke) {
-  GenUnsafePut(
-      invoke->GetLocations(), DataType::Type::kReference, /*is_volatile=*/ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kReference, /*is_volatile=*/ true, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutObjectRelease(HInvoke* invoke) {
-  GenUnsafePut(
-      invoke->GetLocations(), DataType::Type::kReference, /*is_volatile=*/ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kReference, /*is_volatile=*/ true, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutLong(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt64, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt64, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutLongOrdered(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt64, /*is_volatile=*/ false, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt64, /*is_volatile=*/ false, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutLongVolatile(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt64, /*is_volatile=*/ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt64, /*is_volatile=*/ true, codegen_);
 }
 void IntrinsicCodeGeneratorX86_64::VisitJdkUnsafePutLongRelease(HInvoke* invoke) {
-  GenUnsafePut(invoke->GetLocations(), DataType::Type::kInt64, /*is_volatile=*/ true, codegen_);
+  GenUnsafePut(invoke, DataType::Type::kInt64, /*is_volatile=*/ true, codegen_);
 }
 
 static void CreateUnsafeCASLocations(ArenaAllocator* allocator,
                                      DataType::Type type,
                                      HInvoke* invoke) {
+#if !ART_USE_MMTK
   const bool can_call = gUseReadBarrier &&
                         kUseBakerReadBarrier &&
                         IsUnsafeCASObject(invoke);
@@ -2245,6 +2337,12 @@ static void CreateUnsafeCASLocations(ArenaAllocator* allocator,
                                           ? LocationSummary::kCallOnSlowPath
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
+#else
+  LocationSummary* locations =
+      new (allocator) LocationSummary(invoke,
+                                      LocationSummary::kCallOnSlowPath,
+                                      kIntrinsified);
+#endif  // !ART_USE_MMTK
   locations->SetInAt(0, Location::NoLocation());        // Unused receiver.
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
@@ -2446,6 +2544,7 @@ static void GenCompareAndSetOrExchangeRef(CodeGeneratorX86_64* codegen,
   // The only supported read barrier implementation is the Baker-style read barriers.
   DCHECK_IMPLIES(gUseReadBarrier, kUseBakerReadBarrier);
 
+  Address field_addr(base, offset, TIMES_1, 0);
   X86_64Assembler* assembler = down_cast<X86_64Assembler*>(codegen->GetAssembler());
 
   // Mark card for object assuming new value is stored.
@@ -2453,10 +2552,41 @@ static void GenCompareAndSetOrExchangeRef(CodeGeneratorX86_64* codegen,
 #if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(temp1, temp2, base, value, value_can_be_null);
+#else
+    // InvokeRuntimeCallingConvention calling_convention;
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(2)));
+
+    // HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    // parallel_move.AddMove(Location::RegisterLocation(base.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(Location::RegisterLocation(value.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    // __ leal(CpuRegister(calling_convention.GetRegisterAt(1)), field_addr);
+
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), Location::RegisterLocation(base.AsRegister()));
+    // // __ movl(CpuRegister(calling_convention.GetRegisterAt(1)), field_addr);
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), Location::RegisterLocation(value.AsRegister()));
+
+    // // There is no need to update the stack mask, as this runtime call will not
+    // // trigger a garbage collection.
+    // int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
+    // codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, nullptr, nullptr);
+
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(2)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    codegen->GenerateWriteBarrierPost(invoke, Location::RegisterLocation(base.AsRegister()),
+        field_addr, Location::RegisterLocation(value.AsRegister()));
 #endif  // !ART_USE_MMTK
   }
 
-  Address field_addr(base, offset, TIMES_1, 0);
   if (gUseReadBarrier && kUseBakerReadBarrier) {
     // Need to make sure the reference stored in the field is a to-space
     // one before attempting the CAS or the CAS could fail incorrectly.
@@ -4295,6 +4425,37 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke,
     if (gUseWriteBarrier) {
 #if !ART_USE_MMTK
       codegen->MarkGCCard(temp1, temp2, ref, valreg, /*emit_null_check=*/ false);
+#else
+    // InvokeRuntimeCallingConvention calling_convention;
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ pushq(CpuRegister(calling_convention.GetRegisterAt(2)));
+
+    // HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    // parallel_move.AddMove(Location::RegisterLocation(ref.AsRegister()),
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(value,
+    //                       Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    // __ leal(CpuRegister(calling_convention.GetRegisterAt(1)), field_addr);
+
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), Location::RegisterLocation(ref.AsRegister()));
+    // // __ movl(CpuRegister(calling_convention.GetRegisterAt(1)), field_addr);
+    // // codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), value);
+
+    // // There is no need to update the stack mask, as this runtime call will not
+    // // trigger a garbage collection.
+    // int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
+    // codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, nullptr, nullptr);
+
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(2)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(1)));
+    // __ popq(CpuRegister(calling_convention.GetRegisterAt(0)));
+    codegen->GenerateWriteBarrierPost(invoke, Location::RegisterLocation(ref.AsRegister()), field_addr, value);
 #endif  // !ART_USE_MMTK
     }
 

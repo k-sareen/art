@@ -182,6 +182,14 @@ static void scan_all_roots(NodesClosure closure) {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
   runtime->VisitRoots(&visitor);
+  // {
+  //   art::WriterMutexLock mu(art::Thread::Current(), *art::Locks::classlinker_classes_lock_);
+  //   runtime->GetClassLinker()->VisitClassLoaders(&visitor);
+  // }
+  // {
+  //   art::WriterMutexLock mu(art::Thread::Current(), *art::Locks::dex_lock_);
+  //   runtime->GetClassLinker()->VisitDexCaches(&visitor);
+  // }
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)

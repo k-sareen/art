@@ -207,6 +207,9 @@
   V(ReadBarrierSlow, mirror::Object*, mirror::Object*, mirror::Object*, uint32_t) \
   V(ReadBarrierForRootSlow, mirror::Object*, GcRoot<mirror::Object>*) \
 \
+  V(WriteBarrierPost, void, mirror::Object*, uint8_t*, mirror::Object*) \
+  V(ArrayCopyBarrierPost, void, void*, void*, uint32_t) \
+\
   V(MethodEntryHook, void, ArtMethod*, Thread*) \
   V(MethodExitHook, int32_t, Thread*, ArtMethod*, uint64_t*, uint64_t*)
 

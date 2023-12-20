@@ -197,6 +197,14 @@ void InitEntryPoints(JniEntryPoints* jpoints,
   qpoints->SetReadBarrierMarkReg29(nullptr);
   qpoints->SetReadBarrierSlow(artReadBarrierSlow);
   qpoints->SetReadBarrierForRootSlow(artReadBarrierForRootSlow);
+
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+  qpoints->SetWriteBarrierPost(artWriteBarrierPost);
+  qpoints->SetArrayCopyBarrierPost(artArrayCopyBarrierPost);
+#else
+  qpoints->SetWriteBarrierPost(nullptr);
+  qpoints->SetArrayCopyBarrierPost(nullptr);
+#endif  // ART_USE_MMTK
 }
 
 }  // namespace art

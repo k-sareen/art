@@ -263,7 +263,11 @@ template <ReadBarrierOption kReadBarrierOption,
 inline void VisitDexCachePairs(T* array,
                                size_t num_pairs,
                                const Visitor& visitor)
+#if !ART_USE_MMTK
     REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_) {
+#else
+    NO_THREAD_SAFETY_ANALYSIS {
+#endif  // !ART_USE_MMTK
   // Check both the data pointer and count since the array might be initialized
   // concurrently on other thread, and we might observe just one of the values.
   for (size_t i = 0; array != nullptr && i < num_pairs; ++i) {

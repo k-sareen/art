@@ -3929,7 +3929,7 @@ collector::GcType Heap::WaitForGcToCompleteLocked(GcCause cause, Thread* self) {
     // it results in log spam. kGcCauseExplicit is already logged in LogGC, so avoid it here too.
     if (cause == kGcCauseForAlloc ||
         cause == kGcCauseDisableMovingGc) {
-      VLOG(gc) << "Starting a blocking GC " << cause;
+      VLOG(gc) << *self << " Starting a blocking GC " << cause;
     }
   }
   return last_gc_type;

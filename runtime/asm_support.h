@@ -19,6 +19,7 @@
 
 #include "heap_poisoning.h"
 #include "read_barrier_config.h"
+#include "write_barrier_config.h"
 
 // Automatically generated header based on the asm_defines.def file.
 #include "asm_defines.h"

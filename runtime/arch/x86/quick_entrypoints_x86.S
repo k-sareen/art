@@ -2008,6 +2008,28 @@ DEFINE_FUNCTION art_quick_read_barrier_for_root_slow
     ret
 END_FUNCTION art_quick_read_barrier_for_root_slow
 
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+DEFINE_FUNCTION art_quick_write_barrier_post
+    PUSH edx                         // pass arg3 - offset
+    PUSH ecx                         // pass arg2 - target
+    PUSH eax                         // pass arg1 - src
+    call SYMBOL(artWriteBarrierPost) // artWriteBarrierPost(src, target, offset)
+    addl LITERAL(12), %esp           // pop arguments
+    CFI_ADJUST_CFA_OFFSET(-12)
+    ret
+END_FUNCTION art_quick_write_barrier_post
+
+DEFINE_FUNCTION art_quick_array_copy_barrier_post
+    PUSH edx                              // pass arg3 - count
+    PUSH ecx                              // pass arg2 - dst
+    PUSH eax                              // pass arg1 - src
+    call SYMBOL(artArrayCopyBarrierPost)  // artArrayCopyBarrierPost(src, dst, count)
+    addl LITERAL(12), %esp                // pop arguments
+    CFI_ADJUST_CFA_OFFSET(-12)
+    ret
+END_FUNCTION art_quick_array_copy_barrier_post
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+
   /*
      * On stack replacement stub.
      * On entry:

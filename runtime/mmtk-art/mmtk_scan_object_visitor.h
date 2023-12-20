@@ -50,6 +50,9 @@ class MmtkScanObjectVisitor {
 
   void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
+    // UNUSED(klass);
+    // void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
+    // closure_.invoke(referent_slot);
     Runtime* runtime = Runtime::Current();
     if (UNLIKELY(runtime->IsActiveTransaction())) {
       // In transaction mode, keep the referent alive and avoid any reference processing to avoid the

@@ -23,6 +23,7 @@
 #include "base/macros.h"
 #include "deoptimization_kind.h"
 #include "offsets.h"
+#include "write_barrier_config.h"
 
 #define QUICK_ENTRYPOINT_OFFSET(ptr_size, x) \
     Thread::QuickEntryPointOffset<ptr_size>(OFFSETOF_MEMBER(QuickEntryPoints, x))
@@ -75,10 +76,16 @@ extern "C" mirror::String* artStringBuilderAppend(uint32_t format,
                                                   Thread* self)
     REQUIRES_SHARED(Locks::mutator_lock_) HOT_ATTR;
 
-// extern "C" void artWriteBarrier(mirror::Object* src,
-//                                 mirror::Object** slot,
-//                                 mirror::Object* target)
-//     HOT_ATTR;
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+extern "C" void artWriteBarrierPost(mirror::Object* src,
+                                    uint8_t* slot,
+                                    mirror::Object* target)
+    HOT_ATTR;
+extern "C" void artArrayCopyBarrierPost(void* src,
+                                        void* dst,
+                                        uint32_t count)
+    HOT_ATTR;
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
 // Read barrier entrypoints.
 //

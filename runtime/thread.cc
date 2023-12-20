@@ -2681,6 +2681,7 @@ Thread::~Thread() {
   }
 
 #if ART_USE_MMTK
+  mmtk_flush_mutator(tlsPtr_.mmtk_mutator);
   mmtk_destroy_mutator(tlsPtr_.mmtk_mutator);
   tlsPtr_.mmtk_mutator = nullptr;
   tlsPtr_.mmtk_default_bump_pointer = MmtkBumpPointer {};
@@ -3911,6 +3912,8 @@ void Thread::DumpThreadOffset(std::ostream& os, uint32_t offset) {
   QUICK_ENTRY_POINT_INFO(pReadBarrierMarkReg29)
   QUICK_ENTRY_POINT_INFO(pReadBarrierSlow)
   QUICK_ENTRY_POINT_INFO(pReadBarrierForRootSlow)
+  QUICK_ENTRY_POINT_INFO(pWriteBarrierPost)
+  QUICK_ENTRY_POINT_INFO(pArrayCopyBarrierPost)
 #undef QUICK_ENTRY_POINT_INFO
 
   os << offset;

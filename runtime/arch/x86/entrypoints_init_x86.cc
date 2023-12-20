@@ -44,6 +44,11 @@ extern "C" mirror::Object* art_quick_read_barrier_mark_reg07(mirror::Object*);
 extern "C" mirror::Object* art_quick_read_barrier_slow(mirror::Object*, mirror::Object*, uint32_t);
 extern "C" mirror::Object* art_quick_read_barrier_for_root_slow(GcRoot<mirror::Object>*);
 
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+extern "C" void art_quick_write_barrier_post(art::mirror::Object*, uint8_t*, art::mirror::Object*);
+extern "C" void art_quick_array_copy_barrier_post(void*, void*, uint32_t count);
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+
 void UpdateReadBarrierEntrypoints(QuickEntryPoints* qpoints, bool is_active) {
   qpoints->SetReadBarrierMarkReg00(is_active ? art_quick_read_barrier_mark_reg00 : nullptr);
   qpoints->SetReadBarrierMarkReg01(is_active ? art_quick_read_barrier_mark_reg01 : nullptr);
@@ -126,6 +131,14 @@ void InitEntryPoints(JniEntryPoints* jpoints,
   qpoints->SetReadBarrierMarkReg29(nullptr);
   qpoints->SetReadBarrierSlow(art_quick_read_barrier_slow);
   qpoints->SetReadBarrierForRootSlow(art_quick_read_barrier_for_root_slow);
+
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+  qpoints->SetWriteBarrierPost(art_quick_write_barrier_post);
+  qpoints->SetArrayCopyBarrierPost(art_quick_array_copy_barrier_post);
+#else
+  qpoints->SetWriteBarrierPost(nullptr);
+  qpoints->SetArrayCopyBarrierPost(nullptr);
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 }
 
 }  // namespace art

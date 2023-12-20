@@ -126,6 +126,11 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       }
     }
 
+    // UNUSED(allocator);
+    // obj = tp_heap_->TryToAllocate(self, byte_count, /* non_moving= */ false,
+    //                                 &bytes_allocated, &usable_size,
+    //                                 &bytes_tl_bulk_allocated);
+
     obj->SetClass(klass);
     // XXX(kunals): Is this required?
     no_suspend_pre_fence_visitor(obj, usable_size);

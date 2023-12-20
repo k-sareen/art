@@ -170,7 +170,26 @@ inline void ObjectArray<T>::AssignableMemmove(int32_t dst_pos,
       }
     }
   }
-  WriteBarrier::ForArrayWrite(this, dst_pos, count);
+#if !ART_USE_MMTK
+  WriteBarrier::ForArrayWrite(src, this, dst_pos, count);
+#else
+  if (count > 0) {
+    MemberOffset src_offset = src->OffsetOfElement(src_pos);
+    MemberOffset dst_offset = this->OffsetOfElement(dst_pos);
+    void* src_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(src.Ptr()) + src_offset.Int32Value()
+    );
+    void* dst_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(this) + dst_offset.Int32Value()
+    );
+    WriteBarrier::ForArrayWrite(
+      src_raw_addr,
+      dst_raw_addr,
+      dst_pos,
+      count
+    );
+  }
+#endif  // !ART_USE_MMTK
   if (kIsDebugBuild) {
     for (int i = 0; i < count; ++i) {
       // The get will perform the VerifyObject.
@@ -219,7 +238,26 @@ inline void ObjectArray<T>::AssignableMemcpy(int32_t dst_pos,
       SetWithoutChecksAndWriteBarrier<false>(dst_pos + i, obj);
     }
   }
-  WriteBarrier::ForArrayWrite(this, dst_pos, count);
+#if !ART_USE_MMTK
+  WriteBarrier::ForArrayWrite(src, this, dst_pos, count);
+#else
+  if (count > 0) {
+    MemberOffset src_offset = src->OffsetOfElement(src_pos);
+    MemberOffset dst_offset = this->OffsetOfElement(dst_pos);
+    void* src_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(src.Ptr()) + src_offset.Int32Value()
+    );
+    void* dst_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(this) + dst_offset.Int32Value()
+    );
+    WriteBarrier::ForArrayWrite(
+      src_raw_addr,
+      dst_raw_addr,
+      dst_pos,
+      count
+    );
+  }
+#endif  // !ART_USE_MMTK
   if (kIsDebugBuild) {
     for (int i = 0; i < count; ++i) {
       // The get will perform the VerifyObject.
@@ -301,7 +339,26 @@ inline void ObjectArray<T>::AssignableCheckingMemcpy(int32_t dst_pos,
       }
     }
   }
-  WriteBarrier::ForArrayWrite(this, dst_pos, count);
+#if !ART_USE_MMTK
+  WriteBarrier::ForArrayWrite(src, this, dst_pos, count);
+#else
+  if (count > 0) {
+    MemberOffset src_offset = src->OffsetOfElement(src_pos);
+    MemberOffset dst_offset = this->OffsetOfElement(dst_pos);
+    void* src_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(src.Ptr()) + src_offset.Int32Value()
+    );
+    void* dst_raw_addr = reinterpret_cast<void*>(
+      reinterpret_cast<uint8_t*>(this) + dst_offset.Int32Value()
+    );
+    WriteBarrier::ForArrayWrite(
+      src_raw_addr,
+      dst_raw_addr,
+      dst_pos,
+      count
+    );
+  }
+#endif  // !ART_USE_MMTK
   if (UNLIKELY(i != count)) {
     std::string actualSrcType(mirror::Object::PrettyTypeOf(o));
     std::string dstType(PrettyTypeOf());

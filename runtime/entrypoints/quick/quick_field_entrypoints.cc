@@ -25,6 +25,11 @@
 #include "gc_root-inl.h"
 #include "mirror/class-inl.h"
 #include "mirror/object_reference.h"
+#include "write_barrier_config.h"
+
+#if ART_USE_MMTK
+#include "mmtk.h"
+#endif  // ART_USE_MMTK
 
 namespace art {
 
@@ -414,6 +419,26 @@ extern "C" int artSet16InstanceFromCode(uint32_t field_idx,
     REQUIRES_SHARED(Locks::mutator_lock_) {
   return artSetCharInstanceFromCode(field_idx, obj, new_value, referrer, self);
 }
+
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+extern "C" void artWriteBarrierPost(mirror::Object* src,
+                                    uint8_t* slot,
+                                    mirror::Object* target) {
+  MmtkMutator mmtk_mutator = Thread::Current()->GetMmtkMutator();
+  if (mmtk_mutator != nullptr) {
+    mmtk_object_reference_write_post(mmtk_mutator, (void*) src, (void*) slot, (void*) target);
+  }
+}
+
+extern "C" void artArrayCopyBarrierPost(void* src,
+                                        void* dst,
+                                        uint32_t count) {
+  MmtkMutator mmtk_mutator = Thread::Current()->GetMmtkMutator();
+  if (mmtk_mutator != nullptr) {
+    mmtk_array_copy_post(mmtk_mutator, src, dst, (size_t) count);
+  }
+}
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
 extern "C" mirror::Object* artReadBarrierMark(mirror::Object* obj) {
   DCHECK(gUseReadBarrier);

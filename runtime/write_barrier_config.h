@@ -19,9 +19,19 @@
 
 #if ART_USE_WRITE_BARRIER
 #define USE_WRITE_BARRIER
+#endif  // ART_USE_WRITE_BARRIER
+
+#ifdef __cplusplus
+
+namespace art {
+
+#if ART_USE_WRITE_BARRIER
 static constexpr bool gUseWriteBarrier = true;
 #else
 static constexpr bool gUseWriteBarrier = false;
 #endif  // ART_USE_WRITE_BARRIER
 
+}  // namespace art
+
+#endif  // __cplusplus
 #endif  // ART_RUNTIME_WRITE_BARRIER_CONFIG_H_
