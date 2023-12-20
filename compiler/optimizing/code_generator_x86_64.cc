@@ -1012,6 +1012,132 @@ class ReadBarrierForRootSlowPathX86_64 : public SlowPathCode {
   DISALLOW_COPY_AND_ASSIGN(ReadBarrierForRootSlowPathX86_64);
 };
 
+#if ART_USE_MMTK
+class WriteBarrierPostX86_64 : public SlowPathCode {
+ public:
+  WriteBarrierPostX86_64(HInstruction* instruction,
+                         Location src,
+                         const Address& slot,
+                         Location target)
+      : SlowPathCode(instruction),
+        src_(src),
+        slot_(slot),
+        target_(target) {}
+
+  const char* GetDescription() const override {
+    return "WriteBarrierPostX86_64";
+  }
+
+  void EmitNativeCode(CodeGenerator* codegen) override {
+    LocationSummary* locations = instruction_->GetLocations();
+
+    DCHECK(locations->CanCall());
+
+    __ Bind(GetEntryLabel());
+    SaveLiveRegisters(codegen, locations);
+
+    InvokeRuntimeCallingConvention calling_convention;
+    CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
+    HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    parallel_move.AddMove(src_,
+                          Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+                          DataType::Type::kReference,
+                          nullptr);
+    parallel_move.AddMove(target_,
+                          Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+                          DataType::Type::kInt32,
+                          nullptr);
+    codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+
+    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), src_);
+    __ leal(CpuRegister(calling_convention.GetRegisterAt(1)), slot_);
+    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), target_);
+
+    // There is no need to update the stack mask, as this runtime call will not
+    // trigger a garbage collection.
+    int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
+    x86_64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
+
+    RestoreLiveRegisters(codegen, locations);
+    __ jmp(GetExitLabel());
+  }
+
+ private:
+  // The location (register) of the object holding the modified object reference field.
+  const Location src_;
+  // The address of the modified reference field. The base of this address must be `obj_`.
+  const Address slot_;
+  // The location (register) of the target object reference
+  const Location target_;
+
+  DISALLOW_COPY_AND_ASSIGN(WriteBarrierPostX86_64);
+};
+
+class ArrayCopyBarrierPostX86_64 : public SlowPathCode {
+ public:
+  ArrayCopyBarrierPostX86_64(HInstruction* instruction,
+                             Location src,
+                             Location dst,
+                             Location count)
+      : SlowPathCode(instruction),
+        src_(src),
+        dst_(dst),
+        count_(count) {}
+
+  const char* GetDescription() const override {
+    return "ArrayCopyBarrierPostX86_64";
+  }
+
+  void EmitNativeCode(CodeGenerator* codegen) override {
+    LocationSummary* locations = instruction_->GetLocations();
+
+    DCHECK(locations->CanCall());
+
+    __ Bind(GetEntryLabel());
+    SaveLiveRegisters(codegen, locations);
+
+    InvokeRuntimeCallingConvention calling_convention;
+    CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
+    HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    parallel_move.AddMove(src_,
+                          Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+                          DataType::Type::kReference,
+                          nullptr);
+    parallel_move.AddMove(dst_,
+                          Location::RegisterLocation(calling_convention.GetRegisterAt(1)),
+                          DataType::Type::kReference,
+                          nullptr);
+    parallel_move.AddMove(count_,
+                          Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+                          DataType::Type::kInt32,
+                          nullptr);
+    codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+
+    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), src_);
+    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(1)), dst_);
+    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), count_);
+
+    // There is no need to update the stack mask, as this runtime call will not
+    // trigger a garbage collection.
+    int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pArrayCopyBarrierPost).Int32Value();
+    x86_64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
+
+    RestoreLiveRegisters(codegen, locations);
+    __ jmp(GetExitLabel());
+  }
+
+ private:
+  // The location (register) of the object holding the modified object reference field.
+  const Location src_;
+  // The address of the modified reference field. The base of this address must be `obj_`.
+  const Location dst_;
+  // The location (register) of the target object reference
+  const Location count_;
+
+  DISALLOW_COPY_AND_ASSIGN(ArrayCopyBarrierPostX86_64);
+};
+#endif  // ART_USE_MMTK
+
 class MethodEntryExitHooksSlowPathX86_64 : public SlowPathCode {
  public:
   explicit MethodEntryExitHooksSlowPathX86_64(HInstruction* instruction)
@@ -5321,8 +5447,13 @@ void LocationsBuilderX86_64::HandleFieldSet(HInstruction* instruction,
                                             WriteBarrierKind write_barrier_kind) {
   DCHECK(instruction->IsInstanceFieldSet() || instruction->IsStaticFieldSet());
 
+#if ART_USE_MMTK
+  LocationSummary* locations =
+      new (GetGraph()->GetAllocator()) LocationSummary(instruction, LocationSummary::kCallOnSlowPath);
+#else
   LocationSummary* locations =
       new (GetGraph()->GetAllocator()) LocationSummary(instruction, LocationSummary::kNoCall);
+#endif  // ART_USE_MMTK
   DataType::Type field_type = field_info.GetFieldType();
   bool is_volatile = field_info.IsVolatile();
   bool needs_write_barrier =
@@ -5419,6 +5550,7 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
 #if ART_USE_MMTK
   UNUSED(base);
   UNUSED(value_can_be_null);
+  UNUSED(write_barrier_kind);
 #endif  // ART_USE_MMTK
 
   LocationSummary* locations = instruction->GetLocations();
@@ -5570,7 +5702,10 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
     codegen_->CheckGCCardIsValid(temp, card, base);
   }
 #else
-  UNUSED(needs_write_barrier);
+  if (needs_write_barrier) {
+    codegen_->GenerateWriteBarrierPost(instruction,
+        Location::RegisterLocation(base.AsRegister()), field_addr, value);
+  }
 #endif  // !ART_USE_MMTK
 
   if (is_volatile) {
@@ -5857,11 +5992,16 @@ void LocationsBuilderX86_64::VisitArraySet(HArraySet* instruction) {
       codegen_->StoreNeedsWriteBarrier(value_type, instruction->GetValue(), write_barrier_kind);
   bool check_gc_card =
       codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind);
+#if ART_USE_MMTK
+  LocationSummary* locations = new (GetGraph()->GetAllocator()) LocationSummary(
+      instruction,
+      LocationSummary::kCallOnSlowPath);
+#else
   bool needs_type_check = instruction->NeedsTypeCheck();
-
   LocationSummary* locations = new (GetGraph()->GetAllocator()) LocationSummary(
       instruction,
       needs_type_check ? LocationSummary::kCallOnSlowPath : LocationSummary::kNoCall);
+#endif  // ART_USE_MMTK
 
   locations->SetInAt(0, Location::RequiresRegister());
   locations->SetInAt(1, Location::RegisterOrConstant(instruction->InputAt(1)));
@@ -5947,8 +6087,10 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
             CpuRegister card = locations->GetTemp(1).AsRegister<CpuRegister>();
             codegen_->MarkGCCard(temp, card, array);
           }
-        }
+#else
+          // TODO(kunals): Write barrier for writing null is being omitted here
 #endif  // !ART_USE_MMTK
+        }
         DCHECK(!needs_type_check);
         break;
       }
@@ -6043,6 +6185,12 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
       }
 
       __ movl(address, source.AsRegister<CpuRegister>());
+
+#if ART_USE_MMTK
+      if (needs_write_barrier) {
+        codegen_->GenerateWriteBarrierPost(instruction, array_loc, address, value);
+      }
+#endif  // ART_USE_MMTK
 
       if (can_value_be_null || !needs_type_check) {
         codegen_->MaybeRecordImplicitNullCheck(instruction);
@@ -8059,6 +8207,62 @@ void CodeGeneratorX86_64::GenerateReadBarrierForRootSlow(HInstruction* instructi
   // not need to do anything special for this here.
   SlowPathCode* slow_path =
       new (GetScopedAllocator()) ReadBarrierForRootSlowPathX86_64(instruction, out, root);
+  AddSlowPath(slow_path);
+
+  __ jmp(slow_path->GetEntryLabel());
+  __ Bind(slow_path->GetExitLabel());
+}
+
+void CodeGeneratorX86_64::GenerateWriteBarrierPost(HInstruction* instruction,
+                                                   Location src,
+                                                   Address slot,
+                                                   Location target) {
+  DCHECK(gUseWriteBarrier);
+
+  SlowPathCode* slow_path = new (GetScopedAllocator())
+      WriteBarrierPostX86_64(instruction, src, slot, target);
+  AddSlowPath(slow_path);
+
+  __ jmp(slow_path->GetEntryLabel());
+  __ Bind(slow_path->GetExitLabel());
+}
+
+void CodeGeneratorX86_64::GenerateArrayCopyBarrierPost(HInstruction* instruction,
+                                                       Location src,
+                                                       Location dst,
+                                                       Location count) {
+  DCHECK(gUseWriteBarrier);
+
+  SlowPathCode* slow_path = new (GetScopedAllocator())
+      ArrayCopyBarrierPostX86_64(instruction, src, dst, count);
+  AddSlowPath(slow_path);
+
+  __ jmp(slow_path->GetEntryLabel());
+  __ Bind(slow_path->GetExitLabel());
+}
+
+void CodeGeneratorX86_64::GenerateWriteBarrierPost(HInstruction* instruction,
+                                                   Location src,
+                                                   Address slot,
+                                                   Location target) {
+  DCHECK(gUseWriteBarrier);
+
+  SlowPathCode* slow_path = new (GetScopedAllocator())
+      WriteBarrierPostX86_64(instruction, src, slot, target);
+  AddSlowPath(slow_path);
+
+  __ jmp(slow_path->GetEntryLabel());
+  __ Bind(slow_path->GetExitLabel());
+}
+
+void CodeGeneratorX86_64::GenerateArrayCopyBarrierPost(HInstruction* instruction,
+                                                       Location src,
+                                                       Location dst,
+                                                       Location count) {
+  DCHECK(gUseWriteBarrier);
+
+  SlowPathCode* slow_path = new (GetScopedAllocator())
+      ArrayCopyBarrierPostX86_64(instruction, src, dst, count);
   AddSlowPath(slow_path);
 
   __ jmp(slow_path->GetEntryLabel());

@@ -130,7 +130,7 @@ ObjPtr<Object> Object::CopyObject(ObjPtr<mirror::Object> dest,
   if (c->IsArrayClass()) {
     if (!c->GetComponentType()->IsPrimitive()) {
       ObjPtr<ObjectArray<Object>> array = dest->AsObjectArray<Object>();
-      WriteBarrier::ForArrayWrite(dest, 0, array->GetLength());
+      WriteBarrier::ForArrayWrite(src.Ptr(), dest.Ptr(), 0, array->GetLength());
     }
   } else {
     WriteBarrier::ForEveryFieldWrite(dest);

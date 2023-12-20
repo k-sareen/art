@@ -1713,6 +1713,7 @@ void CodeGenerator::ValidateInvokeRuntime(QuickEntrypointEnum entrypoint,
 
 void CodeGenerator::ValidateInvokeRuntimeWithoutRecordingPcInfo(HInstruction* instruction,
                                                                 SlowPathCode* slow_path) {
+#if !ART_USE_MMTK
   DCHECK(instruction->GetLocations()->OnlyCallsOnSlowPath())
       << "instruction->DebugName()=" << instruction->DebugName()
       << " slow_path->GetDescription()=" << slow_path->GetDescription();
@@ -1732,6 +1733,10 @@ void CodeGenerator::ValidateInvokeRuntimeWithoutRecordingPcInfo(HInstruction* in
          (instruction->IsInvoke() && instruction->GetLocations()->Intrinsified()))
       << "instruction->DebugName()=" << instruction->DebugName()
       << " slow_path->GetDescription()=" << slow_path->GetDescription();
+#else
+  UNUSED(instruction);
+  UNUSED(slow_path);
+#endif  // !ART_USE_MMTK
 }
 
 void SlowPathCode::SaveLiveRegisters(CodeGenerator* codegen, LocationSummary* locations) {

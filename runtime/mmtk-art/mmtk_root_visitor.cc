@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
+#include "class_table.h"
 #include "gc/third_party_heap.h"
+#include "mirror/class-refvisitor-inl.h"
 #include "mirror/object-inl.h"
 #include "mmtk_root_visitor.h"
 #include "mmtk.h"
 
+#include <iostream>
+
 namespace art {
 namespace gc {
 namespace third_party_heap {
+
+// static bool class_in_class_set(std::unordered_set<mirror::Object*> class_set,
+//                                mirror::Object* klass) {
+//   return class_set.count(klass) != 0;
+// }
 
 MmtkRootVisitor::MmtkRootVisitor(NodesClosure closure) : closure_(closure), cursor_(0) {
   RustBuffer buf = closure_.invoke(NULL, 0, 0);
@@ -46,10 +55,19 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
     auto* root = roots[i];
     auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
 
+    // std::cout << "Adding " << *root << "\n";
     buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
+
+    // if ((*root)->IsClass() && !class_in_class_set(class_set_, *root)) {
+    //   // std::cout << " Adding class " << *root << "\n";
+    //   class_set_.insert(*root);
+    //   ObjPtr<mirror::Class> klass = (*root)->AsClass();
+    //   klass->VisitNativeRoots</* kReadBarrierOption= */ kWithoutReadBarrier>(
+    //       *this, Runtime::Current()->GetClassLinker()->GetImagePointerSize());
+    // }
   }
 }
 
@@ -57,10 +75,20 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
                 size_t count,
                 const RootInfo& info ATTRIBUTE_UNUSED) {
   for (size_t i = 0; i < count; ++i) {
-    buffer_[cursor_++] = (void*) roots[i]->AsMirrorPtr();
+    auto* root = roots[i]->AsMirrorPtr();
+    // std::cout << "Adding " << root << "\n";
+    buffer_[cursor_++] = (void*) root;
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
+
+    // if (root->IsClass() && !class_in_class_set(class_set_, root)) {
+    //   // std::cout << " Adding class " << root << "\n";
+    //   class_set_.insert(root);
+    //   ObjPtr<mirror::Class> klass = root->AsClass();
+    //   klass->VisitNativeRoots</* kReadBarrierOption= */ kWithoutReadBarrier>(
+    //       *this, Runtime::Current()->GetClassLinker()->GetImagePointerSize());
+    // }
   }
 }
 
@@ -71,6 +99,17 @@ void MmtkRootVisitor::FlushBuffer() {
     capacity_ = buf.capacity;
     cursor_ = 0;
   }
+}
+
+void MmtkRootVisitor::Visit(ObjPtr<mirror::ClassLoader> class_loader) {
+  ClassTable* const class_table = class_loader->GetClassTable();
+  if (class_table != nullptr) {
+    class_table->VisitRoots(*this);
+  }
+}
+
+void MmtkRootVisitor::Visit(ObjPtr<mirror::DexCache> dex_cache) {
+  dex_cache->VisitNativeRoots<kVerifyNone, /* kReadBarrierOption= */ kWithoutReadBarrier>(*this);
 }
 
 }  // namespace third_party_heap

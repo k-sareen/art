@@ -640,6 +640,12 @@ class CodeGeneratorX86_64 : public CodeGenerator {
   // artReadBarrierForRootSlow.
   void GenerateReadBarrierForRootSlow(HInstruction* instruction, Location out, Location root);
 
+#if ART_USE_MMTK
+  void GenerateWriteBarrierPost(HInstruction* instruction, Location src, Address slot, Location target);
+
+  void GenerateArrayCopyBarrierPost(HInstruction* instruction, Location src, Location dst, Location count);
+#endif  // ART_USE_MMTK
+
   int ConstantAreaStart() const {
     return constant_area_start_;
   }

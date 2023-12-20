@@ -17,8 +17,11 @@
 #ifndef MMTK_ART_MMTK_ROOT_VISITOR_H
 #define MMTK_ART_MMTK_ROOT_VISITOR_H
 
+#include "class_linker.h"
 #include "gc/third_party_heap.h"
 #include "mmtk.h"
+
+#include <unordered_set>
 
 namespace art {
 
@@ -30,7 +33,7 @@ namespace gc {
 
 namespace third_party_heap {
 
-class MmtkRootVisitor : public ThirdPartyHeapRootVisitor {
+class MmtkRootVisitor : public ThirdPartyHeapRootVisitor, public ClassLoaderVisitor, public DexCacheVisitor {
  public:
   MmtkRootVisitor(NodesClosure closure);
 
@@ -43,6 +46,25 @@ class MmtkRootVisitor : public ThirdPartyHeapRootVisitor {
                   size_t count,
                   const RootInfo& info) override
       REQUIRES(Locks::mutator_lock_);
+
+  void Visit(ObjPtr<mirror::ClassLoader> class_loader) override
+      REQUIRES_SHARED(Locks::classlinker_classes_lock_, Locks::mutator_lock_);
+
+  void Visit(ObjPtr<mirror::DexCache> dex_cache) override
+      NO_THREAD_SAFETY_ANALYSIS;
+
+  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
+      NO_THREAD_SAFETY_ANALYSIS {
+    if (!root->IsNull()) {
+      VisitRoot(root);
+    }
+  }
+
+  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
+      NO_THREAD_SAFETY_ANALYSIS {
+    const_cast<MmtkRootVisitor&>(*this).VisitRoots(&root, 1, RootInfo(kRootVMInternal));
+  }
+
  private:
   void FlushBuffer();
 
@@ -50,6 +72,7 @@ class MmtkRootVisitor : public ThirdPartyHeapRootVisitor {
   void** buffer_;
   size_t capacity_;
   size_t cursor_;
+  // std::unordered_set<mirror::Object*> class_set_;
 };
 
 }  // namespace third_party_heap
