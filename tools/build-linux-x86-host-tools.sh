@@ -33,10 +33,24 @@ HOST_BINARIES=(
   ${OUT_DIR}/host/linux-x86/bin/dex2oatd
   ${OUT_DIR}/host/linux-x86/bin/deapexer
   ${OUT_DIR}/host/linux-x86/bin/debugfs_static
+  ${OUT_DIR}/host/linux-x86/bin/oatdump
 )
 
-# Build and zip statically linked musl binaries for linux-x86 hosts without the
+# Build statically linked musl binaries for linux-x86 hosts without the
 # standard glibc implementation.
 build/soong/soong_ui.bash --make-mode USE_HOST_MUSL=true BUILD_HOST_static=true ${HOST_BINARIES[*]}
-prebuilts/build-tools/linux-x86/bin/soong_zip -o ${DIST_DIR}/art-host-tools-linux-x86.zip \
+# Zip these binaries in a temporary file
+prebuilts/build-tools/linux-x86/bin/soong_zip -o "${DIST_DIR}/temp-host-tools.zip" \
   -j ${HOST_BINARIES[*]/#/-f }
+
+# Build art_release.zip and copy only art jars in a temporary zip
+build/soong/soong_ui.bash --make-mode dist "${OUT_DIR}/dist/art_release.zip"
+prebuilts/build-tools/linux-x86/bin/zip2zip -i "${OUT_DIR}/dist/art_release.zip" \
+  -o "${DIST_DIR}/temp-art-jars.zip" "bootjars/*"
+
+# Merge both temporary zips into output zip
+prebuilts/build-tools/linux-x86/bin/merge_zips "${DIST_DIR}/art-host-tools-linux-x86.zip" \
+  "${DIST_DIR}/temp-host-tools.zip" "${DIST_DIR}/temp-art-jars.zip"
+
+# Delete temporary zips
+rm "${DIST_DIR}/temp-host-tools.zip" "${DIST_DIR}/temp-art-jars.zip"
