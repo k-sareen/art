@@ -483,16 +483,83 @@ bool FdFile::Copy(FdFile* input_file, int64_t offset, int64_t size) {
   if (size == 0) {
     return true;
   }
+
+  off_t out_length = lseek(Fd(), 0, SEEK_END);
+  if (out_length != 0) {
+    // Output file is not empty.
+    //
+    // Currently there is no use-case for copying into non-empty files. To support the use-case,
+    // when needed, the implementation should handle the case in which the input file has an empty
+    // block whereas the corresponding location in the output file already contains some data. The
+    // current implementation would preserve that data instead of overwriting it with zeroes.
+    errno = EINVAL;
+    return false;
+  }
 #ifdef __linux__
   // Use sendfile(), available for files since linux kernel 2.6.33.
+  // Use lseek with SEEK_HOLE/SEEK_DATA to skip empty blocks, available since kernel 3.1.
+  int64_t offset_diff = -off;
   off_t end = off + sz;
+  off_t out_offset = 0;
   while (off != end) {
-    int result = TEMP_FAILURE_RETRY(
-        sendfile(Fd(), input_file->Fd(), &off, end - off));
-    if (result == -1) {
-      return false;
+    off = lseek(input_file->Fd(), off, SEEK_DATA);
+    if (off == -1) {
+      if (errno != ENXIO) {
+        return false;
+      }
+
+      // This is only expected to happen when there is no non-empty block between the current
+      // position and the end of the input file. In this case, no more copying is to be done, and
+      // the output file length going to be adjusted by `SetLength` below.
+      off = end;
     }
-    // Ignore the number of bytes in `result`, sendfile() already updated `off`.
+    DCHECK_GE(off, 0);
+
+    if (off >= end) {
+      // Next non-empty block is beyond the location pointed by `end` - no more data to be copied.
+      // Update the offsets for both files and set the output file length as expected - as in, to
+      // the values which would have been set if the block at the end of output file would have
+      // been non-empty.
+      off = lseek(input_file->Fd(), end, SEEK_SET);
+      if (off == -1) {
+        return false;
+      }
+      DCHECK_EQ(off, end);
+
+      out_offset = lseek(Fd(), end + offset_diff, SEEK_SET);
+      if (out_offset == -1) {
+        return false;
+      }
+      DCHECK_EQ(out_offset, end + offset_diff);
+
+      if (SetLength(out_offset) != 0) {
+        return false;
+      }
+    } else {
+      // Find the position of the next empty block.
+      // It could be a gap within the input file or the implicit empty block at the end of the file.
+      off_t hole_offset = lseek(input_file->Fd(), off, SEEK_HOLE);
+      if (hole_offset == -1) {
+        return false;
+      }
+      DCHECK_GT(hole_offset, off);
+
+      // Update output position to match the position of the data to be written from the input file.
+      out_offset = lseek(Fd(), off + offset_diff, SEEK_SET);
+      if (out_offset == -1) {
+        return false;
+      }
+      DCHECK_EQ(out_offset, off + offset_diff);
+
+      // Write the data. If end points in the middle of the current data block, only write the data
+      // until that position.
+      int result = TEMP_FAILURE_RETRY(
+          sendfile(Fd(), input_file->Fd(), &off, std::min(end, hole_offset) - off));
+      if (result == -1) {
+        return false;
+      }
+      // Ignore the number of bytes in `result`, sendfile() already updated `off`.
+    }
   }
 #else
   if (lseek(input_file->Fd(), off, SEEK_SET) != off) {
