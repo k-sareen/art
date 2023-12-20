@@ -30,8 +30,6 @@
     <test class="com.android.tradefed.testtype.GTest" >
         <option name="native-test-device-path" value="/data/local/tmp/{MODULE}" />
         <option name="module-name" value="{MODULE}" />
-        <option name="ld-library-path-32" value="/apex/com.android.art/lib" />
-        <option name="ld-library-path-64" value="/apex/com.android.art/lib64" />
     </test>
 
     <!-- When this test is run in a Mainline context (e.g. with `mts-tradefed`), only enable it if
