@@ -20,7 +20,38 @@
 // Format 22c: B|A|23 CCCC
 // Construct a new array of the indicated type and size. The type must be an array type.
 %def op_new_array():
-   unimp
+   EXPORT_PC
+   srliw s8, xINST, 8   // s8 := B|A
+   srliw s7, xINST, 12  // s7 := B
+   andi s8, s8, 0xF     // s8 := A
+   FETCH_FROM_THREAD_CACHE /*resolved klass*/a0, .L${opcode}_miss, t0, t1
+   TEST_IF_MARKING t0, .L${opcode}_mark
+.L${opcode}_resume:
+
+%  get_vreg("a1", "s7")  # a1 := fp[B] length
+   ld t0, THREAD_ALLOC_ARRAY_ENTRYPOINT_OFFSET(xSELF)
+   jalr t0     // args a0 (klass), a1 (length)
+               // return a0 := new-array
+   fence w, w  // constructor fence; main.S has details
+
+   SET_VREG_OBJECT a0, s8, z0=t0  // refs[A] := new-array
+   FETCH_ADVANCE_INST 2
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+.L${opcode}_mark:
+   call art_quick_read_barrier_mark_reg10  // a0, klass
+   j .L${opcode}_resume
+
+.L${opcode}_miss:
+   EXPORT_PC
+   mv a0, xSELF
+   ld a1, (sp)  // caller ArtMethod*
+   mv a2, xPC
+   call nterp_get_class
+   j .L${opcode}_resume
+
+
 
 
 // filled-new-array {vC, vD, vE, vF, vG}, type@BBBB

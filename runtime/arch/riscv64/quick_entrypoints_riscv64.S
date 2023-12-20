@@ -1836,9 +1836,9 @@ END \name
     lwu   \temp0, MIRROR_CLASS_OBJECT_PRIMITIVE_TYPE_OFFSET(\temp0)
     srli  \temp0, \temp0, PRIMITIVE_TYPE_SIZE_SHIFT_SHIFT   // Component size shift is in high 16
                                                             // bits.
-                                                            // xCount is holding a 32 bit value,
+    zext.w \temp1, \count                                   // From \count we use a 32 bit value,
                                                             // it can not overflow.
-    sll   \temp1, \count, \temp0                            // Calculate data size
+    sll   \temp1, \temp1, \temp0                            // Calculate data size
     // Add array data offset and alignment.
     addi   \temp1, \temp1, (MIRROR_INT_ARRAY_DATA_OFFSET + OBJECT_ALIGNMENT_MASK)
 #if MIRROR_LONG_ARRAY_DATA_OFFSET != MIRROR_INT_ARRAY_DATA_OFFSET + 4

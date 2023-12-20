@@ -626,6 +626,7 @@ NAME_END nterp_helper
 EndExecuteNterpImpl:
 
 // Entrypoints into runtime.
+NTERP_TRAMPOLINE nterp_allocate_object, NterpAllocateObject
 NTERP_TRAMPOLINE nterp_filled_new_array, NterpFilledNewArray
 NTERP_TRAMPOLINE nterp_filled_new_array_range, NterpFilledNewArrayRange
 NTERP_TRAMPOLINE nterp_get_class, NterpGetClass
