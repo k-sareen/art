@@ -21,7 +21,10 @@ java_test {
         ":art-run-test-048-reflect-v8-expected-stdout",
         ":art-run-test-048-reflect-v8-expected-stderr",
     ],
-    test_suites: ["cts"],
+    test_suites: [
+        "cts",
+        "mcts-art",
+    ],
 }
 
 // Test's expected standard output.

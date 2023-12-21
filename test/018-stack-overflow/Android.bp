@@ -21,7 +21,10 @@ java_test {
         ":art-run-test-018-stack-overflow-expected-stdout",
         ":art-run-test-018-stack-overflow-expected-stderr",
     ],
-    test_suites: ["cts"],
+    test_suites: [
+        "cts",
+        "mcts-art",
+    ],
 }
 
 // Test's expected standard output.

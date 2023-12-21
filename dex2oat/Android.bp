@@ -550,5 +550,8 @@ art_cc_test {
         ":generate-boot-image",
     ],
     test_config: "art_standalone_dex2oat_cts_tests.xml",
-    test_suites: ["cts"],
+    test_suites: [
+        "cts",
+        "mcts-art",
+    ],
 }
