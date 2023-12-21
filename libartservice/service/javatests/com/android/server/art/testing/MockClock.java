@@ -50,6 +50,11 @@ public class MockClock {
         }
     }
 
+    @NonNull
+    public List<ScheduledExecutor> getCreatedExecutors() {
+        return mExecutors;
+    }
+
     public class ScheduledExecutor extends ScheduledThreadPoolExecutor {
         // The second element of the pair is the scheduled time.
         @NonNull
