@@ -1185,7 +1185,7 @@
 
 .L${uniq}_fpr_load_4_bytes:
    andi $z0, $vregs, 0xF
-   GET_VREG_FLOAT $fpr, $z0
+%  get_vreg_float(fpr, z0)
    srliw $vregs, $vregs, 4   // shift out the processed arg, one vreg
    j .L${uniq}_fpr_set
 .L${uniq}_fpr_load_8_bytes:
@@ -1240,7 +1240,7 @@
 
 .L${uniq}_fpr_range_load_4_bytes:
    mv $z0, $idx
-   GET_VREG_FLOAT $fpr, $z0
+%  get_vreg_float(fpr, z0)
    addi $idx, $idx, 1
    j .L${uniq}_fpr_range_set
 .L${uniq}_fpr_range_load_8_bytes:

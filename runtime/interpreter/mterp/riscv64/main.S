@@ -327,30 +327,6 @@ END \name
     sw \reg, (\z0)            // refs[vreg] := reg
 .endm
 
-// Floating-point read, defaults to 32-bit read.
-// Clobbers: \reg, \vreg
-.macro GET_VREG_FLOAT reg, vreg, is_double=0
-    .if \is_double
-      GET_VREG_DOUBLE \reg, \vreg
-    .else
-      sh2add \vreg, \vreg, xFP  // vreg addr in register array
-      flw \reg, (\vreg)         // reg := fp[vreg]
-    .endif
-.endm
-
-// Floating-point write, defaults to 32-bit write.
-// Clobbers: \reg, z0
-.macro SET_VREG_FLOAT reg, vreg, z0, is_double=0
-    .if \is_double
-      SET_VREG_DOUBLE \reg, \vreg, \z0
-    .else
-      sh2add \z0, \vreg, xFP    // vreg addr in register array
-      fsw \reg, (\z0)           // fp[vreg] := reg
-      sh2add \z0, \vreg, xREFS  // vreg addr in reference array
-      sw zero, (\z0)            // refs[vreg] := null
-    .endif
-.endm
-
 // Floating-point 64 bit read
 // Clobbers: \reg, \vreg
 .macro GET_VREG_DOUBLE reg, vreg
@@ -367,12 +343,14 @@ END \name
     sd zero, (\z0)            // refs[vreg] := null ; refs[vreg+1] := null
 .endm
 
+// Put "%def" definitions after ".macro" definitions for proper expansion. %def is greedy.
+
 // Typed read, defaults to 32-bit read
 // Note: Incorrect for an object ref; it requires LWU, or LW;ZEXT.W.
 // Clobbers: \reg
 // Safe if \reg == \vreg.
-%def get_vreg(reg, vreg, width="32", is_wide=False, is_unsigned=False):
-%  if is_wide or width == "64":
+%def get_vreg(reg, vreg, width=32, is_wide=False, is_unsigned=False):
+%  if is_wide or width == 64:
      GET_VREG_WIDE $reg, $vreg
 %  elif is_unsigned:
      sh2add $reg, $vreg, xFP  // vreg addr in register array
@@ -385,12 +363,34 @@ END \name
 // Typed write, defaults to 32-bit write.
 // Note: Incorrect for an object ref; it requires 2nd SW into xREFS.
 // Clobbers: z0
-%def set_vreg(reg, vreg, z0, width="32", is_wide=False):
-%  if is_wide or width == "64":
+%def set_vreg(reg, vreg, z0, width=32, is_wide=False):
+%  if is_wide or width == 64:
      SET_VREG_WIDE $reg, $vreg, $z0
 %  else:
      sh2add $z0, $vreg, xFP    // vreg addr in register array
      sw $reg, ($z0)            // fp[vreg] := reg
+     sh2add $z0, $vreg, xREFS  // vreg addr in reference array
+     sw zero, ($z0)            // refs[vreg] := null
+%#:
+
+// Floating-point read, defaults to 32-bit read.
+// Clobbers: reg, vreg
+%def get_vreg_float(reg, vreg, is_double=False):
+%  if is_double:
+     GET_VREG_DOUBLE $reg, $vreg
+%  else:
+     sh2add $vreg, $vreg, xFP  // vreg addr in register array
+     flw $reg, ($vreg)         // reg := fp[vreg]
+%#:
+
+// Floating-point write, defaults to 32-bit write.
+// Clobbers: reg, z0
+%def set_vreg_float(reg, vreg, z0, is_double=False):
+%  if is_double:
+     SET_VREG_DOUBLE $reg, $vreg, $z0
+%  else:
+     sh2add $z0, $vreg, xFP    // vreg addr in register array
+     fsw $reg, ($z0)           // fp[vreg] := reg
      sh2add $z0, $vreg, xREFS  // vreg addr in reference array
      sw zero, ($z0)            // refs[vreg] := null
 %#:

@@ -45,7 +45,7 @@
 // Implemented as a read from the low bits from vB, write them to vA.
 // Note: instr is intentionally empty.
 %def op_long_to_int():
-%  generic_unop()
+%  generic_unop(instr="")
 
 // int-to-byte vA, vB
 // Format 12x: B|A|8d
@@ -69,7 +69,7 @@
 // instr: operand held in t1, result written to t1.
 // instr must not clobber t2.
 // Clobbers: t0, t1, t2
-%def generic_unop(instr="", is_wide=False):
+%def generic_unop(instr, is_wide=False):
    srliw t1, xINST, 12   // t1 := B
    srliw t2, xINST, 8    // t2 := B|A
 %  get_vreg("t1", "t1", is_wide=is_wide)
@@ -109,7 +109,7 @@
 // Note: Twos-complement division, rounded towards zero (that is, truncated to integer). This throws
 // ArithmeticException if b == 0.
 %def op_div_int():
-%  generic_binop(instr="divw t1, t1, t2", divz_throw="1")
+%  generic_binop(instr="divw t1, t1, t2", divz_throw=True)
 
 // rem-int vAA, vBB, vCC
 // Format 23x: AA|94 CC|BB
@@ -117,7 +117,7 @@
 // and it is more precisely defined as result == a - (a / b) * b. This throws ArithmeticException if
 // b == 0.
 %def op_rem_int():
-%  generic_binop(instr="remw t1, t1, t2", divz_throw="1")
+%  generic_binop(instr="remw t1, t1, t2", divz_throw=True)
 
 // and-int vAA, vBB, vCC
 // Format 23x: AA|95 CC|BB
@@ -172,7 +172,7 @@
 // Note: Twos-complement division, rounded towards zero (that is, truncated to integer). This throws
 // ArithmeticException if b == 0.
 %def op_div_long():
-%  generic_binop(instr="div t1, t1, t2", divz_throw="1", is_wide=True)
+%  generic_binop(instr="div t1, t1, t2", divz_throw=True, is_wide=True)
 
 // rem-long vAA, vBB, vCC
 // Format 23x: AA|9f CC|BB
@@ -180,7 +180,7 @@
 // and it is more precisely defined as result == a - (a / b) * b. This throws ArithmeticException if
 // b == 0.
 %def op_rem_long():
-%  generic_binop(instr="rem t1, t1, t2", divz_throw="1", is_wide=True)
+%  generic_binop(instr="rem t1, t1, t2", divz_throw=True, is_wide=True)
 
 // and-long vAA, vBB, vCC
 // Format 23x: AA|a0 CC|BB
@@ -223,16 +223,16 @@
 // The divz_throw flag generates check-and-throw code for div/0.
 // The is_wide flag ensures vregs are read and written in 64-bit widths.
 // Clobbers: t0, t1, t2, t3
-%def generic_binop(instr="", divz_throw="0", is_wide=False):
+%def generic_binop(instr, divz_throw=False, is_wide=False):
    FETCH t1, count=1     // t1 := CC|BB
    srliw t3, xINST, 8    // t3 := AA
    srliw t2, t1, 8       // t2 := CC
    and t1, t1, 0xFF      // t1 := BB
 %  get_vreg("t2", "t2", is_wide=is_wide)  # t2 := fp[CC]
 %  get_vreg("t1", "t1", is_wide=is_wide)  # t1 := fp[BB]
-   .if $divz_throw
+%  if divz_throw:
      beqz t2, 1f         // Must throw before FETCH_ADVANCE_INST.
-   .endif
+%#:
    FETCH_ADVANCE_INST 2  // advance xPC, load xINST
    $instr                // read t1 and t2, write result to t1.
                          // do not clobber t3!
@@ -241,9 +241,9 @@
                          // fp[AA] := t1
    GOTO_OPCODE t2        // continue to next
 1:
-   .if $divz_throw
+%  if divz_throw:
      tail common_errDivideByZero
-   .endif
+%#:
 
 // binop wide shift boilerplate
 // instr: operands held in t1 (64-bit) and t2 (32-bit), result written to t1.
@@ -254,7 +254,7 @@
 // first and their second source), shl-long, shr-long, and ushr-long take a register pair for their
 // first source (the value to be shifted), but a single register for their second source (the
 // shifting distance).
-%def generic_shift_wide(instr=""):
+%def generic_shift_wide(instr):
    FETCH t1, count=1     // t1 := CC|BB
    srliw t3, xINST, 8    // t3 := AA
    srliw t2, t1, 8       // t2 := CC
@@ -295,7 +295,7 @@
 // Note: Twos-complement division, rounded towards zero (that is, truncated to integer). This throws
 // ArithmeticException if b == 0.
 %def op_div_int_2addr():
-%  generic_binop_2addr(instr="divw t1, t1, t2", divz_throw="1")
+%  generic_binop_2addr(instr="divw t1, t1, t2", divz_throw=True)
 
 // rem-int/2addr vA, vB
 // Format 12x: B|A|b4
@@ -303,7 +303,7 @@
 // and it is more precisely defined as result == a - (a / b) * b. This throws ArithmeticException if
 // b == 0.
 %def op_rem_int_2addr():
-%  generic_binop_2addr(instr="remw t1, t1, t2", divz_throw="1")
+%  generic_binop_2addr(instr="remw t1, t1, t2", divz_throw=True)
 
 // and-int/2addr vA, vB
 // Format 12x: B|A|b5
@@ -353,12 +353,12 @@
 // div-long/2addr vA, vB
 // Format 12x: B|A|be
 %def op_div_long_2addr():
-%  generic_binop_2addr(instr="div t1, t1, t2", divz_throw="1", is_wide=True)
+%  generic_binop_2addr(instr="div t1, t1, t2", divz_throw=True, is_wide=True)
 
 // rem-long/2addr vA, vB
 // Format 12x: B|A|bf
 %def op_rem_long_2addr():
-%  generic_binop_2addr(instr="rem t1, t1, t2", divz_throw="1", is_wide=True)
+%  generic_binop_2addr(instr="rem t1, t1, t2", divz_throw=True, is_wide=True)
 
 // and-long/2addr vA, vB
 // Format 12x: B|A|c0
@@ -401,7 +401,7 @@
 // The divz_throw flag generates check-and-throw code for div/0.
 // The is_wide flag ensures vregs are read and written in 64-bit widths.
 // Clobbers: t0, t1, t2, t3, t4
-%def generic_binop_2addr(instr="", divz_throw="0", is_wide=False):
+%def generic_binop_2addr(instr, divz_throw=False, is_wide=False):
    srliw t2, xINST, 12   // t2 := B
    srliw t3, xINST, 8    // t3 := B|A
 %  get_vreg("t2", "t2", is_wide=is_wide)
@@ -410,9 +410,9 @@
    mv t4, t3             // t4 := A
 %  get_vreg("t1", "t4", is_wide=is_wide)
                          // t1 := fp[A]
-   .if $divz_throw
+%  if divz_throw:
      beqz t2, 1f         // Must throw before FETCH_ADVANCE_INST.
-   .endif
+%#:
    FETCH_ADVANCE_INST 1  // advance xPC, load xINST
    $instr                // read t1 and t2, write result to t1.
                          // do not clobber t3!
@@ -421,9 +421,9 @@
                          // fp[A] := t1
    GOTO_OPCODE t2        // continue to next
 1:
-   .if $divz_throw
+%  if divz_throw:
      tail common_errDivideByZero
-   .endif
+%#:
 
 // binop wide shift 2addr boilerplate
 // instr: operands held in t1 (64-bit) and t2 (32-bit), result written to t1.
@@ -434,7 +434,7 @@
 // their destination/first source and their second source), shl-long/2addr, shr-long/2addr, and
 // ushr-long/2addr take a register pair for their destination/first source (the value to be
 // shifted), but a single register for their second source (the shifting distance).
-%def generic_shift_wide_2addr(instr=""):
+%def generic_shift_wide_2addr(instr):
    srliw t2, xINST, 12   // t2 := B
    srliw t3, xINST, 8    // t3 := B|A
 %  get_vreg("t2", "t2")  #  t2 := fp[B]
@@ -476,7 +476,7 @@
 // Note: Twos-complement division, rounded towards zero (that is, truncated to integer). This throws
 // ArithmeticException if b == 0.
 %def op_div_int_lit16():
-%  generic_binop_lit16(instr="divw t1, t1, t2", divz_throw="1")
+%  generic_binop_lit16(instr="divw t1, t1, t2", divz_throw=True)
 
 // rem-int/lit16 vA, vB, #+CCCC
 // Format 22s: B|A|d4 CCCC
@@ -484,7 +484,7 @@
 // and it is more precisely defined as result == a - (a / b) * b. This throws ArithmeticException if
 // b == 0.
 %def op_rem_int_lit16():
-%  generic_binop_lit16(instr="remw t1, t1, t2", divz_throw="1")
+%  generic_binop_lit16(instr="remw t1, t1, t2", divz_throw=True)
 
 // and-int/lit16 vA, vB, #+CCCC
 // Format 22s: B|A|d5 CCCC
@@ -508,13 +508,13 @@
 //
 // The divz_throw flag generates check-and-throw code for div/0.
 // Clobbers: t0, t1, t2, t3
-%def generic_binop_lit16(instr="", divz_throw="0"):
+%def generic_binop_lit16(instr, divz_throw=False):
    FETCH t2, count=1, signed=1  // t2 := ssssCCCC
    srliw t1, xINST, 12          // t1 := B
    srliw t3, xINST, 8           // t3 := B|A
-   .if $divz_throw
+%  if divz_throw:
      beqz t2, 1f                // Must throw before FETCH_ADVANCE_INST.
-   .endif
+%#:
 %  get_vreg("t1", "t1")         #  t1 := fp[B]
    and t3, t3, 0xF              // t3 := A
    FETCH_ADVANCE_INST 2         // advance xPC, load xINST
@@ -524,9 +524,9 @@
 %  set_vreg("t1", "t3", z0="t0")  # fp[A] := t1
    GOTO_OPCODE t2               // continue to next
 1:
-   .if $divz_throw
+%  if divz_throw:
      tail common_errDivideByZero
-   .endif
+%#:
 
 //
 // binop/lit8 vAA, vBB, #+CC
@@ -554,7 +554,7 @@
 // Note: Twos-complement division, rounded towards zero (that is, truncated to integer). This throws
 // ArithmeticException if b == 0.
 %def op_div_int_lit8():
-%  generic_binop_lit8(instr="divw t1, t1, t2", divz_throw="1")
+%  generic_binop_lit8(instr="divw t1, t1, t2", divz_throw=True)
 
 // rem-int/lit8, vAA, vBB, #+CC
 // Format 22b: AA|dc, CC|BB
@@ -562,7 +562,7 @@
 // and it is more precisely defined as result == a - (a / b) * b. This throws ArithmeticException if
 // b == 0.
 %def op_rem_int_lit8():
-%  generic_binop_lit8(instr="remw t1, t1, t2", divz_throw="1")
+%  generic_binop_lit8(instr="remw t1, t1, t2", divz_throw=True)
 
 // and-int/lit8, vAA, vBB, #+CC
 // Format 22b: AA|dd, CC|BB
@@ -604,14 +604,14 @@
 //
 // The divz_throw flag generates check-and-throw code for div/0.
 // Clobbers: t0, t1, t2, t3
-%def generic_binop_lit8(instr="", divz_throw="0"):
+%def generic_binop_lit8(instr, divz_throw=False):
    FETCH t1, count=1, signed=1  // t1 := ssssCC|BB
    srliw t3, xINST, 8           // t3 := AA
    sraiw t2, t1, 8              // t2 := ssssssCC
    andi t1, t1, 0xFF            // t1 := BB
-   .if $divz_throw
+%  if divz_throw:
      beqz t2, 1f                // Must throw before FETCH_ADVANCE_INST.
-   .endif
+%#:
 %  get_vreg("t1", "t1")         #  t1 := fp[BB]
    FETCH_ADVANCE_INST 2         // advance xPC, load xINST
    $instr                       // read t1 and t2, write result to t1.
@@ -620,6 +620,6 @@
 %  set_vreg("t1", "t3", z0="t0")  # fp[AA] := t1
    GOTO_OPCODE t2               // continue to next
 1:
-   .if $divz_throw
+%  if divz_throw:
      tail common_errDivideByZero
-   .endif
+%#:

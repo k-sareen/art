@@ -16,17 +16,17 @@
 // *** iget ***
 
 %def load(dst, src, width, zext):
-%  if width == "8" and zext:
+%  if width == 8 and zext:
      lbu $dst, ($src)
-%  elif width == "8":
+%  elif width == 8:
      lb $dst, ($src)
-%  elif width == "16" and zext:
+%  elif width == 16 and zext:
      lhu $dst, ($src)
-%  elif width == "16":
+%  elif width == 16:
      lh $dst, ($src)
-%  elif width == "32":
+%  elif width == 32:
      lw $dst, ($src)
-%  elif width == "64":
+%  elif width == 64:
      ld $dst, ($src)
 %  else:
 %    assert False, width
@@ -34,13 +34,13 @@
 
 
 %def store(src, dst, width):
-%  if width == "8":
+%  if width == 8:
      sb $src, ($dst)
-%  elif width == "16":
+%  elif width == 16:
      sh $src, ($dst)
-%  elif width == "32":
+%  elif width == 32:
      sw $src, ($dst)
-%  elif width == "64":
+%  elif width == 64:
      sd $src, ($dst)
 %  else:
 %    assert False, width
@@ -50,7 +50,7 @@
 // iget vA, vB, field@CCCC
 // Format 22c: B|A|52 CCCC
 // vA := vB.field
-%def op_iget(width="32", zext=False):
+%def op_iget(width=32, zext=False):
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
    andi s8, s8, 0xF        // s8 := A
@@ -107,7 +107,7 @@
 // iget-wide vA, vB, field@CCCC
 // Format 22c: B|A|53 CCCC
 %def op_iget_wide():
-%  op_iget(width="64")
+%  op_iget(width=64)
 
 
 // iget-object vA, vB, field@CCCC
@@ -184,25 +184,25 @@
 // iget-boolean vA, vB, field@CCCC
 // Format 22c: B|A|55 CCCC
 %def op_iget_boolean():
-%  op_iget(width="8", zext=True)
+%  op_iget(width=8, zext=True)
 
 
 // iget-byte vA, vB, field@CCCC
 // Format 22c: B|A|56 CCCC
 %def op_iget_byte():
-%  op_iget(width="8")
+%  op_iget(width=8)
 
 
 // iget-char vA, vB, field@CCCC
 // Format 22c: B|A|57 CCCC
 %def op_iget_char():
-%  op_iget(width="16", zext=True)
+%  op_iget(width=16, zext=True)
 
 
 // iget-short vA, vB, field@CCCC
 // Format 22c: B|A|58 CCCC
 %def op_iget_short():
-%  op_iget(width="16")
+%  op_iget(width=16)
 
 
 // *** iput ***
@@ -210,7 +210,7 @@
 // iput vA, vB, field@CCCC
 // Format 22c: B|A|59 CCCC
 // vB.field := vA
-%def op_iput(width="32", zext=False):
+%def op_iput(width=32, zext=False):
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
    andi s8, s8, 0xF        // s8 := A
@@ -251,17 +251,17 @@
    beqz $z0, .L${opcode}_volatile_null
    sub $z0, $z0, a0              // z0 := field addr (holder - (-offset))
    // Ensure the volatile store is released.
-%  if width == "8":
+%  if width == 8:
      fence rw, w
      sb $value, ($z0)
      fence rw, rw
-%  elif width == "16":
+%  elif width == 16:
      fence rw, w
      sh $value, ($z0)
      fence rw, rw
-%  elif width == "32":
+%  elif width == 32:
      amoswap.w.rl zero, $value, ($z0)
-%  elif width == "64":
+%  elif width == 64:
      amoswap.d.rl zero, $value, ($z0)
 %  else:
 %    assert False, width
@@ -278,7 +278,7 @@
 // iput-wide vA, vB, field@CCCC
 // Format 22c: B|A|5a CCCC
 %def op_iput_wide():
-%  op_iput(width="64")
+%  op_iput(width=64)
 
 
 // iput-object vA, vB, field@CCCC
@@ -345,25 +345,25 @@
 // iput-boolean vA, vB, field@CCCC
 // Format 22c: B|A|5c CCCC
 %def op_iput_boolean():
-%  op_iput(width="8", zext=True)
+%  op_iput(width=8, zext=True)
 
 
 // iput-byte vA, vB, field@CCCC
 // Format 22c: B|A|5d CCCC
 %def op_iput_byte():
-%  op_iput(width="8")
+%  op_iput(width=8)
 
 
 // iput-char vA, vB, field@CCCC
 // Format 22c: B|A|5e CCCC
 %def op_iput_char():
-%  op_iput(width="16", zext=True)
+%  op_iput(width=16, zext=True)
 
 
 // iput-short vA, vB, field@CCCC
 // Format 22c: B|A|5f CCCC
 %def op_iput_short():
-%  op_iput(width="16")
+%  op_iput(width=16)
 
 
 // *** sget ***
@@ -375,7 +375,7 @@
 // sget vAA, field@BBBB
 // Format 21c: AA|60 BBBB
 // vAA := klass.field
-%def op_sget(width="32", zext=False):
+%def op_sget(width=32, zext=False):
    srliw s7, xINST, 8  // s7 := AA (live through volatile path)
    // Fast path: NterpGetStaticField's resolved_field from thread-local cache.
    // Stores cache value in a0 to match slow path's return from NterpGetStaticField.
@@ -442,7 +442,7 @@
 // sget-wide vAA, field@BBBB
 // Format 21c: AA|61 BBBB
 %def op_sget_wide():
-%  op_sget(width="64")
+%  op_sget(width=64)
 
 
 // sget-object vAA, field@BBBB
@@ -527,25 +527,25 @@
 // sget-boolean vAA, field@BBBB
 // Format 21c: AA|63 BBBB
 %def op_sget_boolean():
-%  op_sget(width="8", zext=True)
+%  op_sget(width=8, zext=True)
 
 
 // sget-byte vAA, field@BBBB
 // Format 21c: AA|64 BBBB
 %def op_sget_byte():
-%  op_sget(width="8")
+%  op_sget(width=8)
 
 
 // sget-char vAA, field@BBBB
 // Format 21c: AA|65 BBBB
 %def op_sget_char():
-%  op_sget(width="16", zext=True)
+%  op_sget(width=16, zext=True)
 
 
 // sget-short vAA, field@BBBB
 // Format 21c: AA|66 BBBB
 %def op_sget_short():
-%  op_sget(width="16")
+%  op_sget(width=16)
 
 
 // *** sput ***
@@ -553,7 +553,7 @@
 // sput vAA, field@BBBB
 // Format 21c: AA|67 BBBB
 // klass.field := vAA
-%def op_sput(width="32"):
+%def op_sput(width=32):
    srliw t2, xINST, 8  // t2 := AA
 %  get_vreg("s7", "t2", width=width)
                        // s7 := value, held across slow path call
@@ -604,17 +604,17 @@
 
    add $z0, $z0, a0                              // z0 := field addr, after possible a0 update
    // Ensure the volatile store is released.
-%  if width == "8":
+%  if width == 8:
      fence rw, w
      sb $value, ($z0)
      fence rw, rw
-%  elif width == "16":
+%  elif width == 16:
      fence rw, w
      sh $value, ($z0)
      fence rw, rw
-%  elif width == "32":
+%  elif width == 32:
      amoswap.w.rl zero, $value, ($z0)
-%  elif width == "64":
+%  elif width == 64:
      amoswap.d.rl zero, $value, ($z0)
 %  else:
 %    assert False, width
@@ -632,7 +632,7 @@
 // sput-wide vAA, field@BBBB
 // Format 21c: AA|68 BBBB
 %def op_sput_wide():
-%  op_sput(width="64")
+%  op_sput(width=64)
 
 
 // sput-object vAA, field@BBBB
@@ -723,23 +723,23 @@
 // sput-object vAA, field@BBBB
 // Format 21c: AA|6a BBBB
 %def op_sput_boolean():
-%  op_sput(width="8")
+%  op_sput(width=8)
 
 
 // sput-object vAA, field@BBBB
 // Format 21c: AA|6b BBBB
 %def op_sput_byte():
-%  op_sput(width="8")
+%  op_sput(width=8)
 
 
 // sput-object vAA, field@BBBB
 // Format 21c: AA|6c BBBB
 %def op_sput_char():
-%  op_sput(width="16")
+%  op_sput(width=16)
 
 
 // sput-object vAA, field@BBBB
 // Format 21c: AA|6d BBBB
 %def op_sput_short():
-%  op_sput(width="16")
+%  op_sput(width=16)
 
