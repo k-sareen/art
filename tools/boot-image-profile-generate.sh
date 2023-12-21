@@ -38,11 +38,11 @@ if [[ -z "$ANDROID_BUILD_TOP" ]]; then
   exit 1
 fi
 
-if [[ "$#" -lt 5 ]]; then
-  echo "Usage $0 <output-dir> <preloaded-classes-output> <boot.zip-location> <preloaded-denylist-location> <profile-input1> <profile-input2> ... <profman args>"
+if [[ "$#" -lt 4 ]]; then
+  echo "Usage $0 <output-dir> <boot.zip-location> <preloaded-denylist-location> <profile-input1> <profile-input2> ... <profman args>"
   echo "Without any profman args the script will use defaults."
-  echo "Example: $0 output-dir device/device_target/preloaded-classes-wear boot.zip frameworks/base/config/preloaded-classes-denylist android1.prof android2.prof"
-  echo "         $0 output-dir device/device_target/preloaded-classes-wear boot.zip frameworks/base/config/preloaded-classes-denylist android.prof --profman-arg --upgrade-startup-to-hot=true"
+  echo "Example: $0 output-dir boot.zip frameworks/base/config/preloaded-classes-denylist android1.prof android2.prof"
+  echo "         $0 output-dir boot.zip frameworks/base/config/preloaded-classes-denylist android.prof --profman-arg --upgrade-startup-to-hot=true"
   echo "preloaded-deny-list-location is usually frameworks/base/config/preloaded-classes-denylist"
   exit 1
 fi
@@ -54,8 +54,7 @@ mkdir -p "$WORK_DIR"
 OUT_DIR="$1"
 BOOT_ZIP="$2"
 PRELOADED_DENYLIST="$3"
-OUT_PRELOADED_CLASSES="$4"
-shift 4
+shift 3
 
 # Read the profile input args.
 profman_profile_input_args=()
@@ -72,6 +71,7 @@ while [[ "$#" -ge 2 ]] && [[ "$1" = '--profman-arg' ]]; do
 done
 
 OUT_BOOT_PROFILE="$OUT_DIR"/boot-image-profile.txt
+OUT_PRELOADED_CLASSES="$OUT_DIR"/preloaded-classes
 OUT_SYSTEM_SERVER="$OUT_DIR"/art-profile
 
 echo "Changing dirs to the build top"
@@ -79,6 +79,7 @@ cd "$ANDROID_BUILD_TOP"
 
 echo "Unziping boot.zip"
 BOOT_UNZIP_DIR="$WORK_DIR"/boot-dex
+ART_JARS="$BOOT_UNZIP_DIR"/dex_artjars_input
 BOOT_JARS="$BOOT_UNZIP_DIR"/dex_bootjars_input
 SYSTEM_SERVER_JAR="$BOOT_UNZIP_DIR"/system/framework/services.jar
 
@@ -86,6 +87,10 @@ unzip -o "$BOOT_ZIP" -d "$BOOT_UNZIP_DIR"
 
 echo "Processing boot image jar files"
 jar_args=()
+for entry in "$ART_JARS"/*
+do
+  jar_args+=("--apk=$entry")
+done
 for entry in "$BOOT_JARS"/*
 do
   jar_args+=("--apk=$entry")
