@@ -26,8 +26,10 @@
      lh $dst, ($src)
 %  elif width == "32":
      lw $dst, ($src)
-%  else:  # width = 64:
+%  elif width == "64":
      ld $dst, ($src)
+%  else:
+%    assert False, width
 %#:
 
 
@@ -38,8 +40,10 @@
      sh $src, ($dst)
 %  elif width == "32":
      sw $src, ($dst)
-%  else:  # width 64:
+%  elif width == "64":
      sd $src, ($dst)
+%  else:
+%    assert False, width
 %#:
 
 
@@ -259,8 +263,10 @@
      fence rw, rw
 %  elif width == "32":
      amoswap.w.rl zero, $value, ($z0)
-%  else:  # width == 64:
+%  elif width == "64":
      amoswap.d.rl zero, $value, ($z0)
+%  else:
+%    assert False, width
 %#:
 
    FETCH_ADVANCE_INST 2
@@ -612,8 +618,10 @@
      fence rw, rw
 %  elif width == "32":
      amoswap.w.rl zero, $value, ($z0)
-%  else:  # width == 64:
+%  elif width == "64":
      amoswap.d.rl zero, $value, ($z0)
+%  else:
+%    assert False, width
 %#:
 
    FETCH_ADVANCE_INST 2

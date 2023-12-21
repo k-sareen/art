@@ -113,9 +113,11 @@
 %  elif width == "32":
      sh2add t0, t1, t0
      lw t0, MIRROR_INT_ARRAY_DATA_OFFSET(t0)
-%  else:  # width = 64:
+%  elif width == "64":
      sh3add t0, t1, t0
      ld t0, MIRROR_WIDE_ARRAY_DATA_OFFSET(t0)
+%  else:
+%    assert False, width
 %#:
                        // t0 := *(array obj + data offset + idx * elem_size)
    srliw t1, xINST, 8  // t1 := AA
@@ -218,9 +220,11 @@
 %  elif width == "32":
      sh2add t0, t1, t0
      sw t2, MIRROR_INT_ARRAY_DATA_OFFSET(t0)
-%  else:  # width = 64:
+%  elif width == "64":
      sh3add t0, t1, t0
      sd t2, MIRROR_WIDE_ARRAY_DATA_OFFSET(t0)
+%  else:
+%    assert False, width
 %#:
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE t0
