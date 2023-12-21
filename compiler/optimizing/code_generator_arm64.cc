@@ -1195,8 +1195,7 @@ void LocationsBuilderARM64::VisitMethodExitHook(HMethodExitHook* method_hook) {
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
   DataType::Type return_type = method_hook->InputAt(0)->GetType();
-  locations->SetInAt(0, Location::Any());
-  locations->SetInAt(1, ARM64ReturnLocation(return_type));
+  locations->SetInAt(0, ARM64ReturnLocation(return_type));
 }
 
 void InstructionCodeGeneratorARM64::GenerateMethodEntryExitHook(HInstruction* instruction) {
@@ -1248,24 +1247,17 @@ void InstructionCodeGeneratorARM64::GenerateMethodEntryExitHook(HInstruction* in
   __ ComputeAddress(addr, MemOperand(addr, index, LSL, TIMES_8));
 
   Register tmp = index;
-  Register method_reg = tmp;
-  Location method_location = instruction->GetLocations()->InAt(0);
-  if (method_location.IsDoubleStackSlot()) {
-    __ Ldr(method_reg, StackOperandFrom(method_location));
-  } else {
-    DCHECK(method_location.IsRegister());
-    method_reg = XRegisterFrom(method_location);
-  }
   // Record method pointer and trace action.
+  __ Ldr(tmp, MemOperand(sp, 0));
   // Use last two bits to encode trace method action. For MethodEntry it is 0
   // so no need to set the bits since they are 0 already.
   if (instruction->IsMethodExitHook()) {
     DCHECK_GE(ArtMethod::Alignment(kRuntimePointerSize), static_cast<size_t>(4));
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodEnter) == 0);
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodExit) == 1);
-    __ Orr(method_reg, method_reg, Operand(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
+    __ Orr(tmp, tmp, Operand(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
   }
-  __ Str(method_reg, MemOperand(addr, kMethodOffsetInBytes));
+  __ Str(tmp, MemOperand(addr, kMethodOffsetInBytes));
   // Record the timestamp.
   __ Mrs(tmp, (SystemRegister)SYS_CNTVCT_EL0);
   __ Str(tmp, MemOperand(addr, kTimestampOffsetInBytes));
@@ -1279,9 +1271,7 @@ void InstructionCodeGeneratorARM64::VisitMethodExitHook(HMethodExitHook* instruc
 }
 
 void LocationsBuilderARM64::VisitMethodEntryHook(HMethodEntryHook* method_hook) {
-  LocationSummary* locations = new (GetGraph()->GetAllocator())
-      LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
-  locations->SetInAt(0, Location::Any());
+  new (GetGraph()->GetAllocator()) LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
 }
 
 void InstructionCodeGeneratorARM64::VisitMethodEntryHook(HMethodEntryHook* instruction) {

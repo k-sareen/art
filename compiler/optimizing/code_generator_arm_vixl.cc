@@ -2175,8 +2175,7 @@ void CodeGeneratorARMVIXL::ComputeSpillMask() {
 void LocationsBuilderARMVIXL::VisitMethodExitHook(HMethodExitHook* method_hook) {
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
-  locations->SetInAt(0, Location::Any());
-  locations->SetInAt(1, parameter_visitor_.GetReturnLocation(method_hook->InputAt(0)->GetType()));
+  locations->SetInAt(0, parameter_visitor_.GetReturnLocation(method_hook->InputAt(0)->GetType()));
   // We need three temporary registers, two to load the timestamp counter (64-bit value) and one to
   // compute the address to store the timestamp counter.
   locations->AddRegisterTemps(3);
@@ -2231,24 +2230,17 @@ void InstructionCodeGeneratorARMVIXL::GenerateMethodEntryExitHook(HInstruction* 
   __ Ldr(addr, MemOperand(tr, Thread::TraceBufferPtrOffset<kArmPointerSize>().SizeValue()));
   __ Add(addr, addr, Operand(index, LSL, TIMES_4));
 
-  vixl32::Register method_reg = tmp;
-  Location method_location = locations->InAt(0);
-  if (method_location.IsStackSlot()) {
-    GetAssembler()->LoadFromOffset(kLoadWord, method_reg, sp, method_location.GetStackIndex());
-  } else {
-    DCHECK(method_location.IsRegister());
-    method_reg = RegisterFrom(method_location);
-  }
   // Record method pointer and trace action.
+  __ Ldr(tmp, MemOperand(sp, 0));
   // Use last two bits to encode trace method action. For MethodEntry it is 0
   // so no need to set the bits since they are 0 already.
   if (instruction->IsMethodExitHook()) {
     DCHECK_GE(ArtMethod::Alignment(kRuntimePointerSize), static_cast<size_t>(4));
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodEnter) == 0);
     static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodExit) == 1);
-    __ Orr(method_reg, method_reg, Operand(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
+    __ Orr(tmp, tmp, Operand(enum_cast<int32_t>(TraceAction::kTraceMethodExit)));
   }
-  __ Str(method_reg, MemOperand(addr, kMethodOffsetInBytes));
+  __ Str(tmp, MemOperand(addr, kMethodOffsetInBytes));
 
   vixl32::Register tmp1 = index;
   // See Architecture Reference Manual ARMv7-A and ARMv7-R edition section B4.1.34.
@@ -2272,7 +2264,6 @@ void InstructionCodeGeneratorARMVIXL::VisitMethodExitHook(HMethodExitHook* instr
 void LocationsBuilderARMVIXL::VisitMethodEntryHook(HMethodEntryHook* method_hook) {
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(method_hook, LocationSummary::kCallOnSlowPath);
-  locations->SetInAt(0, Location::Any());
   // We need three temporary registers, two to load the timestamp counter (64-bit value) and one to
   // compute the address to store the timestamp counter.
   locations->AddRegisterTemps(3);

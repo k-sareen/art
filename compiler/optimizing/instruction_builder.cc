@@ -378,7 +378,7 @@ bool HInstructionBuilder::Build() {
       InitializeParameters();
       AppendInstruction(new (allocator_) HSuspendCheck(0u));
       if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
-        AppendInstruction(new (allocator_) HMethodEntryHook(graph_->GetCurrentMethod(), 0u));
+        AppendInstruction(new (allocator_) HMethodEntryHook(0u));
       }
       AppendInstruction(new (allocator_) HGoto(0u));
       continue;
@@ -470,7 +470,7 @@ void HInstructionBuilder::BuildIntrinsic(ArtMethod* method) {
   InitializeBlockLocals();
   InitializeParameters();
   if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
-    AppendInstruction(new (allocator_) HMethodEntryHook(graph_->GetCurrentMethod(), 0u));
+    AppendInstruction(new (allocator_) HMethodEntryHook(0u));
   }
   AppendInstruction(new (allocator_) HGoto(0u));
 
@@ -515,14 +515,12 @@ void HInstructionBuilder::BuildIntrinsic(ArtMethod* method) {
   // Add the return instruction.
   if (return_type_ == DataType::Type::kVoid) {
     if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
-      AppendInstruction(new (allocator_) HMethodExitHook(
-          graph_->GetCurrentMethod(), graph_->GetNullConstant(), kNoDexPc));
+      AppendInstruction(new (allocator_) HMethodExitHook(graph_->GetNullConstant(), kNoDexPc));
     }
     AppendInstruction(new (allocator_) HReturnVoid());
   } else {
     if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
-      AppendInstruction(new (allocator_)
-                            HMethodExitHook(graph_->GetCurrentMethod(), latest_result_, kNoDexPc));
+      AppendInstruction(new (allocator_) HMethodExitHook(latest_result_, kNoDexPc));
     }
     AppendInstruction(new (allocator_) HReturn(latest_result_));
   }
@@ -859,16 +857,14 @@ void HInstructionBuilder::BuildReturn(const Instruction& instruction,
     if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
       // Return value is not used for void functions. We pass NullConstant to
       // avoid special cases when generating code.
-      AppendInstruction(new (allocator_) HMethodExitHook(
-          graph_->GetCurrentMethod(), graph_->GetNullConstant(), dex_pc));
+      AppendInstruction(new (allocator_) HMethodExitHook(graph_->GetNullConstant(), dex_pc));
     }
     AppendInstruction(new (allocator_) HReturnVoid(dex_pc));
   } else {
     DCHECK(!RequiresConstructorBarrier(dex_compilation_unit_));
     HInstruction* value = LoadLocal(instruction.VRegA(), type);
     if (graph_->IsDebuggable() && code_generator_->GetCompilerOptions().IsJitCompiler()) {
-      AppendInstruction(new (allocator_) HMethodExitHook(
-          graph_->GetCurrentMethod(), value, dex_pc));
+      AppendInstruction(new (allocator_) HMethodExitHook(value, dex_pc));
     }
     AppendInstruction(new (allocator_) HReturn(value, dex_pc));
   }

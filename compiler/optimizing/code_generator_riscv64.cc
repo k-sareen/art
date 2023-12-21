@@ -2621,25 +2621,18 @@ void InstructionCodeGeneratorRISCV64::GenerateMethodEntryExitHook(HInstruction* 
   __ Loadd(tmp2, TR, Thread::TraceBufferPtrOffset<kRiscv64PointerSize>().SizeValue());
   __ Sh3Add(tmp, tmp, tmp2);
 
-  XRegister method = tmp2;
-  Location method_location = instruction->GetLocations()->InAt(0);
-  if (method_location.IsDoubleStackSlot()) {
-    __ Ld(method, SP, method_location.GetStackIndex());
-  } else {
-    DCHECK(method_location.IsRegister());
-    method = method_location.AsRegister<XRegister>();
-  }
   // Record method pointer and trace action.
+  __ Ld(tmp2, SP, 0);
   // Use last two bits to encode trace method action. For MethodEntry it is 0
   // so no need to set the bits since they are 0 already.
   DCHECK_GE(ArtMethod::Alignment(kRuntimePointerSize), static_cast<size_t>(4));
   static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodEnter) == 0);
   static_assert(enum_cast<int32_t>(TraceAction::kTraceMethodExit) == 1);
   if (instruction->IsMethodExitHook()) {
-    __ Ori(method, method, enum_cast<int32_t>(TraceAction::kTraceMethodExit));
+    __ Ori(tmp2, tmp2, enum_cast<int32_t>(TraceAction::kTraceMethodExit));
   }
   static_assert(IsInt<12>(kMethodOffsetInBytes));  // No free scratch register for `Stored()`.
-  __ Sd(method, tmp, kMethodOffsetInBytes);
+  __ Sd(tmp2, tmp, kMethodOffsetInBytes);
 
   // Record the timestamp.
   __ RdTime(tmp2);
@@ -4469,9 +4462,7 @@ void InstructionCodeGeneratorRISCV64::VisitMemoryBarrier(HMemoryBarrier* instruc
 }
 
 void LocationsBuilderRISCV64::VisitMethodEntryHook(HMethodEntryHook* instruction) {
-  LocationSummary* locations = new (GetGraph()->GetAllocator())
-      LocationSummary(instruction, LocationSummary::kCallOnSlowPath);
-  locations->SetInAt(0, Location::Any());
+  new (GetGraph()->GetAllocator()) LocationSummary(instruction, LocationSummary::kCallOnSlowPath);
 }
 
 void InstructionCodeGeneratorRISCV64::VisitMethodEntryHook(HMethodEntryHook* instruction) {
@@ -4484,8 +4475,7 @@ void LocationsBuilderRISCV64::VisitMethodExitHook(HMethodExitHook* instruction) 
   LocationSummary* locations = new (GetGraph()->GetAllocator())
       LocationSummary(instruction, LocationSummary::kCallOnSlowPath);
   DataType::Type return_type = instruction->InputAt(0)->GetType();
-  locations->SetInAt(0, Location::Any());
-  locations->SetInAt(1, Riscv64ReturnLocation(return_type));
+  locations->SetInAt(0, Riscv64ReturnLocation(return_type));
 }
 
 void InstructionCodeGeneratorRISCV64::VisitMethodExitHook(HMethodExitHook* instruction) {

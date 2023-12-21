@@ -3059,12 +3059,10 @@ class HExpression<0> : public HInstruction {
   friend class SsaBuilder;
 };
 
-class HMethodEntryHook : public HExpression<1> {
+class HMethodEntryHook : public HExpression<0> {
  public:
-  HMethodEntryHook(HInstruction* method, uint32_t dex_pc)
-      : HExpression(kMethodEntryHook, SideEffects::All(), dex_pc) {
-    SetRawInputAt(0, method);
-  }
+  explicit HMethodEntryHook(uint32_t dex_pc)
+      : HExpression(kMethodEntryHook, SideEffects::All(), dex_pc) {}
 
   bool NeedsEnvironment() const override {
     return true;
@@ -3078,12 +3076,11 @@ class HMethodEntryHook : public HExpression<1> {
   DEFAULT_COPY_CONSTRUCTOR(MethodEntryHook);
 };
 
-class HMethodExitHook : public HExpression<2> {
+class HMethodExitHook : public HExpression<1> {
  public:
-  HMethodExitHook(HInstruction* method, HInstruction* value, uint32_t dex_pc)
+  HMethodExitHook(HInstruction* value, uint32_t dex_pc)
       : HExpression(kMethodExitHook, SideEffects::All(), dex_pc) {
-    SetRawInputAt(0, method);
-    SetRawInputAt(1, value);
+    SetRawInputAt(0, value);
   }
 
   bool NeedsEnvironment() const override {
