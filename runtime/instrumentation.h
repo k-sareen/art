@@ -380,7 +380,11 @@ class Instrumentation {
     return have_method_exit_listeners_ != 0;
   }
 
-  bool HasFastMethodExitListeners() const REQUIRES_SHARED(Locks::mutator_lock_) {
+  bool HasFastMethodEntryListenersOnly() const REQUIRES_SHARED(Locks::mutator_lock_) {
+    return have_method_entry_listeners_ == kFastTraceListeners;
+  }
+
+  bool HasFastMethodExitListenersOnly() const REQUIRES_SHARED(Locks::mutator_lock_) {
     return have_method_exit_listeners_ == kFastTraceListeners;
   }
 

@@ -2522,6 +2522,11 @@ extern "C" void artJniMethodEntryHook(Thread* self)
 extern "C" void artMethodEntryHook(ArtMethod* method, Thread* self, ArtMethod** sp)
     REQUIRES_SHARED(Locks::mutator_lock_) {
   instrumentation::Instrumentation* instr = Runtime::Current()->GetInstrumentation();
+  if (instr->HasFastMethodEntryListenersOnly()) {
+    instr->MethodEnterEvent(self, method);
+    return;
+  }
+
   if (instr->HasMethodEntryListeners()) {
     instr->MethodEnterEvent(self, method);
     // MethodEnter callback could have requested a deopt for ex: by setting a breakpoint, so
@@ -2552,7 +2557,7 @@ extern "C" void artMethodExitHook(Thread* self,
   DCHECK(instr->RunExitHooks());
 
   ArtMethod* method = *sp;
-  if (instr->HasFastMethodExitListeners()) {
+  if (instr->HasFastMethodExitListenersOnly()) {
     // Fast method listeners are only used for tracing which don't need any deoptimization checks
     // or a return value.
     JValue return_value;
