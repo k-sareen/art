@@ -35,22 +35,19 @@ the module. It is also mutually exclusive with the other ones.
 
 2.  Set up the development environment:
 
+    See
+    [art/test/README.chroot.md](https://android.googlesource.com/platform/art/+/refs/heads/main/test/README.chroot.md)
+    for details on how to set up the environment on `master-art`, but the
+    `lunch` step can be skipped. Instead use `banchan` to initialize an
+    unbundled module build:
+
     ```
     banchan com.android.art <arch>
-    export SOONG_ALLOW_MISSING_DEPENDENCIES=true
     ```
 
-    For Google internal builds on the internal master-art branch, specify
-    instead the Google variant of the module and product:
-
-    ```
-    banchan com.google.android.art mainline_modules_<arch>
-    export SOONG_ALLOW_MISSING_DEPENDENCIES=true
-    ```
-
-    `<arch>` is the device architecture, one of `arm`, `arm64`, `x86`, or
-    `x86_64`. Regardless of the device architecture, the build also includes the
-    usual host architectures, and 64/32-bit multilib for the 64-bit products.
+    `<arch>` is the device architecture - use `hmm` to see the options.
+    Regardless of the device architecture, the build also includes the usual
+    host architectures, and 64/32-bit multilib for the 64-bit products.
 
     To build the debug variant of the module, specify `com.android.art.debug`
     instead of `com.android.art`. It is also possible to list both.
