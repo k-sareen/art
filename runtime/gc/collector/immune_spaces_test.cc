@@ -78,6 +78,26 @@ class ImmuneSpacesTest : public CommonArtTest {
     }
   }
 
+  MemMap ReserveImage(size_t image_size, /*out*/ std::string* error_str) {
+    // If the image is aligned to the current runtime page size, it will already
+    // be naturally aligned. On the other hand, MayAnonymousAligned() requires
+    // that the requested alignment is higher.
+    DCHECK_LE(gPageSize, kElfSegmentAlignment);
+    if (gPageSize == kElfSegmentAlignment) {
+      return MemMap::MapAnonymous("reserve",
+                                  image_size,
+                                  PROT_READ | PROT_WRITE,
+                                  /*low_4gb=*/true,
+                                  error_str);
+    }
+    return MemMap::MapAnonymousAligned("reserve",
+                                       image_size,
+                                       PROT_READ | PROT_WRITE,
+                                       /*low_4gb=*/true,
+                                       kElfSegmentAlignment,
+                                       error_str);
+  }
+
   // Create an image space, the oat file is optional.
   FakeImageSpace* CreateImageSpace(size_t image_size,
                                    size_t oat_size,
@@ -193,12 +213,7 @@ TEST_F(ImmuneSpacesTest, AppendAfterImage) {
   constexpr size_t kOtherSpaceSize = 100 * kElfSegmentAlignment;
 
   std::string error_str;
-  MemMap reservation = MemMap::MapAnonymousAligned<kElfSegmentAlignment>(
-      "reserve",
-      kImageSize + kImageOatSize + kOtherSpaceSize,
-      PROT_READ | PROT_WRITE,
-      /*low_4gb=*/ true,
-      &error_str);
+  MemMap reservation = ReserveImage(kImageSize + kImageOatSize + kOtherSpaceSize, &error_str);
   ASSERT_TRUE(reservation.IsValid()) << "Failed to allocate memory region " << error_str;
   MemMap image_reservation = reservation.TakeReservedMemory(kImageSize);
   ASSERT_TRUE(image_reservation.IsValid());
@@ -257,8 +272,7 @@ TEST_F(ImmuneSpacesTest, MultiImage) {
   constexpr size_t kImageBytes = kImage1Size + kImage2Size + kImage3Size;
   constexpr size_t kMemorySize = kImageBytes + kImage1OatSize + kImage2OatSize + kImage3OatSize;
   std::string error_str;
-  MemMap reservation = MemMap::MapAnonymousAligned<kElfSegmentAlignment>(
-      "reserve", kMemorySize, PROT_READ | PROT_WRITE, /*low_4gb=*/ true, &error_str);
+  MemMap reservation = ReserveImage(kMemorySize, &error_str);
   ASSERT_TRUE(reservation.IsValid()) << "Failed to allocate memory region " << error_str;
   MemMap image_reservation = reservation.TakeReservedMemory(kImage1Size + kImage2Size);
   ASSERT_TRUE(image_reservation.IsValid());
@@ -328,12 +342,7 @@ TEST_F(ImmuneSpacesTest, MultiImage) {
   constexpr size_t kImage4Size = kImageBytes - kElfSegmentAlignment;
   constexpr size_t kImage4OatSize = kElfSegmentAlignment;
 
-  reservation = MemMap::MapAnonymousAligned<kElfSegmentAlignment>(
-      "reserve",
-      kImage4Size + kImage4OatSize + kGuardSize * 2,
-      PROT_READ | PROT_WRITE,
-      /*low_4gb=*/ true,
-      &error_str);
+  reservation = ReserveImage(kImage4Size + kImage4OatSize + kGuardSize * 2, &error_str);
   ASSERT_TRUE(reservation.IsValid()) << "Failed to allocate memory region " << error_str;
   MemMap guard = reservation.TakeReservedMemory(kGuardSize);
   ASSERT_TRUE(guard.IsValid());
@@ -368,12 +377,7 @@ TEST_F(ImmuneSpacesTest, MultiImage) {
   // Layout:  [guard page][image][oat][guard page]
   constexpr size_t kImage5Size = kImageBytes + kElfSegmentAlignment;
   constexpr size_t kImage5OatSize = kElfSegmentAlignment;
-  reservation = MemMap::MapAnonymousAligned<kElfSegmentAlignment>(
-      "reserve",
-      kImage5Size + kImage5OatSize + kGuardSize * 2,
-      PROT_READ | PROT_WRITE,
-      /*low_4gb=*/ true,
-      &error_str);
+  reservation = ReserveImage(kImage5Size + kImage5OatSize + kGuardSize * 2, &error_str);
   ASSERT_TRUE(reservation.IsValid()) << "Failed to allocate memory region " << error_str;
   guard = reservation.TakeReservedMemory(kGuardSize);
   ASSERT_TRUE(guard.IsValid());

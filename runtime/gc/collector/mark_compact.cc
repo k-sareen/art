@@ -4281,8 +4281,8 @@ inline bool MarkCompact::MarkObjectNonNullNoPush(mirror::Object* obj,
     return false;
   } else {
     // Must be a large-object space, otherwise it's a case of heap corruption.
-    if (!IsAligned<kLargeObjectAlignment>(obj)) {
-      // Objects in large-object space are aligned to kLargeObjectAlignment.
+    if (!IsAlignedParam(obj, space::LargeObjectSpace::ObjectAlignment())) {
+      // Objects in large-object space are aligned to the large-object alignment.
       // So if we have an object which doesn't belong to any space and is not
       // page-aligned as well, then it's memory corruption.
       // TODO: implement protect/unprotect in bump-pointer space.
@@ -4379,7 +4379,7 @@ mirror::Object* MarkCompact::IsMarked(mirror::Object* obj) {
         << " doesn't belong to any of the spaces and large object space doesn't exist";
     accounting::LargeObjectBitmap* los_bitmap = heap_->GetLargeObjectsSpace()->GetMarkBitmap();
     if (los_bitmap->HasAddress(obj)) {
-      DCHECK(IsAligned<kLargeObjectAlignment>(obj));
+      DCHECK(IsAlignedParam(obj, space::LargeObjectSpace::ObjectAlignment()));
       return los_bitmap->Test(obj) ? obj : nullptr;
     } else {
       // The given obj is not in any of the known spaces, so return null. This could

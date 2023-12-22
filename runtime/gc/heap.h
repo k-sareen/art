@@ -693,9 +693,9 @@ class Heap {
 
   // Mark all the objects in the allocation stack in the specified bitmap.
   // TODO: Refactor?
-  void MarkAllocStack(accounting::SpaceBitmap<kObjectAlignment>* bitmap1,
-                      accounting::SpaceBitmap<kObjectAlignment>* bitmap2,
-                      accounting::SpaceBitmap<kLargeObjectAlignment>* large_objects,
+  void MarkAllocStack(accounting::ContinuousSpaceBitmap* bitmap1,
+                      accounting::ContinuousSpaceBitmap* bitmap2,
+                      accounting::LargeObjectBitmap* large_objects,
                       accounting::ObjectStack* stack)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(Locks::heap_bitmap_lock_);

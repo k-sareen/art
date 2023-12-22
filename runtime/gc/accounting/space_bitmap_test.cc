@@ -21,6 +21,7 @@
 
 #include "base/common_art_test.h"
 #include "base/mutex.h"
+#include "gc/space/large_object_space.h"
 #include "runtime_globals.h"
 #include "space_bitmap-inl.h"
 
@@ -28,19 +29,52 @@ namespace art {
 namespace gc {
 namespace accounting {
 
+template <typename T>
 class SpaceBitmapTest : public CommonArtTest {};
 
-TEST_F(SpaceBitmapTest, Init) {
+// Main test parameters. For each test case, we pair together a SpaceBitmap
+// implementation with an object alignment. The object alignment may be larger
+// than the underlying SpaceBitmap alignment.
+template <typename T, size_t kAlignment>
+struct SpaceBitmapTestType {
+  using SpaceBitmap = T;
+  static const size_t gObjectAlignment = kAlignment;
+};
+
+// This is a special case where gObjectAlignment is set to large-object
+// alignment at runtime.
+template <typename T>
+struct SpaceBitmapTestPageSizeType {
+  using SpaceBitmap = T;
+  static const size_t gObjectAlignment;
+};
+
+template <typename T>
+const size_t SpaceBitmapTestPageSizeType<T>::gObjectAlignment =
+    space::LargeObjectSpace::ObjectAlignment();
+
+using SpaceBitmapTestTypes =
+    ::testing::Types<SpaceBitmapTestType<ContinuousSpaceBitmap, kObjectAlignment>,
+                     // Large objects are aligned to the OS page size, try
+                     // different supported values, including the current
+                     // runtime page size.
+                     SpaceBitmapTestType<LargeObjectBitmap, kMinPageSize>,
+                     SpaceBitmapTestPageSizeType<LargeObjectBitmap>,
+                     SpaceBitmapTestType<LargeObjectBitmap, kMaxPageSize>>;
+
+TYPED_TEST_CASE(SpaceBitmapTest, SpaceBitmapTestTypes);
+
+TYPED_TEST(SpaceBitmapTest, Init) {
   uint8_t* heap_begin = reinterpret_cast<uint8_t*>(0x10000000);
   size_t heap_capacity = 16 * MB;
-  ContinuousSpaceBitmap space_bitmap(
-      ContinuousSpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
+  auto space_bitmap(TypeParam::SpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
   EXPECT_TRUE(space_bitmap.IsValid());
 }
 
+template <typename SpaceBitmap>
 class BitmapVerify {
  public:
-  BitmapVerify(ContinuousSpaceBitmap* bitmap, const mirror::Object* begin,
+  BitmapVerify(SpaceBitmap* bitmap, const mirror::Object* begin,
                const mirror::Object* end)
     : bitmap_(bitmap),
       begin_(begin),
@@ -52,23 +86,23 @@ class BitmapVerify {
     EXPECT_EQ(bitmap_->Test(obj), ((reinterpret_cast<uintptr_t>(obj) & 0xF) != 0));
   }
 
-  ContinuousSpaceBitmap* const bitmap_;
+  SpaceBitmap* const bitmap_;
   const mirror::Object* begin_;
   const mirror::Object* end_;
 };
 
-TEST_F(SpaceBitmapTest, ScanRange) {
+TYPED_TEST(SpaceBitmapTest, ScanRange) {
   uint8_t* heap_begin = reinterpret_cast<uint8_t*>(0x10000000);
   size_t heap_capacity = 16 * MB;
+  const size_t gObjectAlignment = TypeParam::gObjectAlignment;
 
-  ContinuousSpaceBitmap space_bitmap(
-      ContinuousSpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
+  auto space_bitmap(TypeParam::SpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
   EXPECT_TRUE(space_bitmap.IsValid());
 
   // Set all the odd bits in the first BitsPerIntPtrT * 3 to one.
   for (size_t j = 0; j < kBitsPerIntPtrT * 3; ++j) {
     const mirror::Object* obj =
-        reinterpret_cast<mirror::Object*>(heap_begin + j * kObjectAlignment);
+        reinterpret_cast<mirror::Object*>(heap_begin + j * gObjectAlignment);
     if (reinterpret_cast<uintptr_t>(obj) & 0xF) {
       space_bitmap.Set(obj);
     }
@@ -79,35 +113,36 @@ TEST_F(SpaceBitmapTest, ScanRange) {
   // words.
   for (size_t i = 0; i < static_cast<size_t>(kBitsPerIntPtrT); ++i) {
     mirror::Object* start =
-        reinterpret_cast<mirror::Object*>(heap_begin + i * kObjectAlignment);
+        reinterpret_cast<mirror::Object*>(heap_begin + i * gObjectAlignment);
     for (size_t j = 0; j < static_cast<size_t>(kBitsPerIntPtrT * 2); ++j) {
       mirror::Object* end =
-          reinterpret_cast<mirror::Object*>(heap_begin + (i + j) * kObjectAlignment);
+          reinterpret_cast<mirror::Object*>(heap_begin + (i + j) * gObjectAlignment);
       BitmapVerify(&space_bitmap, start, end);
     }
   }
 }
 
-TEST_F(SpaceBitmapTest, ClearRange) {
+TYPED_TEST(SpaceBitmapTest, ClearRange) {
   uint8_t* heap_begin = reinterpret_cast<uint8_t*>(0x10000000);
   size_t heap_capacity = 16 * MB;
+  const size_t gObjectAlignment = TypeParam::gObjectAlignment;
 
-  ContinuousSpaceBitmap bitmap(
-      ContinuousSpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
+  auto bitmap(TypeParam::SpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
   EXPECT_TRUE(bitmap.IsValid());
 
   // Set all of the bits in the bitmap.
-  for (size_t j = 0; j < heap_capacity; j += kObjectAlignment) {
+  for (size_t j = 0; j < heap_capacity; j += gObjectAlignment) {
     const mirror::Object* obj = reinterpret_cast<mirror::Object*>(heap_begin + j);
     bitmap.Set(obj);
   }
 
   std::vector<std::pair<uintptr_t, uintptr_t>> ranges = {
-      {0, 10 * KB + kObjectAlignment},
-      {kObjectAlignment, kObjectAlignment},
-      {kObjectAlignment, 2 * kObjectAlignment},
-      {kObjectAlignment, 5 * kObjectAlignment},
-      {1 * KB + kObjectAlignment, 2 * KB + 5 * kObjectAlignment},
+      {0, RoundUp(10 * KB, gObjectAlignment) + gObjectAlignment},
+      {gObjectAlignment, gObjectAlignment},
+      {gObjectAlignment, 2 * gObjectAlignment},
+      {gObjectAlignment, 5 * gObjectAlignment},
+      {RoundUp(1 * KB, gObjectAlignment) + gObjectAlignment,
+       RoundUp(2 * KB, gObjectAlignment) + 5 * gObjectAlignment},
   };
   // Try clearing a few ranges.
   for (const std::pair<uintptr_t, uintptr_t>& range : ranges) {
@@ -115,14 +150,14 @@ TEST_F(SpaceBitmapTest, ClearRange) {
     const mirror::Object* obj_end = reinterpret_cast<mirror::Object*>(heap_begin + range.second);
     bitmap.ClearRange(obj_begin, obj_end);
     // Boundaries should still be marked.
-    for (uintptr_t i = 0; i < range.first; i += kObjectAlignment) {
+    for (uintptr_t i = 0; i < range.first; i += gObjectAlignment) {
       EXPECT_TRUE(bitmap.Test(reinterpret_cast<mirror::Object*>(heap_begin + i)));
     }
-    for (uintptr_t i = range.second; i < range.second + gPageSize; i += kObjectAlignment) {
+    for (uintptr_t i = range.second; i < range.second + gPageSize; i += gObjectAlignment) {
       EXPECT_TRUE(bitmap.Test(reinterpret_cast<mirror::Object*>(heap_begin + i)));
     }
     // Everything inside should be cleared.
-    for (uintptr_t i = range.first; i < range.second; i += kObjectAlignment) {
+    for (uintptr_t i = range.first; i < range.second; i += gObjectAlignment) {
       EXPECT_FALSE(bitmap.Test(reinterpret_cast<mirror::Object*>(heap_begin + i)));
       bitmap.Set(reinterpret_cast<mirror::Object*>(heap_begin + i));
     }
@@ -151,7 +186,7 @@ class RandGen {
   uint32_t val_;
 };
 
-template <typename TestFn>
+template <typename SpaceBitmap, typename TestFn>
 static void RunTest(size_t alignment, TestFn&& fn) NO_THREAD_SAFETY_ANALYSIS {
   uint8_t* heap_begin = reinterpret_cast<uint8_t*>(0x10000000);
   size_t heap_capacity = 16 * MB;
@@ -160,8 +195,7 @@ static void RunTest(size_t alignment, TestFn&& fn) NO_THREAD_SAFETY_ANALYSIS {
   RandGen r(0x1234);
 
   for (int i = 0; i < 5 ; ++i) {
-    ContinuousSpaceBitmap space_bitmap(
-        ContinuousSpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
+    SpaceBitmap space_bitmap(SpaceBitmap::Create("test bitmap", heap_begin, heap_capacity));
 
     for (int j = 0; j < 10000; ++j) {
       size_t offset = RoundDown(r.next() % heap_capacity, alignment);
@@ -194,8 +228,9 @@ static void RunTest(size_t alignment, TestFn&& fn) NO_THREAD_SAFETY_ANALYSIS {
   }
 }
 
-static void RunTestCount(size_t alignment) {
-  auto count_test_fn = [](ContinuousSpaceBitmap* space_bitmap,
+TYPED_TEST(SpaceBitmapTest, VisitorAlignment) {
+  using SpaceBitmap = typename TypeParam::SpaceBitmap;
+  auto count_test_fn = [](SpaceBitmap* space_bitmap,
                           uintptr_t range_begin,
                           uintptr_t range_end,
                           size_t manual_count) {
@@ -204,19 +239,12 @@ static void RunTestCount(size_t alignment) {
     space_bitmap->VisitMarkedRange(range_begin, range_end, count_fn);
     EXPECT_EQ(count, manual_count);
   };
-  RunTest(alignment, count_test_fn);
+  RunTest<SpaceBitmap>(TypeParam::gObjectAlignment, count_test_fn);
 }
 
-TEST_F(SpaceBitmapTest, VisitorObjectAlignment) {
-  RunTestCount(kObjectAlignment);
-}
-
-TEST_F(SpaceBitmapTest, VisitorPageAlignment) {
-  RunTestCount(gPageSize);
-}
-
-void RunTestOrder(size_t alignment) {
-  auto order_test_fn = [](ContinuousSpaceBitmap* space_bitmap,
+TYPED_TEST(SpaceBitmapTest, OrderAlignment) {
+  using SpaceBitmap = typename TypeParam::SpaceBitmap;
+  auto order_test_fn = [](SpaceBitmap* space_bitmap,
                           uintptr_t range_begin,
                           uintptr_t range_end,
                           size_t manual_count)
@@ -240,15 +268,7 @@ void RunTestOrder(size_t alignment) {
       EXPECT_NE(nullptr, last_ptr);
     }
   };
-  RunTest(alignment, order_test_fn);
-}
-
-TEST_F(SpaceBitmapTest, OrderObjectAlignment) {
-  RunTestOrder(kObjectAlignment);
-}
-
-TEST_F(SpaceBitmapTest, OrderPageAlignment) {
-  RunTestOrder(gPageSize);
+  RunTest<SpaceBitmap>(TypeParam::gObjectAlignment, order_test_fn);
 }
 
 }  // namespace accounting

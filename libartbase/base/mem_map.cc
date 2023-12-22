@@ -393,19 +393,7 @@ MemMap MemMap::MapAnonymousAligned(const char* name,
                                    size_t alignment,
                                    /*out=*/std::string* error_msg) {
   DCHECK(IsPowerOfTwo(alignment));
-
-#ifdef ART_PAGE_SIZE_AGNOSTIC
-  // In page size agnostic configuration, the gPageSize is not known
-  // statically, so this interface has to support the case when alignment
-  // requested is greater than minimum page size however lower or equal to
-  // the actual page size.
-  DCHECK_GT(alignment, kMinPageSize);
-  if (alignment <= gPageSize) {
-    return MapAnonymous(name, byte_count, prot, low_4gb, error_msg);
-  }
-#else
   DCHECK_GT(alignment, gPageSize);
-#endif
 
   // Allocate extra 'alignment - gPageSize' bytes so that the mapping can be aligned.
   MemMap ret = MapAnonymous(name,
