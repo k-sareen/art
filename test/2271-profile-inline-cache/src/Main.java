@@ -42,6 +42,10 @@ public class Main {
             // This method is below the inline cache threshold.
             Method method1 = Main.class.getDeclaredMethod("$noinline$method1", Base.class);
             ensureJitBaselineCompiled(method1);
+            // TODO(b/317505124): For unknown reasons, the method call does not record inline caches
+            // unless we wait for a while after compilation, especially when this test is run along
+            // with other tests concurrently on gcstress.
+            sleep(1000);
             $noinline$method1(derived1);
             for (int i = 0; i < 2998; i++) {
                 $noinline$method1(derived2);
@@ -51,6 +55,10 @@ public class Main {
             // This method is right on the inline cache threshold.
             Method method2 = Main.class.getDeclaredMethod("$noinline$method2", Base.class);
             ensureJitBaselineCompiled(method2);
+            // TODO(b/317505124): For unknown reasons, the method call does not record inline caches
+            // unless we wait for a while after compilation, especially when this test is run along
+            // with other tests concurrently on gcstress.
+            sleep(1000);
             $noinline$method2(derived1);
             for (int i = 0; i < 2999; i++) {
                 $noinline$method2(derived2);
@@ -60,6 +68,10 @@ public class Main {
             // This method is above the inline cache threshold.
             Method method3 = Main.class.getDeclaredMethod("$noinline$method3", Base.class);
             ensureJitBaselineCompiled(method3);
+            // TODO(b/317505124): For unknown reasons, the method call does not record inline caches
+            // unless we wait for a while after compilation, especially when this test is run along
+            // with other tests concurrently on gcstress.
+            sleep(1000);
             for (int i = 0; i < 10000; i++) {
                 $noinline$method3(derived1);
             }
@@ -71,6 +83,10 @@ public class Main {
             // This method is above the JIT threshold.
             Method method4 = Main.class.getDeclaredMethod("$noinline$method4", Base.class);
             ensureJitBaselineCompiled(method4);
+            // TODO(b/317505124): For unknown reasons, the method call does not record inline caches
+            // unless we wait for a while after compilation, especially when this test is run along
+            // with other tests concurrently on gcstress.
+            sleep(1000);
             $noinline$method4(derived1);
             $noinline$method4(derived2);
             ensureMethodJitCompiled(method4);
@@ -155,6 +171,13 @@ public class Main {
                 System.setProperty("java.io.tmpdir", "/sdcard");
                 return File.createTempFile(TEMP_FILE_NAME_PREFIX, TEMP_FILE_NAME_SUFFIX);
             }
+        }
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ignored) {
         }
     }
 
