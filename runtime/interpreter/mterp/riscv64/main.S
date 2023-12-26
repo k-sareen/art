@@ -293,36 +293,6 @@ END \name
     j 2b
 .endm
 
-// Typed read, defaults to 32-bit read
-// Note: Incorrect for an object ref; it requires LWU, or LW;ZEXT.W.
-// Clobbers: \reg
-// Safe if \reg == \vreg.
-.macro GET_VREG reg, vreg, is_wide=0, is_unsigned=0
-    .if \is_wide
-      GET_VREG_WIDE \reg, \vreg
-    .elseif \is_unsigned
-      sh2add \reg, \vreg, xFP  // vreg addr in register array
-      lwu \reg, (\reg)         // reg := fp[vreg], zext
-    .else
-      sh2add \reg, \vreg, xFP  // vreg addr in register array
-      lw \reg, (\reg)          // reg := fp[vreg]
-    .endif
-.endm
-
-// Typed write, defaults to 32-bit write.
-// Note: Incorrect for an object ref; it requires 2nd SW into xREFS.
-// Clobbers: z0
-.macro SET_VREG reg, vreg, z0, is_wide=0
-    .if \is_wide
-      SET_VREG_WIDE \reg, \vreg, \z0
-    .else
-      sh2add \z0, \vreg, xFP    // vreg addr in register array
-      sw \reg, (\z0)            // fp[vreg] := reg
-      sh2add \z0, \vreg, xREFS  // vreg addr in reference array
-      sw zero, (\z0)            // refs[vreg] := null
-    .endif
-.endm
-
 // 64 bit read
 // Clobbers: \reg
 // Safe if \reg == \vreg.
@@ -396,6 +366,34 @@ END \name
     sh2add \z0, \vreg, xREFS  // vreg addr in reference array
     sd zero, (\z0)            // refs[vreg] := null ; refs[vreg+1] := null
 .endm
+
+// Typed read, defaults to 32-bit read
+// Note: Incorrect for an object ref; it requires LWU, or LW;ZEXT.W.
+// Clobbers: \reg
+// Safe if \reg == \vreg.
+%def get_vreg(reg, vreg, width="32", is_wide=False, is_unsigned=False):
+%  if is_wide or width == "64":
+     GET_VREG_WIDE $reg, $vreg
+%  elif is_unsigned:
+     sh2add $reg, $vreg, xFP  // vreg addr in register array
+     lwu $reg, ($reg)         // reg := fp[vreg], zext
+%  else:
+     sh2add $reg, $vreg, xFP  // vreg addr in register array
+     lw $reg, ($reg)          // reg := fp[vreg]
+%#:
+
+// Typed write, defaults to 32-bit write.
+// Note: Incorrect for an object ref; it requires 2nd SW into xREFS.
+// Clobbers: z0
+%def set_vreg(reg, vreg, z0, width="32", is_wide=False):
+%  if is_wide or width == "64":
+     SET_VREG_WIDE $reg, $vreg, $z0
+%  else:
+     sh2add $z0, $vreg, xFP    // vreg addr in register array
+     sw $reg, ($z0)            // fp[vreg] := reg
+     sh2add $z0, $vreg, xREFS  // vreg addr in reference array
+     sw zero, ($z0)            // refs[vreg] := null
+%#:
 
 %def entry():
 /*

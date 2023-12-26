@@ -1023,27 +1023,27 @@
    // A = 5
    srliw $z0, xINST, 8             // z0 := A|G
    andi $z0, $z0, 0xF              // z0 := G
-   GET_VREG a4, $z0
+%  get_vreg("a4", z0)
    lb $z1, 4($shorty)              // shorty RDEFG
    bne $z1, $z2, .L${uniq}_slow_4
    zext.w a4, a4
 .L${uniq}_slow_4:
    srliw $z1, $v_fedc, 12          // z1 := F
-   GET_VREG a3, $z1
+%  get_vreg("a3", z1)
    lb $z1, 3($shorty)              // shorty RDEF
    bne $z1, $z2, .L${uniq}_slow_3
    zext.w a3, a3
 .L${uniq}_slow_3:
    srliw $z1, $v_fedc, 8           // z1 := F|E
    andi $z1, $z1, 0xF              // z1 := E
-   GET_VREG a2, $z1
+%  get_vreg("a2", z1)
    lb $z1, 2($shorty)              // shorty RDE
    bne $z1, $z2, .L${uniq}_slow_2
    zext.w a2, a2
 .L${uniq}_slow_2:
    srliw $z1, $v_fedc, 4           // z1 := F|E|D
    andi $z1, $z1, 0xF              // z1 := D
-   GET_VREG a1, $z1
+%  get_vreg("a1", z1)
    lb $z1, 1($shorty)              // shorty RD
    bne $z1, $z2, .L${uniq}_slow_1
    zext.w a1, a1
@@ -1141,30 +1141,30 @@
 // into one argument register.
 %def load_vreg_in_gpr(gpr="", shorty="", vregs="", D="", F="", J="", L="", z0="", done="", uniq=""):
 .L${uniq}_gpr_find:
-    lb $z0, ($shorty)         // z0 := next shorty arg spec
-    addi $shorty, $shorty, 1  // increment char ptr
-    beqz $z0, $done           // z0 == \0
-    beq $z0, $F, .L${uniq}_gpr_skip_4_bytes
-    beq $z0, $D, .L${uniq}_gpr_skip_8_bytes
+   lb $z0, ($shorty)         // z0 := next shorty arg spec
+   addi $shorty, $shorty, 1  // increment char ptr
+   beqz $z0, $done           // z0 == \0
+   beq $z0, $F, .L${uniq}_gpr_skip_4_bytes
+   beq $z0, $D, .L${uniq}_gpr_skip_8_bytes
 
-    andi $gpr, $vregs, 0xF    // gpr := vreg id
-    beq $z0, $J, .L${uniq}_gpr_load_8_bytes
-    GET_VREG $gpr, $gpr       // gpr := 32-bit load
-    bne $z0, $L, .L${uniq}_gpr_load_common
-    zext.w $gpr, $gpr
+   andi $gpr, $vregs, 0xF    // gpr := vreg id
+   beq $z0, $J, .L${uniq}_gpr_load_8_bytes
+%  get_vreg(gpr, gpr)        #  gpr := 32-bit load
+   bne $z0, $L, .L${uniq}_gpr_load_common
+   zext.w $gpr, $gpr
 .L${uniq}_gpr_load_common:
-    srliw $vregs, $vregs, 4   // shift out the processed arg, one vreg
-    j .L${uniq}_gpr_set       // and exit
+   srliw $vregs, $vregs, 4   // shift out the processed arg, one vreg
+   j .L${uniq}_gpr_set       // and exit
 .L${uniq}_gpr_load_8_bytes:
-    GET_VREG_WIDE $gpr, $gpr  // gpr := 64-bit load
-    srliw $vregs, $vregs, 8   // shift out the processed arg, a vreg pair
-    j .L${uniq}_gpr_set       // and exit
+   GET_VREG_WIDE $gpr, $gpr  // gpr := 64-bit load
+   srliw $vregs, $vregs, 8   // shift out the processed arg, a vreg pair
+   j .L${uniq}_gpr_set       // and exit
 
 .L${uniq}_gpr_skip_8_bytes:
-    srliw $vregs, $vregs, 4   // shift out a skipped arg
+   srliw $vregs, $vregs, 4   // shift out a skipped arg
 .L${uniq}_gpr_skip_4_bytes:
-    srliw $vregs, $vregs, 4   // shift out a skipped arg
-    j .L${uniq}_gpr_find
+   srliw $vregs, $vregs, 4   // shift out a skipped arg
+   j .L${uniq}_gpr_find
 .L${uniq}_gpr_set:
 
 
@@ -1172,81 +1172,81 @@
 // value into one floating point argument register.
 %def load_vreg_in_fpr(fpr="", shorty="", vregs="", D="", F="", J="", z0="", done="", uniq=""):
 .L${uniq}_fpr_find:
-    lb $z0, ($shorty)         // z0 := next shorty arg spec
-    addi $shorty, $shorty, 1  // increment char ptr
-    beqz $z0, $done           // z0 == \0
-    beq $z0, $F, .L${uniq}_fpr_load_4_bytes
-    beq $z0, $D, .L${uniq}_fpr_load_8_bytes
+   lb $z0, ($shorty)         // z0 := next shorty arg spec
+   addi $shorty, $shorty, 1  // increment char ptr
+   beqz $z0, $done           // z0 == \0
+   beq $z0, $F, .L${uniq}_fpr_load_4_bytes
+   beq $z0, $D, .L${uniq}_fpr_load_8_bytes
 
-    srliw $vregs, $vregs, 4   // shift out a skipped arg, one vreg
-    bne $z0, $J, .L${uniq}_fpr_find
-    srliw $vregs, $vregs, 4   // shift out one more skipped arg, for J
-    j .L${uniq}_fpr_find
+   srliw $vregs, $vregs, 4   // shift out a skipped arg, one vreg
+   bne $z0, $J, .L${uniq}_fpr_find
+   srliw $vregs, $vregs, 4   // shift out one more skipped arg, for J
+   j .L${uniq}_fpr_find
 
 .L${uniq}_fpr_load_4_bytes:
-    andi $z0, $vregs, 0xF
-    GET_VREG_FLOAT $fpr, $z0
-    srliw $vregs, $vregs, 4   // shift out the processed arg, one vreg
-    j .L${uniq}_fpr_set
+   andi $z0, $vregs, 0xF
+   GET_VREG_FLOAT $fpr, $z0
+   srliw $vregs, $vregs, 4   // shift out the processed arg, one vreg
+   j .L${uniq}_fpr_set
 .L${uniq}_fpr_load_8_bytes:
-    andi $z0, $vregs, 0xF
-    GET_VREG_DOUBLE $fpr, $z0
-    srliw $vregs, $vregs, 8   // shift out the processed arg, a vreg pair
+   andi $z0, $vregs, 0xF
+   GET_VREG_DOUBLE $fpr, $z0
+   srliw $vregs, $vregs, 8   // shift out the processed arg, a vreg pair
 .L${uniq}_fpr_set:
 
 
 // Range variant
 %def load_vreg_in_gpr_range(gpr="", shorty="", idx="", D="", F="", J="", L="", z0="", done="", uniq=""):
 .L${uniq}_gpr_range_find:
-    lb $z0, ($shorty)           // z0 := next shorty arg
-    addi $shorty, $shorty, 1    // increment char ptr
-    beqz $z0, $done             // z0 == \0
-    beq $z0, $F, .L${uniq}_gpr_range_skip_1_vreg
-    beq $z0, $D, .L${uniq}_gpr_range_skip_2_vreg
+   lb $z0, ($shorty)           // z0 := next shorty arg
+   addi $shorty, $shorty, 1    // increment char ptr
+   beqz $z0, $done             // z0 == \0
+   beq $z0, $F, .L${uniq}_gpr_range_skip_1_vreg
+   beq $z0, $D, .L${uniq}_gpr_range_skip_2_vreg
 
-    beq $z0, $J, .L${uniq}_gpr_range_load_2_vreg
-    GET_VREG $gpr, $idx
-    bne $z0, $L, .L${uniq}_gpr_range_load_common
-    zext.w $gpr, $gpr
+   beq $z0, $J, .L${uniq}_gpr_range_load_2_vreg
+%  get_vreg(gpr, idx)
+   bne $z0, $L, .L${uniq}_gpr_range_load_common
+   zext.w $gpr, $gpr
 .L${uniq}_gpr_range_load_common:
-    addi $idx, $idx, 1
-    j .L${uniq}_gpr_range_done
+   addi $idx, $idx, 1
+   j .L${uniq}_gpr_range_done
 .L${uniq}_gpr_range_load_2_vreg:
-    GET_VREG_WIDE $gpr, $idx
-    addi $idx, $idx, 2
-    j .L${uniq}_gpr_range_done
+   GET_VREG_WIDE $gpr, $idx
+   addi $idx, $idx, 2
+   j .L${uniq}_gpr_range_done
 
 .L${uniq}_gpr_range_skip_2_vreg:
-    addi $idx, $idx, 1
+   addi $idx, $idx, 1
 .L${uniq}_gpr_range_skip_1_vreg:
-    addi $idx, $idx, 1
-    j .L${uniq}_gpr_range_find
+   addi $idx, $idx, 1
+   j .L${uniq}_gpr_range_find
 .L${uniq}_gpr_range_done:
 
 
 // Range variant.
 %def load_vreg_in_fpr_range(fpr="", shorty="", idx="", D="", F="", J="", z0="", done="", uniq=""):
 .L${uniq}_fpr_range_find:
-    lb $z0, ($shorty)         // z0 := next shorty arg
-    addi $shorty, $shorty, 1  // increment char ptr
-    beqz $z0, $done           // z0 == \0
-    beq $z0, $F, .L${uniq}_fpr_range_load_4_bytes
-    beq $z0, $D, .L${uniq}_fpr_range_load_8_bytes
+   lb $z0, ($shorty)         // z0 := next shorty arg
+   addi $shorty, $shorty, 1  // increment char ptr
+   beqz $z0, $done           // z0 == \0
+   beq $z0, $F, .L${uniq}_fpr_range_load_4_bytes
+   beq $z0, $D, .L${uniq}_fpr_range_load_8_bytes
 
-    addi $idx, $idx, 1        // increment idx
-    bne $z0, $J, .L${uniq}_fpr_range_find
-    addi $idx, $idx, 1        // increment once more for J
-    j .L${uniq}_fpr_range_find
+   addi $idx, $idx, 1        // increment idx
+   bne $z0, $J, .L${uniq}_fpr_range_find
+   addi $idx, $idx, 1        // increment once more for J
+   j .L${uniq}_fpr_range_find
 
 .L${uniq}_fpr_range_load_4_bytes:
-    mv $z0, $idx
-    GET_VREG_FLOAT $fpr, $z0
-    addi $idx, $idx, 1
-    j .L${uniq}_fpr_range_set
+   mv $z0, $idx
+   GET_VREG_FLOAT $fpr, $z0
+   addi $idx, $idx, 1
+   j .L${uniq}_fpr_range_set
 .L${uniq}_fpr_range_load_8_bytes:
-    mv $z0, $idx
-    GET_VREG_DOUBLE $fpr, $z0
-    addi $idx, $idx, 2
+   mv $z0, $idx
+   GET_VREG_DOUBLE $fpr, $z0
+   addi $idx, $idx, 2
 .L${uniq}_fpr_range_set:
 
 
@@ -1457,27 +1457,27 @@
    // A = 5
    srliw $z0, xINST, 8
    andi $z0, $z0, 0xF         // z0 := G
-   GET_VREG $z1, $z0          // z1 := xFP[G]
+%  get_vreg(z1, z0)           #  z1 := xFP[G]
    sw $z1, (4*4)($z3)         // fp[G] := z1
    GET_VREG_OBJECT $z0, $z0   // z0 := xREFS[G]
    sw $z0, (4*4)($z2)         // refs[G] := z0
 .L${uniq}_arg_4:
    srliw $z0, $v_fedc, 12     // z0 := F
-   GET_VREG $z1, $z0          // z1 := xFP[F]
+%  get_vreg(z1, z0)           #  z1 := xFP[F]
    sw $z1, (3*4)($z3)         // fp[F] := z1
    GET_VREG_OBJECT $z0, $z0   // z0 := xREFS[F]
    sw $z0, (3*4)($z2)         // refs[F] := z0
 .L${uniq}_arg_3:
    srliw $z0, $v_fedc, 8      // z0 := F|E
    andi $z0, $z0, 0xF         // z0 := E
-   GET_VREG $z1, $z0          // z1 := xFP[E]
+%  get_vreg(z1, z0)           #  z1 := xFP[E]
    sw $z1, (2*4)($z3)         // fp[E] := z1
    GET_VREG_OBJECT $z0, $z0   // z0 := xREFS[E]
    sw $z0, (2*4)($z2)         // refs[E] := z0
 .L${uniq}_arg_2:
    srliw $z0, $v_fedc, 4      // z0 := F|E|D
    andi $z0, $z0, 0xF         // z0 := D
-   GET_VREG $z1, $z0          // z1 := xFP[D]
+%  get_vreg(z1, z0)           #  z1 := xFP[D]
    sw $z1, (1*4)($z3)         // fp[D] := z1
    GET_VREG_OBJECT $z0, $z0   // z0 := xREFS[D]
    sw $z0, (1*4)($z2)         // refs[D] := z0
@@ -1491,7 +1491,7 @@
 %  elif how_vC == "load":
      // static method loads vC just like other vregs
      andi $z0, $v_fedc, 0xF   // z0 := C
-     GET_VREG $z1, $z0        // z1 := xFP[C]
+%    get_vreg(z1, z0)         #  z1 := xFP[C]
      sw $z1, (0*4)($z3)       // fp[C] := z1
      GET_VREG_OBJECT $z0, $z0 // z0 := xREFS[C]
      sw $z0, (0*4)($z2)       // refs[C] := z0

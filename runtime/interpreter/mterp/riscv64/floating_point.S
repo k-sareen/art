@@ -121,7 +121,7 @@
     srliw t2, xINST, 8         // t2 := B|A
 
     .ifc $src, w
-      GET_VREG t1, t0          // t1 := fp[B]
+%  get_vreg("t1", "t0")     #  t1 := fp[B]
     .endif
     .ifc $src, l
       GET_VREG_WIDE t1, t0     // t1 := fp[B]
@@ -151,7 +151,7 @@
 1:
 
     .ifc $dst, w
-      SET_VREG t1, t2, z0=t0          // fp[A] := t1
+%  set_vreg("t1", "t2", z0="t0")   #  fp[A] := t1
     .endif
     .ifc $dst, l
       SET_VREG_WIDE t1, t2, z0=t0     // fp[A] := t1

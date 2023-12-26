@@ -65,8 +65,7 @@
 %  load(dst="t1", src="t0", width=width, zext=zext)
                            // t1 := value
    FETCH_ADVANCE_INST 2
-%  is_wide = "1" if width == "64" else "0"
-   SET_VREG t1, s8, z0=t0, is_wide=$is_wide
+%  set_vreg("t1", "s8", z0="t0", width=width)
    GET_INST_OPCODE t0
    GOTO_OPCODE t0
 
@@ -97,8 +96,7 @@
    fence r, rw
                               // t1 := value
    FETCH_ADVANCE_INST 2
-%  is_wide = "1" if width == "64" else "0"
-   SET_VREG $z1, $dst, z0=$z0, is_wide=$is_wide
+%  set_vreg(z1, dst, z0=z0, width=width)
    GET_INST_OPCODE $z0
    GOTO_OPCODE $z0
 
@@ -216,8 +214,8 @@
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
    andi s8, s8, 0xF        // s8 := A
-%  is_wide = "1" if (width == "64") else "0"
-   GET_VREG s8, s8, is_wide=$is_wide  // s8 := value, held across slow path call
+%  get_vreg("s8", "s8", width=width)
+                           // s8 := value, held across slow path call
 
    // Fast path: NterpGetInstanceFieldOffset's byte offset from thread-local cache.
    FETCH_FROM_THREAD_CACHE /*resolved_field*/a0, .L${opcode}_slow, t0, t1
@@ -393,8 +391,7 @@
 %  load(dst="t1", src="t0", width=width, zext=zext)
                        // t1 := value
    FETCH_ADVANCE_INST 2
-%  is_wide = "1" if width == "64" else "0"
-   SET_VREG t1, s7, z0=t0, is_wide=$is_wide
+%  set_vreg("t1", "s7", z0="t0", width=width)
    GET_INST_OPCODE t0
    GOTO_OPCODE t0
 
@@ -433,8 +430,7 @@
    fence r, rw
        // z1 := value
    FETCH_ADVANCE_INST 2
-%  is_wide = "1" if width == "64" else "0"
-   SET_VREG $z1, $dst_vreg, z0=$z0, is_wide=$is_wide
+%  set_vreg(z1, dst_vreg, z0=z0, width=width)
    GET_INST_OPCODE $z0
    GOTO_OPCODE $z0
 
@@ -558,9 +554,9 @@
 // Format 21c: AA|67 BBBB
 // klass.field := vAA
 %def op_sput(width="32"):
-   srliw t2, xINST, 8                 // t2 := AA
-%  is_wide = "1" if (width == "64") else "0"
-   GET_VREG s7, t2, is_wide=$is_wide  // s7 := value, held across slow path call
+   srliw t2, xINST, 8  // t2 := AA
+%  get_vreg("s7", "t2", width=width)
+                       // s7 := value, held across slow path call
 
    // Fast path: NterpGetStaticField's resolved_field from thread-local cache.
    // Stores cache value in a0 to match slow path's return from NterpGetStaticField.

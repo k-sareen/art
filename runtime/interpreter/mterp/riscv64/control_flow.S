@@ -1,51 +1,50 @@
 // return-void
 // Format 10x: 00|0e
 %def op_return_void():
-%  op_return(is_object="0", is_void="1", is_wide="0")
+%  op_return(is_void=True)
 
 // return vAA
 // Format 11x: AA|0f
 // Clobbers: t0
-%def op_return(is_object="0", is_void="0", is_wide="0"):
-    .if $is_void
+%def op_return(is_object=False, is_void=False, is_wide=False):
+%  if is_void:
       // Thread fence for constructor
       fence w, w
-    .else
+%  else:
       srliw t0, xINST, 8  // t0 := AA
-      .if $is_wide
+%    if is_wide:
         GET_VREG_WIDE a0, t0  // a0 := fp[AA:AA+1]
         // The method may return to compiled code, so also place result in fa0.
         fmv.d.x fa0, a0
-      .elseif $is_object
+%    elif is_object:
         GET_VREG_OBJECT a0, t0  // a0 := refs[AA]
-      .else
-        GET_VREG a0, t0  // a0 := fp[AA]
+%    else:
+%       get_vreg("a0", "t0")    #  a0 := fp[AA]
         // The method may return to compiled code, so also place result in fa0.
         fmv.w.x fa0, a0
-      .endif
-    .endif  // is_void
+%#:
 
-    CFI_REMEMBER_STATE
-    ld sp, -8(xREFS)  // caller's interpreted frame pointer
-    .cfi_def_cfa sp, NTERP_SIZE_SAVE_CALLEE_SAVES
-    RESTORE_NTERP_SAVE_CALLEE_SAVES
-    DECREASE_FRAME NTERP_SIZE_SAVE_CALLEE_SAVES
-    ret
-    // Since opcode handlers are merely labeled asm chunks within ExecuteNterpImpl's FDE, we must
-    // restate the correct CFA rule for subsequent handlers. It is initially stated when setting up
-    // the nterp frame (setup_nterp_frame).
-    .cfi_restore_state
-    CFI_DEF_CFA_BREG_PLUS_UCONST CFI_REFS, -8, NTERP_SIZE_SAVE_CALLEE_SAVES
+   CFI_REMEMBER_STATE
+   ld sp, -8(xREFS)  // caller's interpreted frame pointer
+   .cfi_def_cfa sp, NTERP_SIZE_SAVE_CALLEE_SAVES
+   RESTORE_NTERP_SAVE_CALLEE_SAVES
+   DECREASE_FRAME NTERP_SIZE_SAVE_CALLEE_SAVES
+   ret
+   // Since opcode handlers are merely labeled asm chunks within ExecuteNterpImpl's FDE, we must
+   // restate the correct CFA rule for subsequent handlers. It is initially stated when setting up
+   // the nterp frame (setup_nterp_frame).
+   .cfi_restore_state
+   CFI_DEF_CFA_BREG_PLUS_UCONST CFI_REFS, -8, NTERP_SIZE_SAVE_CALLEE_SAVES
 
 // return-wide vAA
 // Format 11x: AA|10
 %def op_return_wide():
-%  op_return(is_object="0", is_void="0", is_wide="1")
+%  op_return(is_wide=True)
 
 // return-object vAA
 // Format 11x: AA|11
 %def op_return_object():
-%  op_return(is_object="1", is_void="0", is_wide="0")
+%  op_return(is_object=True)
 
 // throw vAA
 // Format 11x: AA|27

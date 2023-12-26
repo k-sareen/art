@@ -10,7 +10,7 @@
    andi t1, t1, 0xF        // t1 := A
    GET_INST_OPCODE t3
    lw t2, MIRROR_ARRAY_LENGTH_OFFSET(t0)
-   SET_VREG t2, t1, z0=t0
+%  set_vreg("t2", "t1", z0="t0")
    GOTO_OPCODE t3
 1:
    tail common_errNullObject
@@ -86,7 +86,7 @@
    beqz $array, $null_label
 
    srliw $index, $index, 8         // index := CC
-   GET_VREG $index, $index, is_unsigned=1  // index := fp[CC], zext for bounds check
+%  get_vreg(index, index, is_unsigned=True)  # index := fp[CC], zext for bounds check
    lw $length, MIRROR_ARRAY_LENGTH_OFFSET($array)  // length (signed 32b)
    bge $index, $length, $oob_label
 
@@ -121,8 +121,7 @@
 %#:
                        // t0 := *(array obj + data offset + idx * elem_size)
    srliw t1, xINST, 8  // t1 := AA
-%  is_wide = "1" if width == "64" else "0"
-   SET_VREG t0, t1, z0=t2, is_wide=$is_wide
+%  set_vreg("t0", "t1", z0="t2", is_wide=(width == "64"))
 
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE t0
@@ -203,8 +202,7 @@
        // t0 := vBB array object, t1 := vCC zext index, t2 := array length
 
    srliw t2, xINST, 8      // t2 := AA
-%  is_wide = "1" if width == "64" else "0"
-   GET_VREG t2, t2, is_wide=$is_wide  // t2 := fp[AA]
+%  get_vreg("t2", "t2", is_wide=(width == "64"))  # t2 := fp[AA]
 %  if width == "8" and zext:
      add t0, t1, t0
      sb t2, MIRROR_BOOLEAN_ARRAY_DATA_OFFSET(t0)
