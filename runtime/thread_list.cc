@@ -334,6 +334,7 @@ size_t ThreadList::RunCheckpoint(Closure* checkpoint_function,
             if (requested_suspend) {
               // The suspend request is now unnecessary.
               thread->DecrementSuspendCount(self);
+              Thread::resume_cond_->Broadcast(self);
               requested_suspend = false;
             }
             break;
@@ -927,15 +928,10 @@ bool ThreadList::Resume(Thread* thread, SuspendReason reason) {
       return false;
     }
     thread->DecrementSuspendCount(self, /*for_user_code=*/(reason == SuspendReason::kForUserCode));
-  }
-
-  {
-    VLOG(threads) << "Resume(" << reinterpret_cast<void*>(thread) << ") waking others";
-    MutexLock mu(self, *Locks::thread_suspend_count_lock_);
     Thread::resume_cond_->Broadcast(self);
   }
 
-  VLOG(threads) << "Resume(" << reinterpret_cast<void*>(thread) << ") complete";
+  VLOG(threads) << "Resume(" << reinterpret_cast<void*>(thread) << ") finished waking others";
   return true;
 }
 

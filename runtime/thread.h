@@ -391,6 +391,9 @@ class Thread {
       REQUIRES(Locks::thread_list_lock_);
 
   // Follows one of the above calls. For_user_code indicates if SuspendReason was kForUserCode.
+  // Generally will need to be closely followed by Thread::resume_cond_->Broadcast(self);
+  // since there may be waiters. DecrementSuspendCount() itself does not do this, since we often
+  // wake more than a single thread.
   ALWAYS_INLINE void DecrementSuspendCount(Thread* self, bool for_user_code = false)
       REQUIRES(Locks::thread_suspend_count_lock_);
 
