@@ -272,6 +272,9 @@ bool CanMethodUseNterp(ArtMethod* method, InstructionSet isa) {
         case Instruction::CONST_WIDE_32:
         case Instruction::CONST_WIDE:
         case Instruction::CONST_WIDE_HIGH16:
+        case Instruction::CONST_STRING:
+        case Instruction::CONST_STRING_JUMBO:
+        case Instruction::CONST_CLASS:
         case Instruction::MONITOR_ENTER:
         case Instruction::MONITOR_EXIT:
         case Instruction::ARRAY_LENGTH:
@@ -439,6 +442,8 @@ bool CanMethodUseNterp(ArtMethod* method, InstructionSet isa) {
         case Instruction::INVOKE_POLYMORPHIC_RANGE:
         case Instruction::INVOKE_CUSTOM:
         case Instruction::INVOKE_CUSTOM_RANGE:
+        case Instruction::CONST_METHOD_HANDLE:
+        case Instruction::CONST_METHOD_TYPE:
           continue;
         default:
           return false;
