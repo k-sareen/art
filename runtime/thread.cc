@@ -1709,7 +1709,9 @@ bool Thread::RequestSynchronousCheckpoint(Closure* function, ThreadState wait_st
       IncrementSuspendCount(self, nullptr, &wrapped_barrier, SuspendReason::kInternal);
       VerifyState();
       DCHECK_GT(GetSuspendCount(), 0);
-      DCHECK_EQ(self->GetSuspendCount(), 0);
+      if (wait_state != ThreadState::kRunnable) {
+        DCHECK_EQ(self->GetSuspendCount(), 0);
+      }
       // Since we've incremented the suspend count, "this" thread can no longer disappear.
       Locks::thread_list_lock_->ExclusiveUnlock(self);
       if (IsSuspended()) {
