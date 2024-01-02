@@ -42,6 +42,7 @@ the module. It is also mutually exclusive with the other ones.
     unbundled module build:
 
     ```
+    source build/envsetup.sh
     banchan com.android.art <arch>
     ```
 
