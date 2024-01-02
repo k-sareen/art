@@ -317,7 +317,8 @@ public class Test913 {
       BufferedReader reader = new BufferedReader(new FileReader("/proc/" + pid + "/maps"));
       String line;
       while ((line = reader.readLine()) != null) {
-        if (line.endsWith(".art")) {
+        // On host the mappings end with .art and on device they end with .art]
+        if (line.endsWith(".art]") || line.endsWith(".art")) {
           reader.close();
           return true;
         }
