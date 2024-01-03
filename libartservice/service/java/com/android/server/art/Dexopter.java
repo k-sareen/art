@@ -738,7 +738,7 @@ public abstract class Dexopter<DexInfoType extends DetailedDexInfo> {
 
         @NonNull
         public IArtd getArtd() {
-            return Utils.getArtd();
+            return ArtdRefCache.getInstance().getArtd();
         }
 
         @NonNull

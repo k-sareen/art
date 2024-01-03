@@ -127,6 +127,7 @@ public class ArtManagerLocalTest {
     @Mock private UserManager mUserManager;
     @Mock private DexUseManagerLocal mDexUseManager;
     @Mock private StorageManager mStorageManager;
+    @Mock private ArtdRefCache.Pin mArtdPin;
     private PackageState mPkgState1;
     private AndroidPackage mPkg1;
     private CheckedSecondaryDexInfo mPkg1SecondaryDexInfo1;
@@ -152,6 +153,7 @@ public class ArtManagerLocalTest {
         // that each test case examines.
         lenient().when(mInjector.getPackageManagerLocal()).thenReturn(mPackageManagerLocal);
         lenient().when(mInjector.getArtd()).thenReturn(mArtd);
+        lenient().when(mInjector.createArtdPin()).thenReturn(mArtdPin);
         lenient().when(mInjector.getDexoptHelper()).thenReturn(mDexoptHelper);
         lenient().when(mInjector.getConfig()).thenReturn(mConfig);
         lenient().when(mInjector.getAppHibernationManager()).thenReturn(mAppHibernationManager);
