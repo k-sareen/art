@@ -45,7 +45,7 @@ extern "C" bool artCheckForArmSdivInstruction();
 extern "C" bool artCheckForArmv8AInstructions();
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

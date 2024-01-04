@@ -18,6 +18,7 @@
 #define ART_RUNTIME_ARCH_X86_INSTRUCTION_SET_FEATURES_X86_H_
 
 #include "arch/instruction_set_features.h"
+#include "base/macros.h"
 
 #define GET_REX_R       0x04
 #define GET_REX_X       0x02
@@ -39,7 +40,7 @@
 #define THREE_BYTE_VEX  0xC4
 #define VEX_INIT        0x00
 
-namespace art {
+namespace art HIDDEN {
 
 class X86InstructionSetFeatures;
 using X86FeaturesUniquePtr = std::unique_ptr<const X86InstructionSetFeatures>;

@@ -21,7 +21,7 @@
 #include "base/logging.h"  // For VLOG.
 #include "base/utils.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static void SigAltStack(stack_t* new_stack, stack_t* old_stack) {
   if (sigaltstack(new_stack, old_stack) == -1) {

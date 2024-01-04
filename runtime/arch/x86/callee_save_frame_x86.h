@@ -21,11 +21,12 @@
 #include "base/bit_utils.h"
 #include "base/callee_save_type.h"
 #include "base/enums.h"
+#include "base/macros.h"
 #include "quick/quick_method_frame_info.h"
 #include "registers_x86.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace x86 {
 
 static constexpr uint32_t kX86CalleeSaveAlwaysSpills =

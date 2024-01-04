@@ -25,10 +25,11 @@
 #include <vector>
 
 #include "base/locks.h"  // For annotalysis.
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "runtime_globals.h"  // For CanDoImplicitNullCheckOn.
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 class FaultHandler;
@@ -55,8 +56,8 @@ class FaultManager {
   bool HandleSigbusFault(int sig, siginfo_t* info, void* context);
 
   // Added handlers are owned by the fault handler and will be freed on Shutdown().
-  void AddHandler(FaultHandler* handler, bool generated_code);
-  void RemoveHandler(FaultHandler* handler);
+  EXPORT void AddHandler(FaultHandler* handler, bool generated_code);
+  EXPORT void RemoveHandler(FaultHandler* handler);
 
   void AddGeneratedCodeRange(const void* start, size_t size);
   void RemoveGeneratedCodeRange(const void* start, size_t size)
@@ -120,7 +121,7 @@ class FaultManager {
 
 class FaultHandler {
  public:
-  explicit FaultHandler(FaultManager* manager);
+  EXPORT explicit FaultHandler(FaultManager* manager);
   virtual ~FaultHandler() {}
   FaultManager* GetFaultManager() {
     return manager_;
@@ -196,8 +197,8 @@ class JavaStackTraceHandler final : public FaultHandler {
 };
 
 // Statically allocated so the the signal handler can Get access to it.
-extern FaultManager fault_manager;
+EXPORT extern FaultManager fault_manager;
 
-}       // namespace art
+}  // namespace art
 #endif  // ART_RUNTIME_FAULT_HANDLER_H_
 

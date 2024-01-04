@@ -31,7 +31,7 @@
 #include <zircon/syscalls/object.h>
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 #if defined(__linux__)
 static void arch_prctl(int code, void* val) {

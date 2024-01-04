@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-namespace art {
+namespace art HIDDEN {
 
 TEST(Arm64InstructionSetFeaturesTest, Arm64Features) {
   // Build features for an ARM64 processor.

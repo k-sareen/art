@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-namespace art {
+namespace art HIDDEN {
 
 TEST(X86_64InstructionSetFeaturesTest, X86Features) {
   const bool is_runtime_isa = kRuntimeISA == InstructionSet::kX86_64;

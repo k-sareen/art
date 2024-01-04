@@ -25,7 +25,7 @@
 #include "base/macros.h"
 #include "registers_riscv64.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace riscv64 {
 
 class Riscv64Context final : public Context {

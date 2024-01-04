@@ -27,7 +27,7 @@ extern "C" void art_quick_implicit_suspend();
 
 // RISCV64 specific fault handler functions (or stubs if unimplemented yet).
 
-namespace art {
+namespace art HIDDEN {
 
 uintptr_t FaultManager::GetFaultPc(siginfo_t*, void* context) {
   ucontext_t* uc = reinterpret_cast<ucontext_t*>(context);

@@ -23,7 +23,7 @@
 #include "android-base/strings.h"
 #include "base/logging.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

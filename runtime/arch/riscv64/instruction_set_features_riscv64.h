@@ -18,8 +18,9 @@
 #define ART_RUNTIME_ARCH_RISCV64_INSTRUCTION_SET_FEATURES_RISCV64_H_
 
 #include "arch/instruction_set_features.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Riscv64InstructionSetFeatures;
 using Riscv64FeaturesUniquePtr = std::unique_ptr<const Riscv64InstructionSetFeatures>;

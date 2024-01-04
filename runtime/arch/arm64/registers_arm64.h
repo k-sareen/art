@@ -19,7 +19,9 @@
 
 #include <iosfwd>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace arm64 {
 
 // Values for GP XRegisters - 64bit registers.

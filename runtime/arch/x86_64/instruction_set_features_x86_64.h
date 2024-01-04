@@ -18,8 +18,9 @@
 #define ART_RUNTIME_ARCH_X86_64_INSTRUCTION_SET_FEATURES_X86_64_H_
 
 #include "arch/x86/instruction_set_features_x86.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class X86_64InstructionSetFeatures;
 using X86_64FeaturesUniquePtr = std::unique_ptr<const X86_64InstructionSetFeatures>;

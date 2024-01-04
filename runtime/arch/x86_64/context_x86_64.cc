@@ -20,7 +20,7 @@
 #include "base/bit_utils_iterator.h"
 #include "quick/quick_method_frame_info.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace x86_64 {
 
 static constexpr uintptr_t gZero = 0;

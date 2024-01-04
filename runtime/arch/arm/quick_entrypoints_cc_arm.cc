@@ -17,7 +17,7 @@
 #include "art_method.h"
 #include "base/utils.h"  // For RoundUp().
 
-namespace art {
+namespace art HIDDEN {
 
 // Assembly stub that does the final part of the up-call into Java.
 extern "C" void art_quick_invoke_stub_internal(ArtMethod*, uint32_t*, uint32_t,

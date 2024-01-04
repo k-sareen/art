@@ -27,7 +27,7 @@
 #include "entrypoints/runtime_asm_entrypoints.h"
 #include "interpreter/interpreter.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Cast entrypoints.
 extern "C" size_t art_quick_instance_of(mirror::Object* obj, mirror::Class* ref_class);

@@ -36,7 +36,7 @@ extern "C" void art_quick_implicit_suspend();
 // ARM64 specific fault handler functions.
 //
 
-namespace art {
+namespace art HIDDEN {
 
 uintptr_t FaultManager::GetFaultPc(siginfo_t* siginfo, void* context) {
   // SEGV_MTEAERR (Async MTE fault) is delivered at an arbitrary point after the actual fault.

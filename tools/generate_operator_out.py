@@ -22,7 +22,7 @@ import sys
 
 
 _ENUM_START_RE = re.compile(
-    r'\benum\b\s+(class\s+)?(\S+)\s+:?.*\{(\s+// private)?')
+    r'\benum\b\s+(class\s+)?(?:HIDDEN |EXPORT )?(\S+)\s+:?.*\{(\s+// private)?')
 _ENUM_VALUE_RE = re.compile(r'([A-Za-z0-9_]+)(.*)')
 _ENUM_END_RE = re.compile(r'^\s*\};$')
 _ENUMS = {}
@@ -76,7 +76,7 @@ def ProcessFile(filename):
 
                 # Is this the start or end of an enclosing class or struct?
                 m = re.search(
-                    r'^\s*(?:class|struct)(?: MANAGED)?(?: PACKED\([0-9]\))? (\S+).* \{', raw_line)
+                    r'^\s*(?:class|struct)(?: HIDDEN| EXPORT)?(?: MANAGED)?(?: PACKED\([0-9]\))? (\S+).* \{', raw_line)
                 if m:
                     enclosing_classes.append(m.group(1))
                     continue

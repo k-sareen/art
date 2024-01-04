@@ -127,7 +127,7 @@
 extern "C" __attribute__((weak)) void* __hwasan_tag_pointer(const volatile void* p,
                                                             unsigned char tag);
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringAppendV;
 using android::base::StringPrintf;

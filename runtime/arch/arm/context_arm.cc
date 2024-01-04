@@ -21,7 +21,7 @@
 #include "quick/quick_method_frame_info.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace arm {
 
 static constexpr uint32_t gZero = 0;

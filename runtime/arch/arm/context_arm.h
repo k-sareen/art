@@ -23,7 +23,7 @@
 #include "base/macros.h"
 #include "registers_arm.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace arm {
 
 class ArmContext final : public Context {

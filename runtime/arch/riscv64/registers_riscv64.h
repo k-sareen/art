@@ -21,7 +21,7 @@
 
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace riscv64 {
 
 enum XRegister {

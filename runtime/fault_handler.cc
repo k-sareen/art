@@ -38,7 +38,7 @@
 #include "thread-current-inl.h"
 #include "verify_object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 // Static fault manger object accessed by signal handler.
 FaultManager fault_manager;
 

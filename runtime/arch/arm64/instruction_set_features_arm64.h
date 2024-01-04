@@ -18,8 +18,9 @@
 #define ART_RUNTIME_ARCH_ARM64_INSTRUCTION_SET_FEATURES_ARM64_H_
 
 #include "arch/instruction_set_features.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // SVE is currently not enabled.
 static constexpr bool kArm64AllowSVE = false;

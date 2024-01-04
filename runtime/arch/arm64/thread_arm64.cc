@@ -21,7 +21,7 @@
 #include "asm_support_arm64.h"
 #include "base/enums.h"
 
-namespace art {
+namespace art HIDDEN {
 
 void Thread::InitCpu() {
   CHECK_EQ(THREAD_FLAGS_OFFSET, ThreadFlagsOffset<PointerSize::k64>().Int32Value());

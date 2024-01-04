@@ -23,7 +23,7 @@
 #include "base/macros.h"
 #include "registers_x86.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace x86 {
 
 class X86Context final : public Context {

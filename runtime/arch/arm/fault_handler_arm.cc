@@ -31,7 +31,7 @@
 // ARM specific fault handler functions.
 //
 
-namespace art {
+namespace art HIDDEN {
 
 extern "C" void art_quick_throw_null_pointer_exception_from_signal();
 extern "C" void art_quick_throw_stack_overflow();
