@@ -1,3 +1,3 @@
 {
-  "test_suites": ["cts"]
+  "test_suites": ["cts", "mcts-art"]
 }

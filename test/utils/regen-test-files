@@ -510,21 +510,26 @@ class Generator:
     else:
       test_config_template = "art-run-test-target-no-test-suite-tag-template"
 
-    # Define `test_suites`, if present in the test's metadata.
-    test_suites = ""
-    if metadata.get("test_suites"):
-      test_suites = f"""\
+    # Define the `test_suites` property, if test suites are present in
+    # the test's metadata.
+    test_suites_list = metadata.get("test_suites")
+    test_suites_prop = ""
+    if test_suites_list:
+      test_suites_joined = """,
+              """.join([f"\"{s}\"" for s in test_suites_list])
+      test_suites_prop = f"""\
 
-          test_suites: {json.dumps(metadata.get("test_suites"))},"""
+          test_suites: [
+              {test_suites_joined},
+          ],"""
 
+    include_srcs_prop = ""
     if is_checker_test(run_test):
-      include_src = """\
+      include_srcs_prop = """\
 
           // Include the Java source files in the test's artifacts, to make Checker assertions
           // available to the TradeFed test runner.
           include_srcs: true,"""
-    else:
-      include_src = ""
 
     # The default source directory is `src`, except if `src-art` exists.
     if os.path.isdir(os.path.join(run_test_path, "src-art")):
@@ -565,7 +570,7 @@ class Generator:
           data: [
               ":{run_test_module_name}-expected-stdout",
               ":{run_test_module_name}-expected-stderr",
-          ],{test_suites}{include_src}
+          ],{test_suites_prop}{include_srcs_prop}
       }}
       """))
 
