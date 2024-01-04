@@ -25,7 +25,7 @@
 #include "nativehelper/jni_macros.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static bool append_string(Thread* self,
                           Handle<mirror::ObjectArray<mirror::String>> array,

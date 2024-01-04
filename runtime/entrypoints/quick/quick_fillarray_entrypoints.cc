@@ -19,7 +19,7 @@
 #include "entrypoints/entrypoint_utils.h"
 #include "mirror/array.h"
 
-namespace art {
+namespace art HIDDEN {
 
 /*
  * Handle fill array data by copying appropriate part of dex file into array.

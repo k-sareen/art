@@ -23,7 +23,7 @@
 #include "runtime.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 NO_RETURN static void artDeoptimizeImpl(Thread* self,
                                         DeoptimizationKind kind,

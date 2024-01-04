@@ -19,7 +19,7 @@
 #include "string_builder_append.h"
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 extern "C" mirror::String* artStringBuilderAppend(uint32_t format,
                                                   const uint32_t* args,

@@ -20,7 +20,7 @@
 #include "quick_entrypoints.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Define an enum for the entrypoints. Names are prepended a 'kQuick'.
 enum QuickEntrypointEnum {  // NOLINT(whitespace/braces)

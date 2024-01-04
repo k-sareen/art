@@ -56,7 +56,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static std::function<hiddenapi::AccessContext()> GetHiddenapiAccessContextFunction(Thread* self) {
   return [=]() REQUIRES_SHARED(Locks::mutator_lock_) {

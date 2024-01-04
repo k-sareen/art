@@ -24,7 +24,7 @@
 #include "quick_default_externs.h"
 #include "quick_entrypoints.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static void DefaultInitEntryPoints(JniEntryPoints* jpoints,
                                    QuickEntryPoints* qpoints,

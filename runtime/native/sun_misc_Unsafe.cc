@@ -36,7 +36,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jboolean Unsafe_compareAndSwapInt(JNIEnv* env, jobject, jobject javaObj, jlong offset,
                                          jint expectedValue, jint newValue) {

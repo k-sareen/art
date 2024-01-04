@@ -23,7 +23,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jobject Throwable_nativeFillInStackTrace(JNIEnv* env, jclass) {
   ScopedFastNativeObjectAccess soa(env);

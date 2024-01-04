@@ -19,7 +19,9 @@
 
 #include <jni.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 void register_dalvik_system_ZygoteHooks(JNIEnv* env);
 

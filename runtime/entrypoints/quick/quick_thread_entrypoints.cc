@@ -19,7 +19,7 @@
 #include "runtime.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 extern "C" void artDeoptimizeIfNeeded(Thread* self, uintptr_t result, bool is_ref)
     REQUIRES_SHARED(Locks::mutator_lock_) {

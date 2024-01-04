@@ -24,7 +24,7 @@
 #include "jni/jni_internal.h"
 #include "native_util.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jboolean AtomicLong_VMSupportsCS8(JNIEnv*, jclass) {
   return QuasiAtomic::LongAtomicsUseMutexes(kRuntimeISA) ? JNI_FALSE : JNI_TRUE;

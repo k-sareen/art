@@ -27,7 +27,7 @@
 #define QUICK_ENTRYPOINT_OFFSET(ptr_size, x) \
     Thread::QuickEntryPointOffset<ptr_size>(OFFSETOF_MEMBER(QuickEntryPoints, x))
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Array;

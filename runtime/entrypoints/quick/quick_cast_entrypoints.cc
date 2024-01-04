@@ -17,7 +17,7 @@
 #include "mirror/class-inl.h"
 #include "mirror/object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Assignable test for code, won't throw.  Null and equality tests already performed
 extern "C" size_t artIsAssignableFromCode(mirror::Class* klass, mirror::Class* ref_class)

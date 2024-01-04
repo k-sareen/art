@@ -28,7 +28,7 @@
 #include "nativehelper/jni_macros.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static void CharsetUtils_asciiBytesToChars(JNIEnv* env, jclass, jbyteArray javaBytes, jint offset,
                                            jint length, jcharArray javaChars) {

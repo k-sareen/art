@@ -47,7 +47,7 @@
 
 #include <sys/resource.h>
 
-namespace art {
+namespace art HIDDEN {
 
 // Set to true to always determine the non-debuggable classes even if we would not allow a debugger
 // to actually attach.

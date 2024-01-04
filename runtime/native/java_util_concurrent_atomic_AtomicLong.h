@@ -19,7 +19,9 @@
 
 #include <jni.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 void register_java_util_concurrent_atomic_AtomicLong(JNIEnv* env);
 
