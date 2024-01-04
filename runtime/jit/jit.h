@@ -17,6 +17,8 @@
 #ifndef ART_RUNTIME_JIT_JIT_H_
 #define ART_RUNTIME_JIT_JIT_H_
 
+#include <unordered_set>
+
 #include <android-base/unique_fd.h>
 
 #include "base/histogram-inl.h"
@@ -39,6 +41,7 @@ class ArtMethod;
 class ClassLinker;
 class DexFile;
 class OatDexFile;
+class RootVisitor;
 struct RuntimeArgumentMap;
 union JValue;
 
@@ -229,6 +232,69 @@ struct OsrData {
   }
 };
 
+/**
+ * A customized thread pool for the JIT, to prioritize compilation kinds, and
+ * simplify root visiting.
+ */
+class JitThreadPool : public AbstractThreadPool {
+ public:
+  static JitThreadPool* Create(const char* name,
+                               size_t num_threads,
+                               size_t worker_stack_size = ThreadPoolWorker::kDefaultStackSize) {
+    JitThreadPool* pool = new JitThreadPool(name, num_threads, worker_stack_size);
+    pool->CreateThreads();
+    return pool;
+  }
+
+  // Add a task to the generic queue. This is for tasks like
+  // ZygoteVerificationTask, or JitCompileTask for precompile.
+  void AddTask(Thread* self, Task* task) REQUIRES(!task_queue_lock_) override;
+  size_t GetTaskCount(Thread* self) REQUIRES(!task_queue_lock_) override;
+  void RemoveAllTasks(Thread* self) REQUIRES(!task_queue_lock_) override;
+  ~JitThreadPool() override;
+
+  // Remove the task from the list of compiling tasks.
+  void Remove(JitCompileTask* task) REQUIRES(!task_queue_lock_);
+
+  // Add a custom compilation task in the right queue.
+  void AddTask(Thread* self, ArtMethod* method, CompilationKind kind) REQUIRES(!task_queue_lock_);
+
+  // Visit the ArtMethods stored in the various queues.
+  void VisitRoots(RootVisitor* visitor);
+
+ protected:
+  Task* TryGetTaskLocked() REQUIRES(task_queue_lock_) override;
+
+  bool HasOutstandingTasks() const REQUIRES(task_queue_lock_) override {
+    return started_ &&
+        (!generic_queue_.empty() ||
+         !baseline_queue_.empty() ||
+         !optimized_queue_.empty() ||
+         !osr_queue_.empty());
+  }
+
+ private:
+  JitThreadPool(const char* name,
+                size_t num_threads,
+                size_t worker_stack_size)
+      // We need peers as we may report the JIT thread, e.g., in the debugger.
+      : AbstractThreadPool(name, num_threads, /* create_peers= */ true, worker_stack_size) {}
+
+  // Try to fetch an entry from `methods`. Return null if `methods` is empty.
+  Task* FetchFrom(std::deque<ArtMethod*>& methods, CompilationKind kind) REQUIRES(task_queue_lock_);
+
+  std::deque<Task*> generic_queue_ GUARDED_BY(task_queue_lock_);
+  std::deque<ArtMethod*> osr_queue_ GUARDED_BY(task_queue_lock_);
+  std::deque<ArtMethod*> baseline_queue_ GUARDED_BY(task_queue_lock_);
+  std::deque<ArtMethod*> optimized_queue_ GUARDED_BY(task_queue_lock_);
+
+  // A set to keep track of methods that are currently being compiled. Entries
+  // will be removed when JitCompileTask->Finalize is called.
+  std::unordered_set<JitCompileTask*> current_compilations_ GUARDED_BY(task_queue_lock_);
+
+  DISALLOW_COPY_AND_ASSIGN(JitThreadPool);
+};
+
 class Jit {
  public:
   static constexpr size_t kDefaultPriorityThreadWeightRatio = 1000;
@@ -245,6 +311,8 @@ class Jit {
 
   bool CompileMethod(ArtMethod* method, Thread* self, CompilationKind compilation_kind, bool prejit)
       REQUIRES_SHARED(Locks::mutator_lock_);
+
+  void VisitRoots(RootVisitor* visitor);
 
   const JitCodeCache* GetCodeCache() const {
     return code_cache_;
@@ -365,7 +433,7 @@ class Jit {
                                         JValue* result)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  ThreadPool* GetThreadPool() const {
+  JitThreadPool* GetThreadPool() const {
     return thread_pool_.get();
   }
 
@@ -463,8 +531,7 @@ class Jit {
 
   void AddCompileTask(Thread* self,
                       ArtMethod* method,
-                      CompilationKind compilation_kind,
-                      bool precompile = false);
+                      CompilationKind compilation_kind);
 
   bool CompileMethodInternal(ArtMethod* method,
                              Thread* self,
@@ -479,7 +546,7 @@ class Jit {
   jit::JitCodeCache* const code_cache_;
   const JitOptions* const options_;
 
-  std::unique_ptr<ThreadPool> thread_pool_;
+  std::unique_ptr<JitThreadPool> thread_pool_;
   std::vector<std::unique_ptr<OatDexFile>> type_lookup_tables_;
 
   Mutex boot_completed_lock_;

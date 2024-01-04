@@ -229,10 +229,6 @@ bool Jit::CompileMethodInternal(ArtMethod* method,
                                 Thread* self,
                                 CompilationKind compilation_kind,
                                 bool prejit) {
-  if (kIsDebugBuild) {
-    MutexLock mu(self, *Locks::jit_lock_);
-    CHECK(GetCodeCache()->IsMethodBeingCompiled(method, compilation_kind));
-  }
   DCHECK(Runtime::Current()->UseJitCompilation());
   DCHECK(!method->IsRuntimeMethod());
 
@@ -335,7 +331,7 @@ void Jit::WaitForWorkersToBeCreated() {
 void Jit::DeleteThreadPool() {
   Thread* self = Thread::Current();
   if (thread_pool_ != nullptr) {
-    std::unique_ptr<ThreadPool> pool;
+    std::unique_ptr<JitThreadPool> pool;
     {
       ScopedSuspendAll ssa(__FUNCTION__);
       // Clear thread_pool_ field while the threads are suspended.
@@ -728,51 +724,6 @@ void Jit::NotifyZygoteCompilationDone() {
   child_mapping_methods.Reset();
 }
 
-class ScopedCompilation {
- public:
-  ScopedCompilation(ScopedCompilation&& other) noexcept :
-      jit_(other.jit_),
-      method_(other.method_),
-      compilation_kind_(other.compilation_kind_),
-      owns_compilation_(other.owns_compilation_) {
-    other.owns_compilation_ = false;
-  }
-
-  ScopedCompilation(Jit* jit, ArtMethod* method, CompilationKind compilation_kind)
-      : jit_(jit),
-        method_(method),
-        compilation_kind_(compilation_kind),
-        owns_compilation_(true) {
-    MutexLock mu(Thread::Current(), *Locks::jit_lock_);
-    // We don't want to enqueue any new tasks when thread pool has stopped. This simplifies
-    // the implementation of redefinition feature in jvmti.
-    if (jit_->GetThreadPool() == nullptr ||
-        !jit_->GetThreadPool()->HasStarted(Thread::Current()) ||
-        jit_->GetCodeCache()->IsMethodBeingCompiled(method_, compilation_kind_)) {
-      owns_compilation_ = false;
-      return;
-    }
-    jit_->GetCodeCache()->AddMethodBeingCompiled(method_, compilation_kind_);
-  }
-
-  bool OwnsCompilation() const {
-    return owns_compilation_;
-  }
-
-  ~ScopedCompilation() {
-    if (owns_compilation_) {
-      MutexLock mu(Thread::Current(), *Locks::jit_lock_);
-      jit_->GetCodeCache()->RemoveMethodBeingCompiled(method_, compilation_kind_);
-    }
-  }
-
- private:
-  Jit* const jit_;
-  ArtMethod* const method_;
-  const CompilationKind compilation_kind_;
-  bool owns_compilation_;
-};
-
 class JitCompileTask final : public Task {
  public:
   enum class TaskKind {
@@ -782,15 +733,10 @@ class JitCompileTask final : public Task {
 
   JitCompileTask(ArtMethod* method,
                  TaskKind task_kind,
-                 CompilationKind compilation_kind,
-                 ScopedCompilation&& sc)
+                 CompilationKind compilation_kind)
       : method_(method),
         kind_(task_kind),
-        compilation_kind_(compilation_kind),
-        scoped_compilation_(std::move(sc)) {
-    DCHECK(scoped_compilation_.OwnsCompilation());
-    // NOLINTNEXTLINE - OwnsCompilation is still valid after move constructor
-    DCHECK(!sc.OwnsCompilation());
+        compilation_kind_(compilation_kind) {
   }
 
   void Run(Thread* self) override {
@@ -812,14 +758,21 @@ class JitCompileTask final : public Task {
   }
 
   void Finalize() override {
+    JitThreadPool* thread_pool = Runtime::Current()->GetJit()->GetThreadPool();
+    if (thread_pool != nullptr) {
+      thread_pool->Remove(this);
+    }
     delete this;
+  }
+
+  ArtMethod* GetArtMethod() const {
+    return method_;
   }
 
  private:
   ArtMethod* const method_;
   const TaskKind kind_;
   const CompilationKind compilation_kind_;
-  ScopedCompilation scoped_compilation_;
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(JitCompileTask);
 };
@@ -1181,9 +1134,7 @@ void Jit::CreateThreadPool() {
   // There is a DCHECK in the 'AddSamples' method to ensure the tread pool
   // is not null when we instrument.
 
-  // We need peers as we may report the JIT thread, e.g., in the debugger.
-  constexpr bool kJitPoolNeedsPeers = true;
-  thread_pool_.reset(ThreadPool::Create("Jit thread pool", 1, kJitPoolNeedsPeers));
+  thread_pool_.reset(JitThreadPool::Create("Jit thread pool", 1));
 
   Runtime* runtime = Runtime::Current();
   thread_pool_->SetPthreadPriority(
@@ -1312,17 +1263,8 @@ void Jit::RegisterDexFiles(const std::vector<std::unique_ptr<const DexFile>>& de
 
 void Jit::AddCompileTask(Thread* self,
                          ArtMethod* method,
-                         CompilationKind compilation_kind,
-                         bool precompile) {
-  ScopedCompilation sc(this, method, compilation_kind);
-  if (!sc.OwnsCompilation()) {
-    return;
-  }
-  JitCompileTask::TaskKind task_kind = precompile
-      ? JitCompileTask::TaskKind::kPreCompile
-      : JitCompileTask::TaskKind::kCompile;
-  thread_pool_->AddTask(
-      self, new JitCompileTask(method, task_kind, compilation_kind, std::move(sc)));
+                         CompilationKind compilation_kind) {
+  thread_pool_->AddTask(self, method, compilation_kind);
 }
 
 bool Jit::CompileMethodFromProfile(Thread* self,
@@ -1357,15 +1299,11 @@ bool Jit::CompileMethodFromProfile(Thread* self,
     VLOG(jit) << "JIT Zygote processing method " << ArtMethod::PrettyMethod(method)
               << " from profile";
     method->SetPreCompiled();
-    ScopedCompilation sc(this, method, compilation_kind);
-    if (!sc.OwnsCompilation()) {
-      return false;
-    }
     if (!add_to_queue) {
       CompileMethodInternal(method, self, compilation_kind, /* prejit= */ true);
     } else {
       Task* task = new JitCompileTask(
-          method, JitCompileTask::TaskKind::kPreCompile, compilation_kind, std::move(sc));
+          method, JitCompileTask::TaskKind::kPreCompile, compilation_kind);
       if (compile_after_boot) {
         AddPostBootTask(self, task);
       } else {
@@ -1816,16 +1754,158 @@ bool Jit::CompileMethod(ArtMethod* method,
                         Thread* self,
                         CompilationKind compilation_kind,
                         bool prejit) {
-  ScopedCompilation sc(this, method, compilation_kind);
-  // TODO: all current users of this method expect us to wait if it is being compiled.
-  if (!sc.OwnsCompilation()) {
-    return false;
-  }
   // Fake being in a runtime thread so that class-load behavior will be the same as normal jit.
   ScopedSetRuntimeThread ssrt(self);
   // TODO(ngeoffray): For JIT at first use, use kPreCompile. Currently we don't due to
   // conflicts with jitzygote optimizations.
   return CompileMethodInternal(method, self, compilation_kind, prejit);
+}
+
+size_t JitThreadPool::GetTaskCount(Thread* self) {
+  MutexLock mu(self, task_queue_lock_);
+  return generic_queue_.size() +
+      baseline_queue_.size() +
+      optimized_queue_.size() +
+      osr_queue_.size();
+}
+
+void JitThreadPool::RemoveAllTasks(Thread* self) {
+  // The ThreadPool is responsible for calling Finalize (which usually deletes
+  // the task memory) on all the tasks.
+  Task* task = nullptr;
+  do {
+    {
+      MutexLock mu(self, task_queue_lock_);
+      if (generic_queue_.empty()) {
+        break;
+      }
+      task = generic_queue_.front();
+      generic_queue_.pop_front();
+    }
+    task->Finalize();
+  } while (true);
+
+  MutexLock mu(self, task_queue_lock_);
+  baseline_queue_.clear();
+  optimized_queue_.clear();
+  osr_queue_.clear();
+}
+
+JitThreadPool::~JitThreadPool() {
+  DeleteThreads();
+  RemoveAllTasks(Thread::Current());
+}
+
+void JitThreadPool::AddTask(Thread* self, Task* task) {
+  MutexLock mu(self, task_queue_lock_);
+  // We don't want to enqueue any new tasks when thread pool has stopped. This simplifies
+  // the implementation of redefinition feature in jvmti.
+  if (!started_) {
+    task->Finalize();
+    return;
+  }
+  generic_queue_.push_back(task);
+  // If we have any waiters, signal one.
+  if (waiting_count_ != 0) {
+    task_queue_condition_.Signal(self);
+  }
+}
+
+void JitThreadPool::AddTask(Thread* self, ArtMethod* method, CompilationKind kind) {
+  MutexLock mu(self, task_queue_lock_);
+  // We don't want to enqueue any new tasks when thread pool has stopped. This simplifies
+  // the implementation of redefinition feature in jvmti.
+  if (!started_) {
+    return;
+  }
+  switch (kind) {
+    case CompilationKind::kOsr:
+      osr_queue_.push_back(method);
+      break;
+    case CompilationKind::kBaseline:
+      baseline_queue_.push_back(method);
+      break;
+    case CompilationKind::kOptimized:
+      optimized_queue_.push_back(method);
+      break;
+  }
+  // If we have any waiters, signal one.
+  if (waiting_count_ != 0) {
+    task_queue_condition_.Signal(self);
+  }
+}
+
+Task* JitThreadPool::TryGetTaskLocked() {
+  if (!started_) {
+    return nullptr;
+  }
+
+  // Fetch generic tasks first.
+  if (!generic_queue_.empty()) {
+    Task* task = generic_queue_.front();
+    generic_queue_.pop_front();
+    return task;
+  }
+
+  // OSR requests second, then baseline and finally optimized.
+  Task* task = FetchFrom(osr_queue_, CompilationKind::kOsr);
+  if (task == nullptr) {
+    task = FetchFrom(baseline_queue_, CompilationKind::kBaseline);
+    if (task == nullptr) {
+      task = FetchFrom(optimized_queue_, CompilationKind::kOptimized);
+    }
+  }
+  return task;
+}
+
+Task* JitThreadPool::FetchFrom(std::deque<ArtMethod*>& methods, CompilationKind kind) {
+  if (!methods.empty()) {
+    ArtMethod* method = methods.front();
+    methods.pop_front();
+    JitCompileTask* task = new JitCompileTask(method, JitCompileTask::TaskKind::kCompile, kind);
+    current_compilations_.insert(task);
+    return task;
+  }
+  return nullptr;
+}
+
+void JitThreadPool::Remove(JitCompileTask* task) {
+  MutexLock mu(Thread::Current(), task_queue_lock_);
+  current_compilations_.erase(task);
+}
+
+void Jit::VisitRoots(RootVisitor* visitor) {
+  if (thread_pool_ != nullptr) {
+    thread_pool_->VisitRoots(visitor);
+  }
+}
+
+void JitThreadPool::VisitRoots(RootVisitor* visitor) {
+  if (Runtime::Current()->GetHeap()->IsPerformingUffdCompaction()) {
+    // In case of userfaultfd compaction, ArtMethods are updated concurrently
+    // via linear-alloc.
+    return;
+  }
+  // Fetch all ArtMethod first, to avoid holding `task_queue_lock_` for too
+  // long.
+  std::vector<ArtMethod*> methods;
+  {
+    MutexLock mu(Thread::Current(), task_queue_lock_);
+    // We don't look at `generic_queue_` because it contains:
+    // - Generic tasks like `ZygoteVerificationTask` which don't hold any root.
+    // - `JitCompileTask` for precompiled methods, which we know are live, being
+    //   part of the boot classpath or system server classpath.
+    methods.insert(methods.end(), osr_queue_.begin(), osr_queue_.end());
+    methods.insert(methods.end(), baseline_queue_.begin(), baseline_queue_.end());
+    methods.insert(methods.end(), optimized_queue_.begin(), optimized_queue_.end());
+    for (JitCompileTask* task : current_compilations_) {
+      methods.push_back(task->GetArtMethod());
+    }
+  }
+  UnbufferedRootVisitor root_visitor(visitor, RootInfo(kRootStickyClass));
+  for (ArtMethod* method : methods) {
+    method->VisitRoots(root_visitor, kRuntimePointerSize);
+  }
 }
 
 }  // namespace jit
