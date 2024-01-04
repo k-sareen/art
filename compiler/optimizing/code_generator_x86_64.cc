@@ -1780,7 +1780,11 @@ void CodeGeneratorX86_64::MaybeIncrementHotness(bool is_frame_entry) {
     __ Bind(&overflow);
   }
 
-  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
+  if (GetGraph()->IsCompilingBaseline() &&
+      is_frame_entry &&
+      !Runtime::Current()->IsAotCompiler()) {
+    // Note the slow path doesn't save SIMD registers, so if we were to
+    // call it on loop back edge, we would need to fix this.
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     CHECK(!HasEmptyFrame());
@@ -3141,7 +3145,8 @@ void CodeGeneratorX86_64::MaybeGenerateInlineCacheCheck(HInstruction* instructio
   if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(
+        info, GetCompilerOptions(), instruction->AsInvoke());
     if (cache != nullptr) {
       uint64_t address = reinterpret_cast64<uint64_t>(cache);
       NearLabel done;

@@ -2299,7 +2299,11 @@ void CodeGeneratorARMVIXL::MaybeIncrementHotness(bool is_frame_entry) {
     }
   }
 
-  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
+  if (GetGraph()->IsCompilingBaseline() &&
+      is_frame_entry &&
+      !Runtime::Current()->IsAotCompiler()) {
+    // Note the slow path doesn't save SIMD registers, so if we were to
+    // call it on loop back edge, we would need to fix this.
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     DCHECK(!HasEmptyFrame());
@@ -3687,7 +3691,8 @@ void CodeGeneratorARMVIXL::MaybeGenerateInlineCacheCheck(HInstruction* instructi
   DCHECK_EQ(r0.GetCode(), klass.GetCode());
   if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
-    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(
+        info, GetCompilerOptions(), instruction->AsInvoke());
     if (cache != nullptr) {
       uint32_t address = reinterpret_cast32<uint32_t>(cache);
       vixl32::Label done;

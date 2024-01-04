@@ -43,6 +43,7 @@ class HInliner : public HOptimization {
            size_t total_number_of_dex_registers,
            size_t total_number_of_instructions,
            HInliner* parent,
+           HEnvironment* caller_environment,
            size_t depth,
            bool try_catch_inlining_allowed,
            const char* name = kInlinerPassName)
@@ -54,6 +55,7 @@ class HInliner : public HOptimization {
         total_number_of_dex_registers_(total_number_of_dex_registers),
         total_number_of_instructions_(total_number_of_instructions),
         parent_(parent),
+        caller_environment_(caller_environment),
         depth_(depth),
         inlining_budget_(0),
         try_catch_inlining_allowed_(try_catch_inlining_allowed),
@@ -62,6 +64,12 @@ class HInliner : public HOptimization {
   bool Run() override;
 
   static constexpr const char* kInlinerPassName = "inliner";
+
+  const HInliner* GetParent() const { return parent_; }
+  const HEnvironment* GetCallerEnvironment() const { return caller_environment_; }
+
+  const HGraph* GetOutermostGraph() const { return outermost_graph_; }
+  const HGraph* GetGraph() const { return graph_; }
 
  private:
   enum InlineCacheType {
@@ -108,6 +116,7 @@ class HInliner : public HOptimization {
 
   // Run simple optimizations on `callee_graph`.
   void RunOptimizations(HGraph* callee_graph,
+                        HEnvironment* caller_environment,
                         const dex::CodeItem* code_item,
                         const DexCompilationUnit& dex_compilation_unit,
                         bool try_catch_inlining_allowed_for_recursive_inline)
@@ -320,9 +329,10 @@ class HInliner : public HOptimization {
   const size_t total_number_of_dex_registers_;
   size_t total_number_of_instructions_;
 
-  // The 'parent' inliner, that means the inlinigng optimization that requested
+  // The 'parent' inliner, that means the inlining optimization that requested
   // `graph_` to be inlined.
   const HInliner* const parent_;
+  const HEnvironment* const caller_environment_;
   const size_t depth_;
 
   // The budget left for inlining, in number of instructions.

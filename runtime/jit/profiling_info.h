@@ -28,6 +28,7 @@
 namespace art {
 
 class ArtMethod;
+class CompilerOptions;
 class ProfilingInfo;
 
 namespace jit {
@@ -49,6 +50,18 @@ class InlineCache {
   static constexpr MemberOffset ClassesOffset() {
     return MemberOffset(OFFSETOF_MEMBER(InlineCache, classes_));
   }
+
+  // Encode the list of `dex_pcs` to fit into an uint32_t.
+  static uint32_t EncodeDexPc(ArtMethod* method,
+                              const std::vector<uint32_t>& dex_pcs,
+                              uint32_t inline_max_code_units)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  // Return the maximum inlining depth that we support to encode a list of dex
+  // pcs.
+  static uint32_t MaxDexPcEncodingDepth(ArtMethod* method,
+                                        uint32_t inline_max_code_units)
+      REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:
   uint32_t dex_pc_;
