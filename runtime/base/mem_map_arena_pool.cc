@@ -30,7 +30,7 @@
 #include "base/systrace.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MemMapArena final : public Arena {
  public:

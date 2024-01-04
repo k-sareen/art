@@ -30,7 +30,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static Atomic<Locks::ClientCallback*> safe_to_call_abort_callback(nullptr);
 

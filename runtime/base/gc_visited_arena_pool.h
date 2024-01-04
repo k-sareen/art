@@ -28,7 +28,7 @@
 #include "read_barrier_config.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // GcVisitedArenaPool can be used for tracking allocations so that they can
 // be visited during GC to update the GC-roots inside them.
@@ -100,7 +100,7 @@ class TrackedArena final : public Arena {
 
   // Set 'obj_begin' in first_obj_array_ in every element for which it's the
   // first object.
-  void SetFirstObject(uint8_t* obj_begin, uint8_t* obj_end);
+  EXPORT void SetFirstObject(uint8_t* obj_begin, uint8_t* obj_end);
   // Setup the arena for deferred deletion.
   void SetupForDeferredDeletion(TrackedArena* next_arena) {
     DCHECK(next_arena == nullptr || next_arena->waiting_for_deletion_);
@@ -158,8 +158,8 @@ class GcVisitedArenaPool final : public ArenaPool {
   void LockReclaimMemory() override {}
   void TrimMaps() override {}
 
-  uint8_t* AllocSingleObjArena(size_t size) REQUIRES(!lock_);
-  void FreeSingleObjArena(uint8_t* addr) REQUIRES(!lock_);
+  EXPORT uint8_t* AllocSingleObjArena(size_t size) REQUIRES(!lock_);
+  EXPORT void FreeSingleObjArena(uint8_t* addr) REQUIRES(!lock_);
 
   bool Contains(void* ptr) REQUIRES(!lock_) {
     ReaderMutexLock rmu(Thread::Current(), lock_);

@@ -35,7 +35,7 @@
 
 #define CHECK_MUTEX_CALL(call, args) CHECK_PTHREAD_CALL(call, args, name_)
 
-namespace art {
+namespace art HIDDEN {
 
 #if ART_USE_FUTEXES
 static inline int futex(volatile int *uaddr, int op, int val, const struct timespec *timeout,

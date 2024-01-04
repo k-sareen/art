@@ -27,7 +27,7 @@
 #include "arch/instruction_set.h"
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Mutex;
 

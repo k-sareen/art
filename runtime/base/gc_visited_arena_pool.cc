@@ -25,7 +25,7 @@
 #include "base/utils.h"
 #include "gc/collector/mark_compact-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 TrackedArena::TrackedArena(uint8_t* start, size_t size, bool pre_zygote_fork, bool single_obj_arena)
     : Arena(),

@@ -20,7 +20,9 @@
 #include <cstdint>
 #include <iosfwd>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 // Returns a special method that describes all callee saves being spilled to the stack.
 enum class CalleeSaveType : uint32_t {

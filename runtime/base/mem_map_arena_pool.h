@@ -19,7 +19,7 @@
 
 #include "base/arena_allocator.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MemMapArenaPool final : public ArenaPool {
  public:

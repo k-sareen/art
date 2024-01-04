@@ -19,7 +19,7 @@
 #include "common_runtime_test.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MutexTest : public CommonRuntimeTest {
  protected:
