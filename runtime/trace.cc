@@ -676,7 +676,10 @@ void Trace::StopTracing(bool flush_entries) {
       MutexLock tl_lock(Thread::Current(), *Locks::thread_list_lock_);
       for (Thread* thread : Runtime::Current()->GetThreadList()->GetList()) {
         if (thread->GetMethodTraceBuffer() != nullptr) {
-          the_trace->trace_writer_->FlushBuffer(thread, /* is_sync= */ true);
+          // We may have pending requests to flush the data. So just enqueue a
+          // request to flush the current buffer so all the requests are
+          // processed in order.
+          the_trace->trace_writer_->FlushBuffer(thread, /* is_sync= */ false);
           thread->ResetMethodTraceBuffer();
         }
       }
@@ -843,8 +846,9 @@ void TraceWriter::FinishTracing(int flags, bool flush_entries) {
       // down.
       thread_pool_->WaitForWorkersToBeCreated();
       // Wait for any outstanding writer tasks to finish.
-      thread_pool_->StopWorkers(self);
       thread_pool_->Wait(self, /* do_work= */ true, /* may_hold_locks= */ true);
+      DCHECK_EQ(thread_pool_->GetTaskCount(self), 0u);
+      thread_pool_->StopWorkers(self);
     }
 
     size_t final_offset = 0;
