@@ -4250,5 +4250,19 @@
     {
       "name": "ComposHostTestCases"
     }
+  ],
+  "postsubmit": [
+    {
+      "name": "art-run-test-2266-checker-remove-empty-ifs"
+    },
+    {
+      "name": "art-run-test-2268-checker-remove-dead-phis"
+    },
+    {
+      "name": "art-run-test-2269-checker-constant-folding-instrinsics"
+    },
+    {
+      "name": "art-run-test-851-null-instanceof"
+    }
   ]
 }

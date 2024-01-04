@@ -224,6 +224,10 @@ known_failing_tests = frozenset([
 # pre-submit SLOs. Monitor their post-submit runs before removing them
 # from this set (in order to promote them to presubmits).
 postsubmit_only_tests = frozenset([
+  "851-null-instanceof",
+  "2266-checker-remove-empty-ifs",
+  "2268-checker-remove-dead-phis",
+  "2269-checker-constant-folding-instrinsics",
 ])
 
 known_failing_on_hwasan_tests = frozenset([
