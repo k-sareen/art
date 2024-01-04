@@ -37,7 +37,6 @@
 #include "mirror/object_array-alloc-inl.h"
 #include "mirror/object_array-inl.h"
 #include "nodes.h"
-#include "profiling_info_builder.h"
 #include "reference_type_propagation.h"
 #include "register_allocator_linear_scan.h"
 #include "scoped_thread_state_change-inl.h"
@@ -520,15 +519,6 @@ bool HInliner::TryInline(HInvoke* invoke_instruction) {
     return result;
   }
 
-  if (graph_->IsCompilingBaseline()) {
-    LOG_FAIL_NO_STAT() << "Call to " << invoke_instruction->GetMethodReference().PrettyMethod()
-                       << " not inlined because we are compiling baseline and we could not"
-                       << " statically resolve the target";
-    // For baseline compilation, we will collect inline caches, so we should not
-    // try to inline using them.
-    return false;
-  }
-
   DCHECK(!invoke_instruction->IsInvokeStaticOrDirect());
 
   // No try catch inlining allowed here, or recursively. For try catch inlining we are banking on
@@ -679,36 +669,17 @@ HInliner::InlineCacheType HInliner::GetInlineCacheJIT(
   ArtMethod* caller = graph_->GetArtMethod();
   // Under JIT, we should always know the caller.
   DCHECK(caller != nullptr);
-
-  InlineCache* cache = nullptr;
-  // Start with the outer graph profiling info.
-  ProfilingInfo* profiling_info = outermost_graph_->GetProfilingInfo();
-  if (profiling_info != nullptr) {
-    if (depth_ == 0) {
-      cache = profiling_info->GetInlineCache(invoke_instruction->GetDexPc());
-    } else {
-      uint32_t dex_pc = ProfilingInfoBuilder::EncodeInlinedDexPc(
-          this, codegen_->GetCompilerOptions(), invoke_instruction);
-      if (dex_pc != kNoDexPc) {
-        cache = profiling_info->GetInlineCache(dex_pc);
-      }
-    }
+  ProfilingInfo* profiling_info = graph_->GetProfilingInfo();
+  if (profiling_info == nullptr) {
+    return kInlineCacheNoData;
   }
 
+  InlineCache* cache = profiling_info->GetInlineCache(invoke_instruction->GetDexPc());
   if (cache == nullptr) {
-    // Check the current graph profiling info.
-    profiling_info = graph_->GetProfilingInfo();
-    if (profiling_info == nullptr) {
-      return kInlineCacheNoData;
-    }
-
-    cache = profiling_info->GetInlineCache(invoke_instruction->GetDexPc());
-  }
-
-  if (cache == nullptr) {
-    // Either we never hit this invoke and we never compiled the callee,
-    // or the method wasn't resolved when we performed baseline compilation.
-    // Bail for now.
+    // This shouldn't happen, but we don't guarantee that method resolution
+    // between baseline compilation and optimizing compilation is identical. Be robust,
+    // warn about it, and return that we don't have any inline cache data.
+    LOG(WARNING) << "No inline cache found for " << caller->PrettyMethod();
     return kInlineCacheNoData;
   }
   Runtime::Current()->GetJit()->GetCodeCache()->CopyInlineCacheInto(*cache, classes);
@@ -734,12 +705,6 @@ HInliner::InlineCacheType HInliner::GetInlineCacheAOT(
 
   const ProfileCompilationInfo::InlineCacheMap* inline_caches = hotness.GetInlineCacheMap();
   DCHECK(inline_caches != nullptr);
-
-  // Inlined inline caches are not supported in AOT, so we use the dex pc directly, and don't
-  // call `InlineCache::EncodeDexPc`.
-  // To support it, we would need to ensure `inline_max_code_units` remain the
-  // same between dex2oat and runtime, for example by adding it to the boot
-  // image oat header.
   const auto it = inline_caches->find(invoke_instruction->GetDexPc());
   if (it == inline_caches->end()) {
     return kInlineCacheUninitialized;
@@ -2109,20 +2074,6 @@ bool HInliner::CanInlineBody(const HGraph* callee_graph,
             << " could not be inlined because it needs a BSS check";
         return false;
       }
-
-      if (outermost_graph_->IsCompilingBaseline() &&
-          (current->IsInvokeVirtual() || current->IsInvokeInterface()) &&
-          ProfilingInfoBuilder::IsInlineCacheUseful(current->AsInvoke(), codegen_)) {
-        uint32_t maximum_inlining_depth_for_baseline =
-            InlineCache::MaxDexPcEncodingDepth(
-                outermost_graph_->GetArtMethod(),
-                codegen_->GetCompilerOptions().GetInlineMaxCodeUnits());
-        if (depth_ + 1 > maximum_inlining_depth_for_baseline) {
-          LOG_FAIL_NO_STAT() << "Reached maximum depth for inlining in baseline compilation: "
-                             << depth_ << " for " << callee_graph->GetArtMethod()->PrettyMethod();
-          return false;
-        }
-      }
     }
   }
 
@@ -2234,7 +2185,6 @@ bool HInliner::TryBuildAndInlineHelper(HInvoke* invoke_instruction,
       // The current invoke is not a try block.
       !invoke_instruction->GetBlock()->IsTryBlock();
   RunOptimizations(callee_graph,
-                   invoke_instruction->GetEnvironment(),
                    code_item,
                    dex_compilation_unit,
                    try_catch_inlining_allowed_for_recursive_inline);
@@ -2274,7 +2224,6 @@ bool HInliner::TryBuildAndInlineHelper(HInvoke* invoke_instruction,
 }
 
 void HInliner::RunOptimizations(HGraph* callee_graph,
-                                HEnvironment* caller_environment,
                                 const dex::CodeItem* code_item,
                                 const DexCompilationUnit& dex_compilation_unit,
                                 bool try_catch_inlining_allowed_for_recursive_inline) {
@@ -2323,7 +2272,6 @@ void HInliner::RunOptimizations(HGraph* callee_graph,
                    total_number_of_dex_registers_ + accessor.RegistersSize(),
                    total_number_of_instructions_ + number_of_instructions,
                    this,
-                   caller_environment,
                    depth_ + 1,
                    try_catch_inlining_allowed_for_recursive_inline);
   inliner.Run();

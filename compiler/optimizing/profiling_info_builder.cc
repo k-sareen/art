@@ -20,7 +20,6 @@
 #include "code_generator.h"
 #include "driver/compiler_options.h"
 #include "dex/code_item_accessors-inl.h"
-#include "inliner.h"
 #include "jit/profiling_info.h"
 #include "optimizing_compiler_stats.h"
 #include "scoped_thread_state_change-inl.h"
@@ -43,53 +42,10 @@ void ProfilingInfoBuilder::Run() {
       ProfilingInfo::Create(soa.Self(), GetGraph()->GetArtMethod(), inline_caches_));
 }
 
-
-uint32_t ProfilingInfoBuilder::EncodeInlinedDexPc(const HInliner* inliner,
-                                                  const CompilerOptions& compiler_options,
-                                                  HInvoke* invoke) {
-  DCHECK(inliner->GetCallerEnvironment() != nullptr);
-  DCHECK(inliner->GetParent() != nullptr);
-  std::vector<uint32_t> temp_vector;
-  temp_vector.push_back(invoke->GetDexPc());
-  while (inliner->GetCallerEnvironment() != nullptr) {
-    temp_vector.push_back(inliner->GetCallerEnvironment()->GetDexPc());
-    inliner = inliner->GetParent();
-  }
-
-  DCHECK_EQ(inliner->GetOutermostGraph(), inliner->GetGraph());
-  return InlineCache::EncodeDexPc(
-      inliner->GetOutermostGraph()->GetArtMethod(),
-      temp_vector,
-      compiler_options.GetInlineMaxCodeUnits());
-}
-
-static uint32_t EncodeDexPc(HInvoke* invoke, const CompilerOptions& compiler_options) {
-  std::vector<uint32_t> dex_pcs;
-  ArtMethod* outer_method = nullptr;
-  for (HEnvironment* environment = invoke->GetEnvironment();
-       environment != nullptr;
-       environment = environment->GetParent()) {
-    outer_method = environment->GetMethod();
-    dex_pcs.push_back(environment->GetDexPc());
-  }
-
-  ScopedObjectAccess soa(Thread::Current());
-  return InlineCache::EncodeDexPc(
-      outer_method,
-      dex_pcs,
-      compiler_options.GetInlineMaxCodeUnits());
-}
-
 void ProfilingInfoBuilder::HandleInvoke(HInvoke* invoke) {
+  DCHECK(!invoke->GetEnvironment()->IsFromInlinedInvoke());
   if (IsInlineCacheUseful(invoke, codegen_)) {
-    uint32_t dex_pc = EncodeDexPc(invoke, compiler_options_);
-    if (dex_pc != kNoDexPc) {
-      inline_caches_.push_back(dex_pc);
-    } else {
-      ScopedObjectAccess soa(Thread::Current());
-      LOG(WARNING) << "Could not encode dex pc for "
-                   << invoke->GetResolvedMethod()->PrettyMethod();
-    }
+    inline_caches_.push_back(invoke->GetDexPc());
   }
 }
 
@@ -125,15 +81,10 @@ bool ProfilingInfoBuilder::IsInlineCacheUseful(HInvoke* invoke, CodeGenerator* c
   return true;
 }
 
-InlineCache* ProfilingInfoBuilder::GetInlineCache(ProfilingInfo* info,
-                                                  const CompilerOptions& compiler_options,
-                                                  HInvoke* instruction) {
+InlineCache* ProfilingInfoBuilder::GetInlineCache(ProfilingInfo* info, HInvoke* instruction) {
+  DCHECK(!instruction->GetEnvironment()->IsFromInlinedInvoke());
   ScopedObjectAccess soa(Thread::Current());
-  uint32_t dex_pc = EncodeDexPc(instruction, compiler_options);
-  if (dex_pc == kNoDexPc) {
-    return nullptr;
-  }
-  return info->GetInlineCache(dex_pc);
+  return info->GetInlineCache(instruction->GetDexPc());
 }
 
 }  // namespace art

@@ -6724,8 +6724,7 @@ void CodeGeneratorRISCV64::MaybeGenerateInlineCacheCheck(HInstruction* instructi
   if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(
-        info, GetCompilerOptions(), instruction->AsInvoke());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
     if (cache != nullptr) {
       uint64_t address = reinterpret_cast64<uint64_t>(cache);
       Riscv64Label done;
