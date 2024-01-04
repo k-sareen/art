@@ -18,7 +18,7 @@ package com.android.server.art;
 
 /**
  * The result of {@code IArtd.getDexoptStatus}. Each field corresponds to a field in
- * {@code com.android.server.art.model.DexoptStatus.DexFileDexoptStatus}.
+ * {@code com.android.server.art.model.DexoptStatus.DexContainerFileDexoptStatus}.
  *
  * @hide
  */
