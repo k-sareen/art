@@ -277,48 +277,36 @@ const char* ImageHeader::GetImageSectionName(ImageSections index) {
   }
 }
 
-// If `image_storage_mode` is compressed, compress data from `source`
-// into `storage`, and return an array pointing to the compressed.
-// If the mode is uncompressed, just return an array pointing to `source`.
-static ArrayRef<const uint8_t> MaybeCompressData(ArrayRef<const uint8_t> source,
-                                                 ImageHeader::StorageMode image_storage_mode,
-                                                 /*out*/ dchecked_vector<uint8_t>* storage) {
+// Compress data from `source` into `storage`.
+static bool CompressData(ArrayRef<const uint8_t> source,
+                         ImageHeader::StorageMode image_storage_mode,
+                         /*out*/ dchecked_vector<uint8_t>* storage) {
   const uint64_t compress_start_time = NanoTime();
 
-  switch (image_storage_mode) {
-    case ImageHeader::kStorageModeLZ4: {
-      storage->resize(LZ4_compressBound(source.size()));
-      size_t data_size = LZ4_compress_default(
-          reinterpret_cast<char*>(const_cast<uint8_t*>(source.data())),
-          reinterpret_cast<char*>(storage->data()),
-          source.size(),
-          storage->size());
-      storage->resize(data_size);
-      break;
-    }
-    case ImageHeader::kStorageModeLZ4HC: {
-      // Bound is same as non HC.
-      storage->resize(LZ4_compressBound(source.size()));
-      size_t data_size = LZ4_compress_HC(
-          reinterpret_cast<const char*>(const_cast<uint8_t*>(source.data())),
-          reinterpret_cast<char*>(storage->data()),
-          source.size(),
-          storage->size(),
-          LZ4HC_CLEVEL_MAX);
-      storage->resize(data_size);
-      break;
-    }
-    case ImageHeader::kStorageModeUncompressed: {
-      return source;
-    }
-    default: {
-      LOG(FATAL) << "Unsupported";
-      UNREACHABLE();
-    }
+  // Bound is same for both LZ4 and LZ4HC.
+  storage->resize(LZ4_compressBound(source.size()));
+  size_t data_size = 0;
+  if (image_storage_mode == ImageHeader::kStorageModeLZ4) {
+    data_size = LZ4_compress_default(
+        reinterpret_cast<char*>(const_cast<uint8_t*>(source.data())),
+        reinterpret_cast<char*>(storage->data()),
+        source.size(),
+        storage->size());
+  } else {
+    DCHECK_EQ(image_storage_mode, ImageHeader::kStorageModeLZ4HC);
+    data_size = LZ4_compress_HC(
+        reinterpret_cast<const char*>(const_cast<uint8_t*>(source.data())),
+        reinterpret_cast<char*>(storage->data()),
+        source.size(),
+        storage->size(),
+        LZ4HC_CLEVEL_MAX);
   }
 
-  DCHECK(image_storage_mode == ImageHeader::kStorageModeLZ4 ||
-         image_storage_mode == ImageHeader::kStorageModeLZ4HC);
+  if (data_size == 0) {
+    return false;
+  }
+  storage->resize(data_size);
+
   VLOG(image) << "Compressed from " << source.size() << " to " << storage->size() << " in "
               << PrettyDuration(NanoTime() - compress_start_time);
   if (kIsDebugBuild) {
@@ -339,7 +327,7 @@ static ArrayRef<const uint8_t> MaybeCompressData(ArrayRef<const uint8_t> source,
     CHECK_EQ(decompressed_size, decompressed.size());
     CHECK_EQ(memcmp(source.data(), decompressed.data(), source.size()), 0) << image_storage_mode;
   }
-  return ArrayRef<const uint8_t>(*storage);
+  return true;
 }
 
 bool ImageHeader::WriteData(const ImageFileGuard& image_file,
@@ -380,10 +368,16 @@ bool ImageHeader::WriteData(const ImageFileGuard& image_file,
   for (const std::pair<uint32_t, uint32_t> block : block_sources) {
     ArrayRef<const uint8_t> raw_image_data(data + block.first, block.second);
     dchecked_vector<uint8_t> compressed_data;
-    ArrayRef<const uint8_t> image_data =
-        MaybeCompressData(raw_image_data, image_storage_mode, &compressed_data);
-
-    if (!is_compressed) {
+    ArrayRef<const uint8_t> image_data;
+    if (is_compressed) {
+      if (!CompressData(raw_image_data, image_storage_mode, &compressed_data)) {
+        *error_msg = "Error compressing data for " +
+            image_file->GetPath() + ": " + std::string(strerror(errno));
+        return false;
+      }
+      image_data = ArrayRef<const uint8_t>(compressed_data);
+    } else {
+      image_data = raw_image_data;
       // For uncompressed, preserve alignment since the image will be directly mapped.
       out_offset = block.first;
     }
