@@ -847,8 +847,8 @@ class MethodEntryExitHooksSlowPathARM64 : public SlowPathCodeARM64 {
 
 class CompileOptimizedSlowPathARM64 : public SlowPathCodeARM64 {
  public:
-  explicit CompileOptimizedSlowPathARM64(Register profiling_info)
-      : SlowPathCodeARM64(/* instruction= */ nullptr),
+  CompileOptimizedSlowPathARM64(HSuspendCheck* check, Register profiling_info)
+      : SlowPathCodeARM64(check),
         profiling_info_(profiling_info) {}
 
   void EmitNativeCode(CodeGenerator* codegen) override {
@@ -861,10 +861,18 @@ class CompileOptimizedSlowPathARM64 : public SlowPathCodeARM64 {
     __ Mov(counter, ProfilingInfo::GetOptimizeThreshold());
     __ Strh(counter,
             MemOperand(profiling_info_, ProfilingInfo::BaselineHotnessCountOffset().Int32Value()));
+    if (instruction_ != nullptr) {
+      // Only saves live vector regs for SIMD.
+      SaveLiveRegisters(codegen, instruction_->GetLocations());
+    }
     __ Ldr(lr, MemOperand(tr, entrypoint_offset));
     // Note: we don't record the call here (and therefore don't generate a stack
     // map), as the entrypoint should never be suspended.
     __ Blr(lr);
+    if (instruction_ != nullptr) {
+      // Only restores live vector regs for SIMD.
+      RestoreLiveRegisters(codegen, instruction_->GetLocations());
+    }
     __ B(GetExitLabel());
   }
 
@@ -1280,7 +1288,7 @@ void InstructionCodeGeneratorARM64::VisitMethodEntryHook(HMethodEntryHook* instr
   GenerateMethodEntryExitHook(instruction);
 }
 
-void CodeGeneratorARM64::MaybeIncrementHotness(bool is_frame_entry) {
+void CodeGeneratorARM64::MaybeIncrementHotness(HSuspendCheck* suspend_check, bool is_frame_entry) {
   MacroAssembler* masm = GetVIXLAssembler();
   if (GetCompilerOptions().CountHotnessInCompiledCode()) {
     UseScratchRegisterScope temps(masm);
@@ -1298,20 +1306,15 @@ void CodeGeneratorARM64::MaybeIncrementHotness(bool is_frame_entry) {
     __ Bind(&done);
   }
 
-  if (GetGraph()->IsCompilingBaseline() &&
-      is_frame_entry &&
-      !Runtime::Current()->IsAotCompiler()) {
-    // Note the slow path doesn't save SIMD registers, so if we were to
-    // call it on loop back edge, we would need to fix this.
+  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     DCHECK(!HasEmptyFrame());
     uint64_t address = reinterpret_cast64<uint64_t>(info);
-    vixl::aarch64::Label done;
     UseScratchRegisterScope temps(masm);
     Register counter = temps.AcquireW();
-    SlowPathCodeARM64* slow_path =
-        new (GetScopedAllocator()) CompileOptimizedSlowPathARM64(/* profiling_info= */ lr);
+    SlowPathCodeARM64* slow_path = new (GetScopedAllocator()) CompileOptimizedSlowPathARM64(
+        suspend_check, /* profiling_info= */ lr);
     AddSlowPath(slow_path);
     __ Ldr(lr, jit_patches_.DeduplicateUint64Literal(address));
     __ Ldrh(counter, MemOperand(lr, ProfilingInfo::BaselineHotnessCountOffset().Int32Value()));
@@ -1435,7 +1438,7 @@ void CodeGeneratorARM64::GenerateFrameEntry() {
       __ Str(wzr, MemOperand(sp, GetStackOffsetOfShouldDeoptimizeFlag()));
     }
   }
-  MaybeIncrementHotness(/* is_frame_entry= */ true);
+  MaybeIncrementHotness(/* suspend_check= */ nullptr, /* is_frame_entry= */ true);
   MaybeGenerateMarkingRegisterCheck(/* code= */ __LINE__);
 }
 
@@ -3696,7 +3699,7 @@ void InstructionCodeGeneratorARM64::HandleGoto(HInstruction* got, HBasicBlock* s
   HLoopInformation* info = block->GetLoopInformation();
 
   if (info != nullptr && info->IsBackEdge(*block) && info->HasSuspendCheck()) {
-    codegen_->MaybeIncrementHotness(/* is_frame_entry= */ false);
+    codegen_->MaybeIncrementHotness(info->GetSuspendCheck(), /* is_frame_entry= */ false);
     GenerateSuspendCheck(info->GetSuspendCheck(), successor);
     return;  // `GenerateSuspendCheck()` emitted the jump.
   }

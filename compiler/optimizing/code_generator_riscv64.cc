@@ -266,8 +266,8 @@ void LocationsBuilderRISCV64::HandleInvoke(HInvoke* instruction) {
 
 class CompileOptimizedSlowPathRISCV64 : public SlowPathCodeRISCV64 {
  public:
-  CompileOptimizedSlowPathRISCV64(XRegister base, int32_t imm12)
-      : SlowPathCodeRISCV64(/*instruction=*/ nullptr),
+  CompileOptimizedSlowPathRISCV64(HSuspendCheck* suspend_check, XRegister base, int32_t imm12)
+      : SlowPathCodeRISCV64(suspend_check),
         base_(base),
         imm12_(imm12) {}
 
@@ -280,10 +280,18 @@ class CompileOptimizedSlowPathRISCV64 : public SlowPathCodeRISCV64 {
     XRegister counter = srs.AllocateXRegister();
     __ LoadConst32(counter, ProfilingInfo::GetOptimizeThreshold());
     __ Sh(counter, base_, imm12_);
+    if (instruction_ != nullptr) {
+      // Only saves live vector regs for SIMD.
+      SaveLiveRegisters(codegen, instruction_->GetLocations());
+    }
     __ Loadd(RA, TR, entrypoint_offset);
     // Note: we don't record the call here (and therefore don't generate a stack
     // map), as the entrypoint should never be suspended.
     __ Jalr(RA);
+    if (instruction_ != nullptr) {
+      // Only restores live vector regs for SIMD.
+      RestoreLiveRegisters(codegen, instruction_->GetLocations());
+    }
     __ J(GetExitLabel());
   }
 
@@ -2009,7 +2017,7 @@ void InstructionCodeGeneratorRISCV64::HandleGoto(HInstruction* instruction,
   HLoopInformation* info = block->GetLoopInformation();
 
   if (info != nullptr && info->IsBackEdge(*block) && info->HasSuspendCheck()) {
-    codegen_->MaybeIncrementHotness(/*is_frame_entry=*/ false);
+    codegen_->MaybeIncrementHotness(info->GetSuspendCheck(), /*is_frame_entry=*/ false);
     GenerateSuspendCheck(info->GetSuspendCheck(), successor);
     return;  // `GenerateSuspendCheck()` emitted the jump.
   }
@@ -5694,7 +5702,8 @@ CodeGeneratorRISCV64::CodeGeneratorRISCV64(HGraph* graph,
   AddAllocatedRegister(Location::RegisterLocation(RA));
 }
 
-void CodeGeneratorRISCV64::MaybeIncrementHotness(bool is_frame_entry) {
+void CodeGeneratorRISCV64::MaybeIncrementHotness(HSuspendCheck* suspend_check,
+                                                 bool is_frame_entry) {
   if (GetCompilerOptions().CountHotnessInCompiledCode()) {
     ScratchRegisterScope srs(GetAssembler());
     XRegister method = is_frame_entry ? kArtMethodRegister : srs.AllocateXRegister();
@@ -5714,11 +5723,7 @@ void CodeGeneratorRISCV64::MaybeIncrementHotness(bool is_frame_entry) {
     __ Bind(&done);
   }
 
-  if (GetGraph()->IsCompilingBaseline() &&
-      is_frame_entry &&
-      !Runtime::Current()->IsAotCompiler()) {
-    // Note the slow path doesn't save SIMD registers, so if we were to
-    // call it on loop back edge, we would need to fix this.
+  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     DCHECK(!HasEmptyFrame());
@@ -5730,7 +5735,7 @@ void CodeGeneratorRISCV64::MaybeIncrementHotness(bool is_frame_entry) {
     XRegister tmp = RA;
     __ LoadConst64(tmp, base_address);
     SlowPathCodeRISCV64* slow_path =
-        new (GetScopedAllocator()) CompileOptimizedSlowPathRISCV64(tmp, imm12);
+        new (GetScopedAllocator()) CompileOptimizedSlowPathRISCV64(suspend_check, tmp, imm12);
     AddSlowPath(slow_path);
     __ Lhu(counter, tmp, imm12);
     __ Beqz(counter, slow_path->GetEntryLabel());  // Can clobber `TMP` if taken.
@@ -5875,7 +5880,7 @@ void CodeGeneratorRISCV64::GenerateFrameEntry() {
       __ Storew(Zero, SP, GetStackOffsetOfShouldDeoptimizeFlag());
     }
   }
-  MaybeIncrementHotness(/*is_frame_entry=*/ true);
+  MaybeIncrementHotness(/* suspend_check= */ nullptr, /*is_frame_entry=*/ true);
 }
 
 void CodeGeneratorRISCV64::GenerateFrameExit() {

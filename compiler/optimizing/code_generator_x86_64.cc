@@ -1043,8 +1043,8 @@ class MethodEntryExitHooksSlowPathX86_64 : public SlowPathCode {
 
 class CompileOptimizedSlowPathX86_64 : public SlowPathCode {
  public:
-  explicit CompileOptimizedSlowPathX86_64(uint64_t counter_address)
-      : SlowPathCode(/* instruction= */ nullptr),
+  CompileOptimizedSlowPathX86_64(HSuspendCheck* suspend_check, uint64_t counter_address)
+      : SlowPathCode(suspend_check),
         counter_address_(counter_address) {}
 
   void EmitNativeCode(CodeGenerator* codegen) override {
@@ -1052,8 +1052,16 @@ class CompileOptimizedSlowPathX86_64 : public SlowPathCode {
     __ Bind(GetEntryLabel());
     __ movq(CpuRegister(TMP), Immediate(counter_address_));
     __ movw(Address(CpuRegister(TMP), 0), Immediate(ProfilingInfo::GetOptimizeThreshold()));
+    if (instruction_ != nullptr) {
+      // Only saves full width XMM for SIMD.
+      SaveLiveRegisters(codegen, instruction_->GetLocations());
+    }
     x86_64_codegen->GenerateInvokeRuntime(
         GetThreadOffset<kX86_64PointerSize>(kQuickCompileOptimized).Int32Value());
+    if (instruction_ != nullptr) {
+      // Only restores full width XMM for SIMD.
+      RestoreLiveRegisters(codegen, instruction_->GetLocations());
+    }
     __ jmp(GetExitLabel());
   }
 
@@ -1763,7 +1771,7 @@ void InstructionCodeGeneratorX86_64::VisitMethodExitHook(HMethodExitHook* instru
   GenerateMethodEntryExitHook(instruction);
 }
 
-void CodeGeneratorX86_64::MaybeIncrementHotness(bool is_frame_entry) {
+void CodeGeneratorX86_64::MaybeIncrementHotness(HSuspendCheck* suspend_check, bool is_frame_entry) {
   if (GetCompilerOptions().CountHotnessInCompiledCode()) {
     NearLabel overflow;
     Register method = kMethodRegisterArgument;
@@ -1780,17 +1788,14 @@ void CodeGeneratorX86_64::MaybeIncrementHotness(bool is_frame_entry) {
     __ Bind(&overflow);
   }
 
-  if (GetGraph()->IsCompilingBaseline() &&
-      is_frame_entry &&
-      !Runtime::Current()->IsAotCompiler()) {
-    // Note the slow path doesn't save SIMD registers, so if we were to
-    // call it on loop back edge, we would need to fix this.
+  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     CHECK(!HasEmptyFrame());
     uint64_t address = reinterpret_cast64<uint64_t>(info) +
         ProfilingInfo::BaselineHotnessCountOffset().Int32Value();
-    SlowPathCode* slow_path = new (GetScopedAllocator()) CompileOptimizedSlowPathX86_64(address);
+    SlowPathCode* slow_path =
+        new (GetScopedAllocator()) CompileOptimizedSlowPathX86_64(suspend_check, address);
     AddSlowPath(slow_path);
     // Note: if the address was in the 32bit range, we could use
     // Address::Absolute and avoid this movq.
@@ -1895,7 +1900,7 @@ void CodeGeneratorX86_64::GenerateFrameEntry() {
     }
   }
 
-  MaybeIncrementHotness(/* is_frame_entry= */ true);
+  MaybeIncrementHotness(/* suspend_check= */ nullptr, /* is_frame_entry= */ true);
 }
 
 void CodeGeneratorX86_64::GenerateFrameExit() {
@@ -2082,7 +2087,7 @@ void InstructionCodeGeneratorX86_64::HandleGoto(HInstruction* got, HBasicBlock* 
 
   HLoopInformation* info = block->GetLoopInformation();
   if (info != nullptr && info->IsBackEdge(*block) && info->HasSuspendCheck()) {
-    codegen_->MaybeIncrementHotness(/* is_frame_entry= */ false);
+    codegen_->MaybeIncrementHotness(info->GetSuspendCheck(), /* is_frame_entry= */ false);
     GenerateSuspendCheck(info->GetSuspendCheck(), successor);
     return;
   }
