@@ -2285,6 +2285,25 @@ TEST_F(ArtdTest, deleteRuntimeArtifacts) {
   }
 }
 
+TEST_F(ArtdTest, deleteRuntimeArtifactsAndroidDataNotExist) {
+  // Will be cleaned up by `android_data_env_`
+  setenv("ANDROID_DATA", "/non-existing", /*replace=*/1);
+
+  auto scoped_set_logger = ScopedSetLogger(mock_logger_.AsStdFunction());
+  EXPECT_CALL(mock_logger_,
+              Call(_, _, _, _, _, HasSubstr("Failed to find directory /non-existing")));
+
+  int64_t aidl_return;
+  ASSERT_TRUE(
+      artd_
+          ->deleteRuntimeArtifacts(
+              {.packageName = "com.android.foo", .dexPath = "/a/b/base.apk", .isa = "arm64"},
+              &aidl_return)
+          .isOk());
+
+  EXPECT_EQ(aidl_return, 0);
+}
+
 TEST_F(ArtdTest, deleteRuntimeArtifactsSpecialChars) {
   std::vector<std::string> removed_files;
   std::vector<std::string> kept_files;
