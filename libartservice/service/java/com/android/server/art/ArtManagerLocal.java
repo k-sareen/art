@@ -16,8 +16,9 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.DexUseManagerLocal.DetailedSecondaryDexInfo;
-import static com.android.server.art.DexUseManagerLocal.SecondaryDexInfo;
+import static com.android.server.art.ArtFileManager.ProfileLists;
+import static com.android.server.art.ArtFileManager.UsableArtifactLists;
+import static com.android.server.art.ArtFileManager.WritableArtifactLists;
 import static com.android.server.art.PrimaryDexUtils.DetailedPrimaryDexInfo;
 import static com.android.server.art.PrimaryDexUtils.PrimaryDexInfo;
 import static com.android.server.art.ReasonMapping.BatchDexoptReason;
@@ -195,29 +196,14 @@ public final class ArtManagerLocal {
 
         try {
             long freedBytes = 0;
-
-            boolean isInDalvikCache = Utils.isInDalvikCache(pkgState, mInjector.getArtd());
-            for (PrimaryDexInfo dexInfo : PrimaryDexUtils.getDexInfo(pkg)) {
-                if (!dexInfo.hasCode()) {
-                    continue;
-                }
-                for (Abi abi : Utils.getAllAbis(pkgState)) {
-                    freedBytes += mInjector.getArtd().deleteArtifacts(AidlUtils.buildArtifactsPath(
-                            dexInfo.dexPath(), abi.isa(), isInDalvikCache));
-                    freedBytes += mInjector.getArtd().deleteRuntimeArtifacts(
-                            AidlUtils.buildRuntimeArtifactsPath(
-                                    packageName, dexInfo.dexPath(), abi.isa()));
-                }
+            WritableArtifactLists list =
+                    mInjector.getArtFileManager().getWritableArtifacts(pkgState, pkg);
+            for (ArtifactsPath artifacts : list.artifacts()) {
+                freedBytes += mInjector.getArtd().deleteArtifacts(artifacts);
             }
-
-            for (SecondaryDexInfo dexInfo :
-                    mInjector.getDexUseManager().getSecondaryDexInfo(packageName)) {
-                for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
-                    freedBytes += mInjector.getArtd().deleteArtifacts(AidlUtils.buildArtifactsPath(
-                            dexInfo.dexPath(), abi.isa(), false /* isInDalvikCache */));
-                }
+            for (RuntimeArtifactsPath runtimeArtifacts : list.runtimeArtifacts()) {
+                freedBytes += mInjector.getArtd().deleteRuntimeArtifacts(runtimeArtifacts);
             }
-
             return DeleteResult.create(freedBytes);
         } catch (RemoteException e) {
             Utils.logArtdException(e);
@@ -226,7 +212,8 @@ public final class ArtManagerLocal {
     }
 
     /**
-     * Returns the dexopt status of a package.
+     * Returns the dexopt status of all known dex container files of a package, even if some of them
+     * aren't readable.
      *
      * Uses the default flags ({@link ArtFlags#defaultGetStatusFlags()}).
      *
@@ -257,29 +244,9 @@ public final class ArtManagerLocal {
 
         PackageState pkgState = Utils.getPackageStateOrThrow(snapshot, packageName);
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
-
-        List<Pair<DetailedDexInfo, Abi>> dexAndAbis = new ArrayList<>();
-
-        if ((flags & ArtFlags.FLAG_FOR_PRIMARY_DEX) != 0) {
-            for (DetailedPrimaryDexInfo dexInfo :
-                    PrimaryDexUtils.getDetailedDexInfo(pkgState, pkg)) {
-                if (!dexInfo.hasCode()) {
-                    continue;
-                }
-                for (Abi abi : Utils.getAllAbis(pkgState)) {
-                    dexAndAbis.add(Pair.create(dexInfo, abi));
-                }
-            }
-        }
-
-        if ((flags & ArtFlags.FLAG_FOR_SECONDARY_DEX) != 0) {
-            for (SecondaryDexInfo dexInfo :
-                    mInjector.getDexUseManager().getSecondaryDexInfo(packageName)) {
-                for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
-                    dexAndAbis.add(Pair.create(dexInfo, abi));
-                }
-            }
-        }
+        List<Pair<DetailedDexInfo, Abi>> dexAndAbis = mInjector.getArtFileManager().getDexAndAbis(
+                pkgState, pkg, (flags & ArtFlags.FLAG_FOR_PRIMARY_DEX) != 0,
+                (flags & ArtFlags.FLAG_FOR_SECONDARY_DEX) != 0, false /* excludeNotFound */);
 
         try {
             List<DexContainerFileDexoptStatus> statuses = new ArrayList<>();
@@ -333,26 +300,13 @@ public final class ArtManagerLocal {
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
 
         try {
-            for (PrimaryDexInfo dexInfo : PrimaryDexUtils.getDexInfo(pkg)) {
-                if (!dexInfo.hasCode()) {
-                    continue;
-                }
-                mInjector.getArtd().deleteProfile(
-                        PrimaryDexUtils.buildRefProfilePath(pkgState, dexInfo));
-                for (ProfilePath profile : PrimaryDexUtils.getCurProfiles(
-                             mInjector.getUserManager(), pkgState, dexInfo)) {
-                    mInjector.getArtd().deleteProfile(profile);
-                }
-            }
-
-            // This only deletes the profiles of known secondary dex files. If there are unknown
-            // secondary dex files, their profiles will be deleted by `cleanup`.
-            for (SecondaryDexInfo dexInfo :
-                    mInjector.getDexUseManager().getSecondaryDexInfo(packageName)) {
-                mInjector.getArtd().deleteProfile(
-                        AidlUtils.buildProfilePathForSecondaryRef(dexInfo.dexPath()));
-                mInjector.getArtd().deleteProfile(
-                        AidlUtils.buildProfilePathForSecondaryCur(dexInfo.dexPath()));
+            // We want to delete as many profiles as possible, so this deletes profiles of all known
+            // secondary dex files. If there are unknown secondary dex files, their profiles will be
+            // deleted by `cleanup`.
+            ProfileLists list = mInjector.getArtFileManager().getProfiles(
+                    pkgState, pkg, true /* alsoForSecondaryDex */, false /* excludeDexNotFound */);
+            for (ProfilePath profile : list.allProfiles()) {
+                mInjector.getArtd().deleteProfile(profile);
             }
         } catch (RemoteException e) {
             Utils.logArtdException(e);
@@ -847,14 +801,9 @@ public final class ArtManagerLocal {
             // check.
             if (Utils.canDexoptPackage(appPkgState, null /* appHibernationManager */)) {
                 AndroidPackage appPkg = Utils.getPackageOrThrow(appPkgState);
-                for (PrimaryDexInfo appDexInfo : PrimaryDexUtils.getDexInfo(appPkg)) {
-                    if (!appDexInfo.hasCode()) {
-                        continue;
-                    }
-                    profiles.add(PrimaryDexUtils.buildRefProfilePath(appPkgState, appDexInfo));
-                    profiles.addAll(PrimaryDexUtils.getCurProfiles(
-                            mInjector.getUserManager(), appPkgState, appDexInfo));
-                }
+                ProfileLists list = mInjector.getArtFileManager().getProfiles(appPkgState, appPkg,
+                        false /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+                profiles.addAll(list.allProfiles());
             }
         });
 
@@ -958,36 +907,16 @@ public final class ArtManagerLocal {
                     continue;
                 }
                 AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
-                boolean keepArtifacts = !Utils.shouldSkipDexoptDueToHibernation(
-                        pkgState, mInjector.getAppHibernationManager());
-                for (DetailedPrimaryDexInfo dexInfo :
-                        PrimaryDexUtils.getDetailedDexInfo(pkgState, pkg)) {
-                    if (!dexInfo.hasCode()) {
-                        continue;
-                    }
-                    profilesToKeep.add(PrimaryDexUtils.buildRefProfilePath(pkgState, dexInfo));
-                    profilesToKeep.addAll(PrimaryDexUtils.getCurProfiles(
-                            mInjector.getUserManager(), pkgState, dexInfo));
-                    if (keepArtifacts) {
-                        for (Abi abi : Utils.getAllAbis(pkgState)) {
-                            maybeKeepArtifacts(artifactsToKeep, vdexFilesToKeep,
-                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi);
-                        }
-                    }
-                }
-                for (DetailedSecondaryDexInfo dexInfo :
-                        mInjector.getDexUseManager().getFilteredDetailedSecondaryDexInfo(
-                                pkgState.getPackageName())) {
-                    profilesToKeep.add(
-                            AidlUtils.buildProfilePathForSecondaryRef(dexInfo.dexPath()));
-                    profilesToKeep.add(
-                            AidlUtils.buildProfilePathForSecondaryCur(dexInfo.dexPath()));
-                    if (keepArtifacts) {
-                        for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
-                            maybeKeepArtifacts(artifactsToKeep, vdexFilesToKeep,
-                                    runtimeArtifactsToKeep, pkgState, dexInfo, abi);
-                        }
-                    }
+                ProfileLists profileLists = mInjector.getArtFileManager().getProfiles(pkgState, pkg,
+                        true /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+                profilesToKeep.addAll(profileLists.allProfiles());
+                if (!Utils.shouldSkipDexoptDueToHibernation(
+                            pkgState, mInjector.getAppHibernationManager())) {
+                    UsableArtifactLists artifactLists =
+                            mInjector.getArtFileManager().getUsableArtifacts(pkgState, pkg);
+                    artifactsToKeep.addAll(artifactLists.artifacts());
+                    vdexFilesToKeep.addAll(artifactLists.vdexFiles());
+                    runtimeArtifactsToKeep.addAll(artifactLists.runtimeArtifacts());
                 }
             }
             return mInjector.getArtd().cleanup(
@@ -995,47 +924,6 @@ public final class ArtManagerLocal {
         } catch (RemoteException e) {
             Utils.logArtdException(e);
             return 0;
-        }
-    }
-
-    /**
-     * Checks if the artifacts are up-to-date, and maybe adds them to {@code artifactsToKeep} or
-     * {@code vdexFilesToKeep} based on the result.
-     */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private void maybeKeepArtifacts(@NonNull List<ArtifactsPath> artifactsToKeep,
-            @NonNull List<VdexPath> vdexFilesToKeep,
-            @NonNull List<RuntimeArtifactsPath> runtimeArtifactsToKeep,
-            @NonNull PackageState pkgState, @NonNull DetailedDexInfo dexInfo, @NonNull Abi abi)
-            throws RemoteException {
-        try {
-            GetDexoptStatusResult result = mInjector.getArtd().getDexoptStatus(
-                    dexInfo.dexPath(), abi.isa(), dexInfo.classLoaderContext());
-            if (result.artifactsLocation == ArtifactsLocation.DALVIK_CACHE
-                    || result.artifactsLocation == ArtifactsLocation.NEXT_TO_DEX) {
-                ArtifactsPath artifacts = AidlUtils.buildArtifactsPath(dexInfo.dexPath(), abi.isa(),
-                        result.artifactsLocation == ArtifactsLocation.DALVIK_CACHE);
-                if (result.compilationReason.equals(ArtConstants.REASON_VDEX)) {
-                    // Only the VDEX file is usable.
-                    vdexFilesToKeep.add(VdexPath.artifactsPath(artifacts));
-                } else {
-                    artifactsToKeep.add(artifacts);
-                }
-                // Runtime images are only generated for primary dex files.
-                if (dexInfo instanceof DetailedPrimaryDexInfo
-                        && !DexFile.isOptimizedCompilerFilter(result.compilerFilter)) {
-                    runtimeArtifactsToKeep.add(AidlUtils.buildRuntimeArtifactsPath(
-                            pkgState.getPackageName(), dexInfo.dexPath(), abi.isa()));
-                }
-            }
-        } catch (ServiceSpecificException e) {
-            // Don't add the artifacts to the lists. They should be cleaned up.
-            Log.e(TAG,
-                    String.format("Failed to get dexopt status [packageName = %s, dexPath = %s, "
-                                    + "isa = %s, classLoaderContext = %s]",
-                            pkgState.getPackageName(), dexInfo.dexPath(), abi.isa(),
-                            dexInfo.classLoaderContext()),
-                    e);
         }
     }
 
@@ -1451,6 +1339,12 @@ public final class ArtManagerLocal {
         public String getTempDir() {
             // This is a path that system_server is known to have full access to.
             return "/data/system";
+        }
+
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        @NonNull
+        public ArtFileManager getArtFileManager() {
+            return new ArtFileManager(getContext());
         }
     }
 }

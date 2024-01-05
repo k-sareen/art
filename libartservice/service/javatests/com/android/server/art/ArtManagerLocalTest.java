@@ -117,6 +117,7 @@ public class ArtManagerLocalTest {
             SystemProperties.class, Constants.class, PackageStateModulesUtils.class);
 
     @Mock private ArtManagerLocal.Injector mInjector;
+    @Mock private ArtFileManager.Injector mArtFileManagerInjector;
     @Mock private PackageManagerLocal mPackageManagerLocal;
     @Mock private PackageManagerLocal.FilteredSnapshot mSnapshot;
     @Mock private IArtd mArtd;
@@ -127,7 +128,8 @@ public class ArtManagerLocalTest {
     @Mock private StorageManager mStorageManager;
     private PackageState mPkgState1;
     private AndroidPackage mPkg1;
-    private List<DetailedSecondaryDexInfo> mSecondaryDexInfo1;
+    private DetailedSecondaryDexInfo mPkg1SecondaryDexInfo1;
+    private DetailedSecondaryDexInfo mPkg1SecondaryDexInfoNotFound;
     private Config mConfig;
 
     // True if the artifacts should be in dalvik-cache.
@@ -158,6 +160,13 @@ public class ArtManagerLocalTest {
         lenient().when(mInjector.getDexUseManager()).thenReturn(mDexUseManager);
         lenient().when(mInjector.getCurrentTimeMillis()).thenReturn(CURRENT_TIME_MS);
         lenient().when(mInjector.getStorageManager()).thenReturn(mStorageManager);
+        lenient()
+                .when(mInjector.getArtFileManager())
+                .thenReturn(new ArtFileManager(mArtFileManagerInjector));
+
+        lenient().when(mArtFileManagerInjector.getArtd()).thenReturn(mArtd);
+        lenient().when(mArtFileManagerInjector.getUserManager()).thenReturn(mUserManager);
+        lenient().when(mArtFileManagerInjector.getDexUseManager()).thenReturn(mDexUseManager);
 
         Path tempDir = Files.createTempDirectory("temp");
         tempDir.toFile().deleteOnExit();
@@ -201,13 +210,14 @@ public class ArtManagerLocalTest {
 
         // All packages are by default recently used.
         lenient().when(mDexUseManager.getPackageLastUsedAtMs(any())).thenReturn(RECENT_TIME_MS);
-        mSecondaryDexInfo1 = createSecondaryDexInfo();
+        mPkg1SecondaryDexInfo1 = createSecondaryDexInfo("/data/user/0/foo/1.apk");
+        mPkg1SecondaryDexInfoNotFound = createSecondaryDexInfo("/data/user/0/foo/not_found.apk");
         lenient()
-                .doReturn(mSecondaryDexInfo1)
+                .doReturn(List.of(mPkg1SecondaryDexInfo1, mPkg1SecondaryDexInfoNotFound))
                 .when(mDexUseManager)
                 .getSecondaryDexInfo(eq(PKG_NAME_1));
         lenient()
-                .doReturn(mSecondaryDexInfo1)
+                .doReturn(List.of(mPkg1SecondaryDexInfo1))
                 .when(mDexUseManager)
                 .getFilteredDetailedSecondaryDexInfo(eq(PKG_NAME_1));
 
@@ -241,7 +251,7 @@ public class ArtManagerLocalTest {
     }
 
     @Test
-    public void testdeleteDexoptArtifacts() throws Exception {
+    public void testDeleteDexoptArtifacts() throws Exception {
         final long DEXOPT_ARTIFACTS_FREED = 1l;
         final long RUNTIME_ARTIFACTS_FREED = 100l;
 
@@ -250,7 +260,7 @@ public class ArtManagerLocalTest {
 
         DeleteResult result = mArtManagerLocal.deleteDexoptArtifacts(mSnapshot, PKG_NAME_1);
         assertThat(result.getFreedBytes())
-                .isEqualTo(5 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
+                .isEqualTo(6 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
 
         verify(mArtd).deleteArtifacts(deepEq(
                 AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm64", mIsInDalvikCache)));
@@ -262,6 +272,8 @@ public class ArtManagerLocalTest {
                 "/data/app/foo/split_0.apk", "arm", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/data/user/0/foo/not_found.apk", "arm64", false /* isInDalvikCache */)));
 
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
                 PKG_NAME_1, "/data/app/foo/base.apk", "arm64")));
@@ -273,12 +285,12 @@ public class ArtManagerLocalTest {
                 PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
 
         // Verify that there are no more calls than the ones above.
-        verify(mArtd, times(5)).deleteArtifacts(any());
+        verify(mArtd, times(6)).deleteArtifacts(any());
         verify(mArtd, times(4)).deleteRuntimeArtifacts(any());
     }
 
     @Test
-    public void testdeleteDexoptArtifactsTranslatedIsas() throws Exception {
+    public void testDeleteDexoptArtifactsTranslatedIsas() throws Exception {
         final long DEXOPT_ARTIFACTS_FREED = 1l;
         final long RUNTIME_ARTIFACTS_FREED = 100l;
 
@@ -287,14 +299,15 @@ public class ArtManagerLocalTest {
         lenient().when(Constants.getPreferredAbi()).thenReturn("x86_64");
         lenient().when(Constants.getNative64BitAbi()).thenReturn("x86_64");
         lenient().when(Constants.getNative32BitAbi()).thenReturn("x86");
-        when(mSecondaryDexInfo1.get(0).abiNames()).thenReturn(Set.of("x86_64"));
+        when(mPkg1SecondaryDexInfo1.abiNames()).thenReturn(Set.of("x86_64"));
+        when(mPkg1SecondaryDexInfoNotFound.abiNames()).thenReturn(Set.of("x86_64"));
 
         when(mArtd.deleteArtifacts(any())).thenReturn(DEXOPT_ARTIFACTS_FREED);
         when(mArtd.deleteRuntimeArtifacts(any())).thenReturn(RUNTIME_ARTIFACTS_FREED);
 
         DeleteResult result = mArtManagerLocal.deleteDexoptArtifacts(mSnapshot, PKG_NAME_1);
         assertThat(result.getFreedBytes())
-                .isEqualTo(5 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
+                .isEqualTo(6 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
 
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/app/foo/base.apk", "x86_64", mIsInDalvikCache)));
@@ -317,9 +330,11 @@ public class ArtManagerLocalTest {
         // We assume that the ISA got from `DexUseManagerLocal` is already the translated one.
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/user/0/foo/1.apk", "x86_64", false /* isInDalvikCache */)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/data/user/0/foo/not_found.apk", "x86_64", false /* isInDalvikCache */)));
 
         // Verify that there are no more calls than the ones above.
-        verify(mArtd, times(5)).deleteArtifacts(any());
+        verify(mArtd, times(6)).deleteArtifacts(any());
         verify(mArtd, times(4)).deleteRuntimeArtifacts(any());
     }
 
@@ -359,6 +374,10 @@ public class ArtManagerLocalTest {
                          "run-from-apk", "unknown", "unknown", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
                 .getDexoptStatus("/data/user/0/foo/1.apk", "arm64", "CLC");
+        doReturn(createGetDexoptStatusResult(
+                         "unknown", "unknown", "error", ArtifactsLocation.NONE_OR_ERROR))
+                .when(mArtd)
+                .getDexoptStatus("/data/user/0/foo/not_found.apk", "arm64", "CLC");
 
         DexoptStatus result = mArtManagerLocal.getDexoptStatus(mSnapshot, PKG_NAME_1);
 
@@ -379,7 +398,10 @@ public class ArtManagerLocalTest {
                                 "extract", "compilation-reason-3", "location-debug-string-3"),
                         DexContainerFileDexoptStatus.create("/data/user/0/foo/1.apk",
                                 false /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
-                                "run-from-apk", "unknown", "unknown"));
+                                "run-from-apk", "unknown", "unknown"),
+                        DexContainerFileDexoptStatus.create("/data/user/0/foo/not_found.apk",
+                                false /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
+                                "unknown", "unknown", "error"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -404,7 +426,7 @@ public class ArtManagerLocalTest {
         DexoptStatus result = mArtManagerLocal.getDexoptStatus(mSnapshot, PKG_NAME_1);
 
         List<DexContainerFileDexoptStatus> statuses = result.getDexContainerFileDexoptStatuses();
-        assertThat(statuses.size()).isEqualTo(5);
+        assertThat(statuses.size()).isEqualTo(6);
 
         for (DexContainerFileDexoptStatus status : statuses) {
             assertThat(status.getCompilerFilter()).isEqualTo("error");
@@ -428,6 +450,11 @@ public class ArtManagerLocalTest {
                 deepEq(AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk")));
         verify(mArtd).deleteProfile(
                 deepEq(AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/1.apk")));
+
+        verify(mArtd).deleteProfile(deepEq(
+                AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/not_found.apk")));
+        verify(mArtd).deleteProfile(deepEq(
+                AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/not_found.apk")));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -1170,12 +1197,12 @@ public class ArtManagerLocalTest {
         return getDexoptStatusResult;
     }
 
-    private List<DetailedSecondaryDexInfo> createSecondaryDexInfo() throws Exception {
+    private DetailedSecondaryDexInfo createSecondaryDexInfo(String dexPath) throws Exception {
         var dexInfo = mock(DetailedSecondaryDexInfo.class);
-        lenient().when(dexInfo.dexPath()).thenReturn("/data/user/0/foo/1.apk");
+        lenient().when(dexInfo.dexPath()).thenReturn(dexPath);
         lenient().when(dexInfo.abiNames()).thenReturn(Set.of("arm64-v8a"));
         lenient().when(dexInfo.classLoaderContext()).thenReturn("CLC");
-        return List.of(dexInfo);
+        return dexInfo;
     }
 
     private void simulateStorageLow() throws Exception {

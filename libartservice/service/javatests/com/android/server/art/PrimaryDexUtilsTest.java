@@ -24,6 +24,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
+import android.util.Pair;
+
 import androidx.test.filters.SmallTest;
 
 import com.android.server.pm.pkg.AndroidPackage;
@@ -34,6 +36,8 @@ import com.android.server.pm.pkg.SharedLibrary;
 import dalvik.system.DelegateLastClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.PathClassLoader;
+
+import com.google.common.truth.Correspondence;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -68,15 +72,21 @@ public class PrimaryDexUtilsTest {
                 + "PCL[library_4.jar]{PCL[library_1_dex_1.jar:library_1_dex_2.jar]}"
                 + "}";
 
-        assertThat(infos.get(0).classLoaderContext()).isEqualTo("PCL[]" + sharedLibrariesContext);
-        assertThat(infos.get(1).classLoaderContext())
-                .isEqualTo("PCL[base.apk]" + sharedLibrariesContext);
-        assertThat(infos.get(2).classLoaderContext()).isEqualTo(null);
-        assertThat(infos.get(3).classLoaderContext())
-                .isEqualTo("PCL[base.apk:split_0.apk:split_1.apk]" + sharedLibrariesContext);
-        assertThat(infos.get(4).classLoaderContext())
-                .isEqualTo("PCL[base.apk:split_0.apk:split_1.apk:split_2.apk]"
-                        + sharedLibrariesContext);
+        assertThat(infos)
+                .comparingElementsUsing(Correspondence.transforming(
+                        (DetailedPrimaryDexInfo info)
+                                -> Pair.create(info.splitName(), info.classLoaderContext()),
+                        "has split name and CLC of"))
+                .containsExactly(Pair.create(null, "PCL[]" + sharedLibrariesContext),
+                        Pair.create("split_0", "PCL[base.apk]" + sharedLibrariesContext),
+                        Pair.create("split_2",
+                                "PCL[base.apk:split_0.apk:split_1.apk]" + sharedLibrariesContext),
+                        Pair.create("split_3",
+                                "PCL[base.apk:split_0.apk:split_1.apk:split_2.apk]"
+                                        + sharedLibrariesContext),
+                        Pair.create("split_4",
+                                "PCL[base.apk:split_0.apk:split_1.apk:split_2.apk:split_3.apk]"
+                                        + sharedLibrariesContext));
     }
 
     @Test
@@ -91,14 +101,17 @@ public class PrimaryDexUtilsTest {
                 + "PCL[library_4.jar]{PCL[library_1_dex_1.jar:library_1_dex_2.jar]}"
                 + "}";
 
-        assertThat(infos.get(0).classLoaderContext()).isEqualTo("PCL[]" + sharedLibrariesContext);
-        assertThat(infos.get(1).classLoaderContext())
-                .isEqualTo("PCL[];DLC[split_2.apk];PCL[base.apk]" + sharedLibrariesContext);
-        assertThat(infos.get(2).classLoaderContext()).isEqualTo(null);
-        assertThat(infos.get(3).classLoaderContext())
-                .isEqualTo("DLC[];PCL[base.apk]" + sharedLibrariesContext);
-        assertThat(infos.get(4).classLoaderContext()).isEqualTo("PCL[]");
-        assertThat(infos.get(5).classLoaderContext()).isEqualTo("PCL[];PCL[split_3.apk]");
+        assertThat(infos)
+                .comparingElementsUsing(Correspondence.transforming(
+                        (DetailedPrimaryDexInfo info)
+                                -> Pair.create(info.splitName(), info.classLoaderContext()),
+                        "has split name and CLC of"))
+                .containsExactly(Pair.create(null, "PCL[]" + sharedLibrariesContext),
+                        Pair.create("split_0",
+                                "PCL[];DLC[split_2.apk];PCL[base.apk]" + sharedLibrariesContext),
+                        Pair.create("split_2", "DLC[];PCL[base.apk]" + sharedLibrariesContext),
+                        Pair.create("split_3", "PCL[]"),
+                        Pair.create("split_4", "PCL[];PCL[split_3.apk]"));
     }
 
     private <T extends PrimaryDexInfo> void checkBasicInfo(List<T> infos) {
@@ -110,21 +123,19 @@ public class PrimaryDexUtilsTest {
         assertThat(infos.get(1).hasCode()).isTrue();
         assertThat(infos.get(1).splitName()).isEqualTo("split_0");
 
-        assertThat(infos.get(2).dexPath()).isEqualTo("/data/app/foo/split_1.apk");
-        assertThat(infos.get(2).hasCode()).isFalse();
-        assertThat(infos.get(2).splitName()).isEqualTo("split_1");
+        // split_1 is skipped because it has no code.
 
-        assertThat(infos.get(3).dexPath()).isEqualTo("/data/app/foo/split_2.apk");
+        assertThat(infos.get(2).dexPath()).isEqualTo("/data/app/foo/split_2.apk");
+        assertThat(infos.get(2).hasCode()).isTrue();
+        assertThat(infos.get(2).splitName()).isEqualTo("split_2");
+
+        assertThat(infos.get(3).dexPath()).isEqualTo("/data/app/foo/split_3.apk");
         assertThat(infos.get(3).hasCode()).isTrue();
-        assertThat(infos.get(3).splitName()).isEqualTo("split_2");
+        assertThat(infos.get(3).splitName()).isEqualTo("split_3");
 
-        assertThat(infos.get(4).dexPath()).isEqualTo("/data/app/foo/split_3.apk");
+        assertThat(infos.get(4).dexPath()).isEqualTo("/data/app/foo/split_4.apk");
         assertThat(infos.get(4).hasCode()).isTrue();
-        assertThat(infos.get(4).splitName()).isEqualTo("split_3");
-
-        assertThat(infos.get(5).dexPath()).isEqualTo("/data/app/foo/split_4.apk");
-        assertThat(infos.get(5).hasCode()).isTrue();
-        assertThat(infos.get(5).splitName()).isEqualTo("split_4");
+        assertThat(infos.get(4).splitName()).isEqualTo("split_4");
     }
 
     private AndroidPackage createPackage(boolean isIsolatedSplitLoading) {

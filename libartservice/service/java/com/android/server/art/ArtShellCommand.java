@@ -557,9 +557,6 @@ public final class ArtShellCommand extends BasicShellCommandHandler {
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
         try (var tracing = new Utils.Tracing("dump profiles")) {
             for (PrimaryDexInfo dexInfo : PrimaryDexUtils.getDexInfo(pkg)) {
-                if (!dexInfo.hasCode()) {
-                    continue;
-                }
                 String profileName = PrimaryDexUtils.getProfileName(dexInfo.splitName());
                 // The path is intentionally inconsistent with the one for "snapshot-profile". This
                 // is to match the behavior of the legacy PM shell command.
@@ -818,20 +815,17 @@ public final class ArtShellCommand extends BasicShellCommandHandler {
 
         PackageState pkgState = Utils.getPackageStateOrThrow(snapshot, packageName);
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
-        List<PrimaryDexInfo> dexInfoList = PrimaryDexUtils.getDexInfo(pkg);
-
-        for (PrimaryDexInfo dexInfo : dexInfoList) {
-            if (splitArg.equals(dexInfo.splitName())) {
-                return splitArg;
-            }
+        PrimaryDexInfo dexInfo =
+                PrimaryDexUtils.findDexInfo(pkg, info -> splitArg.equals(info.splitName()));
+        if (dexInfo != null) {
+            return splitArg;
         }
-
-        for (PrimaryDexInfo dexInfo : dexInfoList) {
-            if (splitArg.equals(new File(dexInfo.dexPath()).getName())) {
-                pw.println("Warning: Specifying a split using a filename is deprecated. Please "
-                        + "use a split name (or an empty string for the base APK) instead");
-                return dexInfo.splitName();
-            }
+        dexInfo = PrimaryDexUtils.findDexInfo(
+                pkg, info -> splitArg.equals(new File(info.dexPath()).getName()));
+        if (dexInfo != null) {
+            pw.println("Warning: Specifying a split using a filename is deprecated. Please "
+                    + "use a split name (or an empty string for the base APK) instead");
+            return dexInfo.splitName();
         }
 
         throw new IllegalArgumentException(String.format("Split '%s' not found", splitArg));
@@ -842,14 +836,11 @@ public final class ArtShellCommand extends BasicShellCommandHandler {
             @NonNull String packageName, @NonNull String fullPath) {
         PackageState pkgState = Utils.getPackageStateOrThrow(snapshot, packageName);
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
-        List<PrimaryDexInfo> dexInfoList = PrimaryDexUtils.getDexInfo(pkg);
-
-        for (PrimaryDexInfo dexInfo : dexInfoList) {
-            if (fullPath.equals(dexInfo.dexPath())) {
-                return dexInfo.splitName();
-            }
+        PrimaryDexInfo dexInfo =
+                PrimaryDexUtils.findDexInfo(pkg, info -> fullPath.equals(info.dexPath()));
+        if (dexInfo != null) {
+            return dexInfo.splitName();
         }
-
         throw new IllegalArgumentException(String.format("Code path '%s' not found", fullPath));
     }
 

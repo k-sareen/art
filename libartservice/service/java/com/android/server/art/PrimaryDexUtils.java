@@ -41,6 +41,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /** @hide */
@@ -50,15 +51,15 @@ public class PrimaryDexUtils {
     private static final String SHARED_LIBRARY_LOADER_TYPE = PathClassLoader.class.getName();
 
     /**
-     * Returns the basic information about all primary dex files belonging to the package. The
-     * return value is a list where the entry at index 0 is the information about the base APK, and
-     * the entry at index i is the information about the (i-1)-th split APK.
+     * Returns the basic information about all primary dex files belonging to the package, excluding
+     * files that have no code.
      */
     @NonNull
     public static List<PrimaryDexInfo> getDexInfo(@NonNull AndroidPackage pkg) {
         return getDexInfoImpl(pkg)
                 .stream()
                 .map(builder -> builder.build())
+                .filter(info -> info.hasCode())
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +73,7 @@ public class PrimaryDexUtils {
         return getDetailedDexInfoImpl(pkgState, pkg)
                 .stream()
                 .map(builder -> builder.buildDetailed())
+                .filter(info -> info.hasCode())
                 .collect(Collectors.toList());
     }
 
@@ -79,18 +81,27 @@ public class PrimaryDexUtils {
     @NonNull
     public static PrimaryDexInfo getDexInfoBySplitName(
             @NonNull AndroidPackage pkg, @Nullable String splitName) {
-        if (splitName == null) {
-            return getDexInfo(pkg).get(0);
-        } else {
-            return getDexInfo(pkg)
-                    .stream()
-                    .filter(info -> splitName.equals(info.splitName()))
-                    .findFirst()
-                    .orElseThrow(() -> {
-                        return new IllegalArgumentException(
-                                String.format("Split '%s' not found", splitName));
-                    });
+        PrimaryDexInfo dexInfo =
+                findDexInfo(pkg, info -> Objects.equals(info.splitName(), splitName));
+        if (dexInfo == null) {
+            throw new IllegalArgumentException(String.format("Split '%s' not found", splitName));
         }
+        return dexInfo;
+    }
+
+    /**
+     * Returns the basic information about the first dex file matching {@code predicate}, or null if
+     * not found.
+     */
+    @Nullable
+    public static PrimaryDexInfo findDexInfo(
+            @NonNull AndroidPackage pkg, Predicate<PrimaryDexInfo> predicate) {
+        return getDexInfoImpl(pkg)
+                .stream()
+                .map(builder -> builder.build())
+                .filter(predicate)
+                .findFirst()
+                .orElse(null);
     }
 
     @NonNull
