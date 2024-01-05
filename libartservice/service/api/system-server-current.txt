@@ -14,6 +14,7 @@ package com.android.server.art {
     method @NonNull public com.android.server.art.model.DexoptResult dexoptPackage(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String, @NonNull com.android.server.art.model.DexoptParams, @NonNull android.os.CancellationSignal);
     method public void dump(@NonNull java.io.PrintWriter, @NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot);
     method public void dumpPackage(@NonNull java.io.PrintWriter, @NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String);
+    method @NonNull public com.android.server.art.model.ArtManagedFileStats getArtManagedFileStats(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String);
     method @NonNull public com.android.server.art.model.DexoptStatus getDexoptStatus(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String);
     method @NonNull public com.android.server.art.model.DexoptStatus getDexoptStatus(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String, int);
     method public int handleShellCommand(@NonNull android.os.Binder, @NonNull android.os.ParcelFileDescriptor, @NonNull android.os.ParcelFileDescriptor, @NonNull android.os.ParcelFileDescriptor, @NonNull String[]);
@@ -91,6 +92,13 @@ package com.android.server.art.model {
     field public static final int SCHEDULE_DISABLED_BY_SYSPROP = 2; // 0x2
     field public static final int SCHEDULE_JOB_SCHEDULER_FAILURE = 1; // 0x1
     field public static final int SCHEDULE_SUCCESS = 0; // 0x0
+  }
+
+  public abstract class ArtManagedFileStats {
+    method public long getTotalSizeBytesByType(int);
+    field public static final int TYPE_CUR_PROFILE = 2; // 0x2
+    field public static final int TYPE_DEXOPT_ARTIFACT = 0; // 0x0
+    field public static final int TYPE_REF_PROFILE = 1; // 0x1
   }
 
   public abstract class BatchDexoptParams {

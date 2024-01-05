@@ -33,6 +33,7 @@ import static com.android.server.art.model.DexoptStatus.DexContainerFileDexoptSt
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.SystemService;
 import android.app.job.JobInfo;
@@ -880,9 +881,8 @@ public final class ArtManagerLocal {
      * @throws IllegalArgumentException if the package is not found
      * @throws IllegalStateException if the operation encounters an error that should never happen
      *         (e.g., an internal logic error).
-     *
-     * @hide
      */
+    @SuppressLint("UnflaggedApi") // Flag support for mainline is not available.
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @NonNull
     public ArtManagedFileStats getArtManagedFileStats(
