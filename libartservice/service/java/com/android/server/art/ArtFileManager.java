@@ -69,13 +69,14 @@ public class ArtFileManager {
     }
 
     /**
-     * @param excludeNotFound If true, excludes secondary dex files that are not found on the
-     *         filesystem.
+     * @param excludeObsoleteDexesAndLoaders If true, excludes secondary dex files and loaders based
+     *         on file visibility. See details in {@link
+     *         DexUseManagerLocal#getCheckedSecondaryDexInfo}.
      */
     @NonNull
     public List<Pair<DetailedDexInfo, Abi>> getDexAndAbis(@NonNull PackageState pkgState,
             @NonNull AndroidPackage pkg, boolean forPrimaryDex, boolean forSecondaryDex,
-            boolean excludeNotFound) {
+            boolean excludeObsoleteDexesAndLoaders) {
         List<Pair<DetailedDexInfo, Abi>> dexAndAbis = new ArrayList<>();
         if (forPrimaryDex) {
             for (DetailedPrimaryDexInfo dexInfo :
@@ -86,9 +87,9 @@ public class ArtFileManager {
             }
         }
         if (forSecondaryDex) {
-            List<? extends SecondaryDexInfo> dexInfos = excludeNotFound
-                    ? mInjector.getDexUseManager().getFilteredDetailedSecondaryDexInfo(
-                            pkgState.getPackageName())
+            List<? extends SecondaryDexInfo> dexInfos = excludeObsoleteDexesAndLoaders
+                    ? mInjector.getDexUseManager().getCheckedSecondaryDexInfo(
+                            pkgState.getPackageName(), true /* excludeObsoleteDexesAndLoaders */)
                     : mInjector.getDexUseManager().getSecondaryDexInfo(pkgState.getPackageName());
             for (SecondaryDexInfo dexInfo : dexInfos) {
                 for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
@@ -141,7 +142,7 @@ public class ArtFileManager {
 
         for (Pair<DetailedDexInfo, Abi> pair :
                 getDexAndAbis(pkgState, pkg, true /* forPrimaryDex */, true /* forSecondaryDex */,
-                        true /* excludeNotFound */)) {
+                        true /* excludeObsoleteDexesAndLoaders */)) {
             DetailedDexInfo dexInfo = pair.first;
             Abi abi = pair.second;
             try {
@@ -178,9 +179,14 @@ public class ArtFileManager {
         return UsableArtifactLists.create(artifacts, vdexFiles, runtimeArtifacts);
     }
 
+    /**
+     * @param excludeForObsoleteDexesAndLoaders If true, excludes profiles for secondary dex files
+     *         and loaders based on file visibility. See details in {@link
+     *         DexUseManagerLocal#getCheckedSecondaryDexInfo}.
+     */
     @NonNull
     public ProfileLists getProfiles(@NonNull PackageState pkgState, @NonNull AndroidPackage pkg,
-            boolean alsoForSecondaryDex, boolean excludeDexNotFound) {
+            boolean alsoForSecondaryDex, boolean excludeForObsoleteDexesAndLoaders) {
         List<ProfilePath> refProfiles = new ArrayList<>();
         List<ProfilePath> curProfiles = new ArrayList<>();
 
@@ -190,9 +196,9 @@ public class ArtFileManager {
                     PrimaryDexUtils.getCurProfiles(mInjector.getUserManager(), pkgState, dexInfo));
         }
         if (alsoForSecondaryDex) {
-            List<? extends SecondaryDexInfo> dexInfos = excludeDexNotFound
-                    ? mInjector.getDexUseManager().getFilteredDetailedSecondaryDexInfo(
-                            pkgState.getPackageName())
+            List<? extends SecondaryDexInfo> dexInfos = excludeForObsoleteDexesAndLoaders
+                    ? mInjector.getDexUseManager().getCheckedSecondaryDexInfo(
+                            pkgState.getPackageName(), true /* excludeForObsoleteDexesAndLoaders */)
                     : mInjector.getDexUseManager().getSecondaryDexInfo(pkgState.getPackageName());
             for (SecondaryDexInfo dexInfo : dexInfos) {
                 refProfiles.add(AidlUtils.buildProfilePathForSecondaryRef(dexInfo.dexPath()));

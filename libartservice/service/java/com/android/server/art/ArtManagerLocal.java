@@ -248,7 +248,8 @@ public final class ArtManagerLocal {
         AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
         List<Pair<DetailedDexInfo, Abi>> dexAndAbis = mInjector.getArtFileManager().getDexAndAbis(
                 pkgState, pkg, (flags & ArtFlags.FLAG_FOR_PRIMARY_DEX) != 0,
-                (flags & ArtFlags.FLAG_FOR_SECONDARY_DEX) != 0, false /* excludeNotFound */);
+                (flags & ArtFlags.FLAG_FOR_SECONDARY_DEX) != 0,
+                false /* excludeObsoleteDexesAndLoaders */);
 
         try {
             List<DexContainerFileDexoptStatus> statuses = new ArrayList<>();
@@ -305,8 +306,8 @@ public final class ArtManagerLocal {
             // We want to delete as many profiles as possible, so this deletes profiles of all known
             // secondary dex files. If there are unknown secondary dex files, their profiles will be
             // deleted by `cleanup`.
-            ProfileLists list = mInjector.getArtFileManager().getProfiles(
-                    pkgState, pkg, true /* alsoForSecondaryDex */, false /* excludeDexNotFound */);
+            ProfileLists list = mInjector.getArtFileManager().getProfiles(pkgState, pkg,
+                    true /* alsoForSecondaryDex */, false /* excludeForObsoleteDexesAndLoaders */);
             for (ProfilePath profile : list.allProfiles()) {
                 mInjector.getArtd().deleteProfile(profile);
             }
@@ -804,7 +805,8 @@ public final class ArtManagerLocal {
             if (Utils.canDexoptPackage(appPkgState, null /* appHibernationManager */)) {
                 AndroidPackage appPkg = Utils.getPackageOrThrow(appPkgState);
                 ProfileLists list = mInjector.getArtFileManager().getProfiles(appPkgState, appPkg,
-                        false /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+                        false /* alsoForSecondaryDex */,
+                        true /* excludeForObsoleteDexesAndLoaders */);
                 profiles.addAll(list.allProfiles());
             }
         });
@@ -908,8 +910,8 @@ public final class ArtManagerLocal {
                 artifactsSize += artd.getRuntimeArtifactsSize(runtimeArtifacts);
             }
 
-            ProfileLists profileLists = mInjector.getArtFileManager().getProfiles(
-                    pkgState, pkg, true /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+            ProfileLists profileLists = mInjector.getArtFileManager().getProfiles(pkgState, pkg,
+                    true /* alsoForSecondaryDex */, true /* excludeForObsoleteDexesAndLoaders */);
             for (ProfilePath profile : profileLists.refProfiles()) {
                 refProfilesSize += artd.getProfileSize(profile);
             }
@@ -960,7 +962,8 @@ public final class ArtManagerLocal {
                 }
                 AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
                 ProfileLists profileLists = mInjector.getArtFileManager().getProfiles(pkgState, pkg,
-                        true /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+                        true /* alsoForSecondaryDex */,
+                        true /* excludeForObsoleteDexesAndLoaders */);
                 profilesToKeep.addAll(profileLists.allProfiles());
                 if (!Utils.shouldSkipDexoptDueToHibernation(
                             pkgState, mInjector.getAppHibernationManager())) {

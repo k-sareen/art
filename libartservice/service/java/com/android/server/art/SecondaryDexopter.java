@@ -16,7 +16,7 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.DexUseManagerLocal.DetailedSecondaryDexInfo;
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.OutputArtifacts.PermissionSettings;
 import static com.android.server.art.OutputArtifacts.PermissionSettings.SeContext;
 import static com.android.server.art.Utils.Abi;
@@ -38,7 +38,7 @@ import java.util.List;
 
 /** @hide */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-public class SecondaryDexopter extends Dexopter<DetailedSecondaryDexInfo> {
+public class SecondaryDexopter extends Dexopter<CheckedSecondaryDexInfo> {
     private static final String TAG = ArtManagerLocal.TAG;
 
     public SecondaryDexopter(@NonNull Context context, @NonNull PackageState pkgState,
@@ -63,29 +63,29 @@ public class SecondaryDexopter extends Dexopter<DetailedSecondaryDexInfo> {
 
     @Override
     @NonNull
-    protected List<DetailedSecondaryDexInfo> getDexInfoList() {
-        return mInjector.getDexUseManager().getFilteredDetailedSecondaryDexInfo(
-                mPkgState.getPackageName());
+    protected List<CheckedSecondaryDexInfo> getDexInfoList() {
+        return mInjector.getDexUseManager().getCheckedSecondaryDexInfo(
+                mPkgState.getPackageName(), true /* excludeObsoleteDexesAndLoaders */);
     }
 
     @Override
-    protected boolean isDexoptable(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected boolean isDexoptable(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return true;
     }
 
     @Override
-    protected boolean needsToBeShared(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected boolean needsToBeShared(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return dexInfo.isUsedByOtherApps();
     }
 
     @Override
-    protected boolean isDexFilePublic(@NonNull DetailedSecondaryDexInfo dexInfo) {
-        return dexInfo.isDexFilePublic();
+    protected boolean isDexFilePublic(@NonNull CheckedSecondaryDexInfo dexInfo) {
+        return dexInfo.fileVisibility() == FileVisibility.OTHER_READABLE;
     }
 
     @Override
     @NonNull
-    protected List<ProfilePath> getExternalProfiles(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected List<ProfilePath> getExternalProfiles(@NonNull CheckedSecondaryDexInfo dexInfo) {
         // A secondary dex file doesn't have any external profile to use.
         return List.of();
     }
@@ -93,7 +93,7 @@ public class SecondaryDexopter extends Dexopter<DetailedSecondaryDexInfo> {
     @Override
     @NonNull
     protected PermissionSettings getPermissionSettings(
-            @NonNull DetailedSecondaryDexInfo dexInfo, boolean canBePublic) {
+            @NonNull CheckedSecondaryDexInfo dexInfo, boolean canBePublic) {
         int uid = getUid(dexInfo);
         // We need the "execute" bit for "others" even though `canBePublic` is false because the
         // directory can contain other artifacts that needs to be public.
@@ -109,38 +109,38 @@ public class SecondaryDexopter extends Dexopter<DetailedSecondaryDexInfo> {
 
     @Override
     @NonNull
-    protected List<Abi> getAllAbis(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected List<Abi> getAllAbis(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return Utils.getAllAbisForNames(dexInfo.abiNames(), mPkgState);
     }
 
     @Override
     @NonNull
-    protected ProfilePath buildRefProfilePath(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected ProfilePath buildRefProfilePath(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return AidlUtils.buildProfilePathForSecondaryRef(dexInfo.dexPath());
     }
 
     @Override
     @NonNull
     protected OutputProfile buildOutputProfile(
-            @NonNull DetailedSecondaryDexInfo dexInfo, boolean isPublic) {
+            @NonNull CheckedSecondaryDexInfo dexInfo, boolean isPublic) {
         int uid = getUid(dexInfo);
         return AidlUtils.buildOutputProfileForSecondary(dexInfo.dexPath(), uid, uid, isPublic);
     }
 
     @Override
     @NonNull
-    protected List<ProfilePath> getCurProfiles(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected List<ProfilePath> getCurProfiles(@NonNull CheckedSecondaryDexInfo dexInfo) {
         // A secondary dex file can only be loaded by one user, so there is only one profile.
         return List.of(AidlUtils.buildProfilePathForSecondaryCur(dexInfo.dexPath()));
     }
 
     @Override
     @Nullable
-    protected DexMetadataPath buildDmPath(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    protected DexMetadataPath buildDmPath(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return null;
     }
 
-    private int getUid(@NonNull DetailedSecondaryDexInfo dexInfo) {
+    private int getUid(@NonNull CheckedSecondaryDexInfo dexInfo) {
         return dexInfo.userHandle().getUid(mPkgState.getAppId());
     }
 }

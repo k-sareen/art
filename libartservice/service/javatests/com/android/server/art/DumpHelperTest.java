@@ -16,6 +16,7 @@
 
 package com.android.server.art;
 
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.DexUseManagerLocal.DexLoader;
 import static com.android.server.art.DexUseManagerLocal.SecondaryDexInfo;
 import static com.android.server.art.model.DexoptStatus.DexContainerFileDexoptStatus;
@@ -68,7 +69,6 @@ public class DumpHelperTest {
     @Mock private ArtManagerLocal mArtManagerLocal;
     @Mock private DexUseManagerLocal mDexUseManagerLocal;
     @Mock private PackageManagerLocal.FilteredSnapshot mSnapshot;
-    @Mock private IArtd mArtd;
 
     private DumpHelper mDumpHelper;
 
@@ -85,7 +85,6 @@ public class DumpHelperTest {
 
         lenient().when(mInjector.getArtManagerLocal()).thenReturn(mArtManagerLocal);
         lenient().when(mInjector.getDexUseManager()).thenReturn(mDexUseManagerLocal);
-        lenient().when(mInjector.getArtd()).thenReturn(mArtd);
 
         Map<String, PackageState> pkgStates = createPackageStates();
         lenient().when(mSnapshot.getPackageStates()).thenReturn(pkgStates);
@@ -214,7 +213,7 @@ public class DumpHelperTest {
                 .thenReturn(Set.of(DexLoader.create(PKG_NAME_FOO, false /* isolatedProcess */),
                         DexLoader.create(PKG_NAME_BAR, false /* isolatedProcess */)));
 
-        var info1 = mock(SecondaryDexInfo.class);
+        var info1 = mock(CheckedSecondaryDexInfo.class);
         lenient().when(info1.dexPath()).thenReturn("/data/user_de/0/foo/1.apk");
         lenient()
                 .when(info1.displayClassLoaderContext())
@@ -239,11 +238,9 @@ public class DumpHelperTest {
         lenient().when(info1.loaders()).thenReturn(loaders);
 
         // The output should show the dex path with "(removed)".
-        lenient()
-                .when(mArtd.getDexFileVisibility("/data/user_de/0/foo/1.apk"))
-                .thenReturn(FileVisibility.NOT_FOUND);
+        lenient().when(info1.fileVisibility()).thenReturn(FileVisibility.NOT_FOUND);
 
-        var info2 = mock(SecondaryDexInfo.class);
+        var info2 = mock(CheckedSecondaryDexInfo.class);
         lenient().when(info2.dexPath()).thenReturn("/data/user_de/0/foo/2.apk");
         lenient().when(info2.displayClassLoaderContext()).thenReturn("PCL[]");
         lenient()
@@ -255,14 +252,13 @@ public class DumpHelperTest {
         lenient()
                 .when(info2.loaders())
                 .thenReturn(Set.of(DexLoader.create(PKG_NAME_FOO, false /* isolatedProcess */)));
-        lenient()
-                .when(mArtd.getDexFileVisibility("/data/user_de/0/foo/2.apk"))
-                .thenReturn(FileVisibility.OTHER_READABLE);
+        lenient().when(info2.fileVisibility()).thenReturn(FileVisibility.OTHER_READABLE);
 
         lenient()
                 .doReturn(List.of(info1, info2))
                 .when(mDexUseManagerLocal)
-                .getSecondaryDexInfo(PKG_NAME_FOO);
+                .getCheckedSecondaryDexInfo(
+                        PKG_NAME_FOO, false /* excludeObsoleteDexesAndLoaders */);
     }
 
     private void setUpForBar() {

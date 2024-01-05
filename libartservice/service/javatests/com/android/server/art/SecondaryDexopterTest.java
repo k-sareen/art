@@ -16,7 +16,7 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.DexUseManagerLocal.DetailedSecondaryDexInfo;
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.OutputArtifacts.PermissionSettings;
 import static com.android.server.art.model.DexoptResult.DexContainerFileDexoptResult;
 import static com.android.server.art.testing.TestingUtils.deepEq;
@@ -130,9 +130,10 @@ public class SecondaryDexopterTest {
         lenient().when(mInjector.isLauncherPackage(any())).thenReturn(false);
         lenient().when(mInjector.getDexUseManager()).thenReturn(mDexUseManager);
 
-        List<DetailedSecondaryDexInfo> secondaryDexInfo = createSecondaryDexInfo();
+        List<CheckedSecondaryDexInfo> secondaryDexInfo = createSecondaryDexInfo();
         lenient()
-                .when(mDexUseManager.getFilteredDetailedSecondaryDexInfo(eq(PKG_NAME)))
+                .when(mDexUseManager.getCheckedSecondaryDexInfo(
+                        eq(PKG_NAME), eq(true) /* excludeObsoleteDexesAndLoaders */))
                 .thenReturn(secondaryDexInfo);
 
         mPkgState = createPackageState();
@@ -235,33 +236,33 @@ public class SecondaryDexopterTest {
         return pkgState;
     }
 
-    private List<DetailedSecondaryDexInfo> createSecondaryDexInfo() throws Exception {
+    private List<CheckedSecondaryDexInfo> createSecondaryDexInfo() throws Exception {
         // This should be compiled with profile.
-        var dex1Info = mock(DetailedSecondaryDexInfo.class);
+        var dex1Info = mock(CheckedSecondaryDexInfo.class);
         lenient().when(dex1Info.dexPath()).thenReturn(DEX_1);
         lenient().when(dex1Info.userHandle()).thenReturn(USER_HANDLE);
         lenient().when(dex1Info.classLoaderContext()).thenReturn("CLC_FOR_DEX_1");
         lenient().when(dex1Info.abiNames()).thenReturn(Set.of("arm64-v8a"));
         lenient().when(dex1Info.isUsedByOtherApps()).thenReturn(false);
-        lenient().when(dex1Info.isDexFilePublic()).thenReturn(true);
+        lenient().when(dex1Info.fileVisibility()).thenReturn(FileVisibility.OTHER_READABLE);
 
         // This should be compiled without profile because it's used by other apps.
-        var dex2Info = mock(DetailedSecondaryDexInfo.class);
+        var dex2Info = mock(CheckedSecondaryDexInfo.class);
         lenient().when(dex2Info.dexPath()).thenReturn(DEX_2);
         lenient().when(dex2Info.userHandle()).thenReturn(USER_HANDLE);
         lenient().when(dex2Info.classLoaderContext()).thenReturn("CLC_FOR_DEX_2");
         lenient().when(dex2Info.abiNames()).thenReturn(Set.of("arm64-v8a", "armeabi-v7a"));
         lenient().when(dex2Info.isUsedByOtherApps()).thenReturn(true);
-        lenient().when(dex2Info.isDexFilePublic()).thenReturn(true);
+        lenient().when(dex2Info.fileVisibility()).thenReturn(FileVisibility.OTHER_READABLE);
 
         // This should be compiled with verify because the class loader context is invalid.
-        var dex3Info = mock(DetailedSecondaryDexInfo.class);
+        var dex3Info = mock(CheckedSecondaryDexInfo.class);
         lenient().when(dex3Info.dexPath()).thenReturn(DEX_3);
         lenient().when(dex3Info.userHandle()).thenReturn(USER_HANDLE);
         lenient().when(dex3Info.classLoaderContext()).thenReturn(null);
         lenient().when(dex3Info.abiNames()).thenReturn(Set.of("arm64-v8a"));
         lenient().when(dex3Info.isUsedByOtherApps()).thenReturn(false);
-        lenient().when(dex3Info.isDexFilePublic()).thenReturn(false);
+        lenient().when(dex3Info.fileVisibility()).thenReturn(FileVisibility.NOT_OTHER_READABLE);
 
         return List.of(dex1Info, dex2Info, dex3Info);
     }

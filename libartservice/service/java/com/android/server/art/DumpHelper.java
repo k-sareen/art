@@ -16,8 +16,8 @@
 
 package com.android.server.art;
 
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.DexUseManagerLocal.DexLoader;
-import static com.android.server.art.DexUseManagerLocal.SecondaryDexInfo;
 import static com.android.server.art.model.DexoptStatus.DexContainerFileDexoptStatus;
 
 import android.annotation.NonNull;
@@ -99,11 +99,13 @@ public class DumpHelper {
                 mInjector.getArtManagerLocal()
                         .getDexoptStatus(snapshot, packageName)
                         .getDexContainerFileDexoptStatuses();
-        Map<String, SecondaryDexInfo> secondaryDexInfoByDexPath =
+        Map<String, CheckedSecondaryDexInfo> secondaryDexInfoByDexPath =
                 mInjector.getDexUseManager()
-                        .getSecondaryDexInfo(packageName)
+                        .getCheckedSecondaryDexInfo(
+                                packageName, false /* excludeObsoleteDexesAndLoaders */)
                         .stream()
-                        .collect(Collectors.toMap(SecondaryDexInfo::dexPath, Function.identity()));
+                        .collect(Collectors.toMap(
+                                CheckedSecondaryDexInfo::dexPath, Function.identity()));
 
         // Use LinkedHashMap to keep the order. They are ordered by their split indexes.
         var primaryStatusesByDexPath =
@@ -157,9 +159,9 @@ public class DumpHelper {
     private void dumpSecondaryDex(@NonNull IndentingPrintWriter ipw,
             @NonNull PackageManagerLocal.FilteredSnapshot snapshot,
             List<DexContainerFileDexoptStatus> fileStatuses, @NonNull String packageName,
-            @NonNull SecondaryDexInfo info) {
+            @NonNull CheckedSecondaryDexInfo info) {
         String dexPath = fileStatuses.get(0).getDexContainerFile();
-        @FileVisibility int visibility = getDexFileVisibility(dexPath);
+        @FileVisibility int visibility = info.fileVisibility();
         ipw.println(dexPath
                 + (visibility == FileVisibility.NOT_FOUND
                                 ? " (removed)"
@@ -236,15 +238,6 @@ public class DumpHelper {
         return result.toString();
     }
 
-    private @FileVisibility int getDexFileVisibility(@NonNull String dexPath) {
-        try {
-            return mInjector.getArtd().getDexFileVisibility(dexPath);
-        } catch (ServiceSpecificException | RemoteException e) {
-            Log.e(TAG, "Failed to get visibility of " + dexPath, e);
-            return FileVisibility.NOT_FOUND;
-        }
-    }
-
     /** Injector pattern for testing purpose. */
     @VisibleForTesting
     public static class Injector {
@@ -263,11 +256,6 @@ public class DumpHelper {
         public DexUseManagerLocal getDexUseManager() {
             return Objects.requireNonNull(
                     LocalManagerRegistry.getManager(DexUseManagerLocal.class));
-        }
-
-        @NonNull
-        public IArtd getArtd() {
-            return Utils.getArtd();
         }
     }
 }

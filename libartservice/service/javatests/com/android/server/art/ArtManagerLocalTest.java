@@ -18,7 +18,7 @@ package com.android.server.art;
 
 import static android.os.ParcelFileDescriptor.AutoCloseInputStream;
 
-import static com.android.server.art.DexUseManagerLocal.DetailedSecondaryDexInfo;
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.model.DexoptResult.DexContainerFileDexoptResult;
 import static com.android.server.art.model.DexoptResult.PackageDexoptResult;
 import static com.android.server.art.model.DexoptStatus.DexContainerFileDexoptStatus;
@@ -129,8 +129,8 @@ public class ArtManagerLocalTest {
     @Mock private StorageManager mStorageManager;
     private PackageState mPkgState1;
     private AndroidPackage mPkg1;
-    private DetailedSecondaryDexInfo mPkg1SecondaryDexInfo1;
-    private DetailedSecondaryDexInfo mPkg1SecondaryDexInfoNotFound;
+    private CheckedSecondaryDexInfo mPkg1SecondaryDexInfo1;
+    private CheckedSecondaryDexInfo mPkg1SecondaryDexInfoNotFound;
     private Config mConfig;
 
     // True if the artifacts should be in dalvik-cache.
@@ -218,9 +218,15 @@ public class ArtManagerLocalTest {
                 .when(mDexUseManager)
                 .getSecondaryDexInfo(eq(PKG_NAME_1));
         lenient()
+                .doReturn(List.of(mPkg1SecondaryDexInfo1, mPkg1SecondaryDexInfoNotFound))
+                .when(mDexUseManager)
+                .getCheckedSecondaryDexInfo(
+                        eq(PKG_NAME_1), eq(false) /* excludeObsoleteDexesAndLoaders */);
+        lenient()
                 .doReturn(List.of(mPkg1SecondaryDexInfo1))
                 .when(mDexUseManager)
-                .getFilteredDetailedSecondaryDexInfo(eq(PKG_NAME_1));
+                .getCheckedSecondaryDexInfo(
+                        eq(PKG_NAME_1), eq(true) /* excludeObsoleteDexesAndLoaders */);
 
         simulateStorageNotLow();
 
@@ -1283,8 +1289,8 @@ public class ArtManagerLocalTest {
         return getDexoptStatusResult;
     }
 
-    private DetailedSecondaryDexInfo createSecondaryDexInfo(String dexPath) throws Exception {
-        var dexInfo = mock(DetailedSecondaryDexInfo.class);
+    private CheckedSecondaryDexInfo createSecondaryDexInfo(String dexPath) throws Exception {
+        var dexInfo = mock(CheckedSecondaryDexInfo.class);
         lenient().when(dexInfo.dexPath()).thenReturn(dexPath);
         lenient().when(dexInfo.abiNames()).thenReturn(Set.of("arm64-v8a"));
         lenient().when(dexInfo.classLoaderContext()).thenReturn("CLC");

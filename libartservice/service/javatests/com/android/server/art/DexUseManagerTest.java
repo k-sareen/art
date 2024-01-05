@@ -16,7 +16,7 @@
 
 package com.android.server.art;
 
-import static com.android.server.art.DexUseManagerLocal.DetailedSecondaryDexInfo;
+import static com.android.server.art.DexUseManagerLocal.CheckedSecondaryDexInfo;
 import static com.android.server.art.DexUseManagerLocal.DexLoader;
 import static com.android.server.art.DexUseManagerLocal.SecondaryDexInfo;
 
@@ -87,11 +87,11 @@ public class DexUseManagerTest {
     private final UserHandle mUserHandle = Binder.getCallingUserHandle();
 
     /**
-     * The default value of `isDexFilePublic` returned by `getSecondaryDexInfo`. The value doesn't
+     * The default value of `fileVisibility` returned by `getSecondaryDexInfo`. The value doesn't
      * matter because it's undefined, but it's needed for deep equality check, to make the test
      * simpler.
      */
-    private final boolean mDefaultIsDexFilePublic = true;
+    private final @FileVisibility int mDefaultFileVisibility = FileVisibility.OTHER_READABLE;
 
     @Mock private PackageManagerLocal.FilteredSnapshot mSnapshot;
     @Mock private DexUseManagerLocal.Injector mInjector;
@@ -325,10 +325,10 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("arm64-v8a"),
                         Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */)),
-                        false /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        false /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
         assertThat(dexInfoList.get(0).classLoaderContext()).isEqualTo("CLC");
     }
 
@@ -341,10 +341,10 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mDeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mDeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("arm64-v8a"),
                         Set.of(DexLoader.create(OWNING_PKG_NAME, true /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        true /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
         assertThat(dexInfoList.get(0).classLoaderContext()).isEqualTo("CLC");
     }
 
@@ -356,10 +356,10 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("armeabi-v7a"),
                         Set.of(DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        true /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
         assertThat(dexInfoList.get(0).classLoaderContext()).isEqualTo("CLC");
     }
 
@@ -371,10 +371,10 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         SecondaryDexInfo.UNSUPPORTED_CLASS_LOADER_CONTEXT, Set.of("armeabi-v7a"),
                         Set.of(DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        true /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
         assertThat(dexInfoList.get(0).classLoaderContext()).isNull();
     }
 
@@ -388,12 +388,12 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         SecondaryDexInfo.VARYING_CLASS_LOADER_CONTEXTS,
                         Set.of("arm64-v8a", "armeabi-v7a"),
                         Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */),
                                 DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        true /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
         assertThat(dexInfoList.get(0).classLoaderContext()).isNull();
     }
 
@@ -489,7 +489,7 @@ public class DexUseManagerTest {
         List<? extends SecondaryDexInfo> dexInfoList =
                 mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME);
         assertThat(dexInfoList)
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                                          "UpdatedCLC", Set.of("arm64-v8a", "armeabi-v7a"),
                                          Set.of(DexLoader.create(OWNING_PKG_NAME,
                                                         false /* isolatedProcess */),
@@ -497,21 +497,21 @@ public class DexUseManagerTest {
                                                          true /* isolatedProcess */),
                                                  DexLoader.create(LOADING_PKG_NAME,
                                                          false /* isolatedProcess */)),
-                                         true /* isUsedByOtherApps */, mDefaultIsDexFilePublic),
-                        DetailedSecondaryDexInfo.create(mCeDir + "/bar.apk", mUserHandle,
+                                         true /* isUsedByOtherApps */, mDefaultFileVisibility),
+                        CheckedSecondaryDexInfo.create(mCeDir + "/bar.apk", mUserHandle,
                                 SecondaryDexInfo.VARYING_CLASS_LOADER_CONTEXTS,
                                 Set.of("arm64-v8a", "armeabi-v7a"),
                                 Set.of(DexLoader.create(
                                                OWNING_PKG_NAME, false /* isolatedProcess */),
                                         DexLoader.create(
                                                 LOADING_PKG_NAME, false /* isolatedProcess */)),
-                                true /* isUsedByOtherApps */, mDefaultIsDexFilePublic),
-                        DetailedSecondaryDexInfo.create(mCeDir + "/baz.apk", mUserHandle,
+                                true /* isUsedByOtherApps */, mDefaultFileVisibility),
+                        CheckedSecondaryDexInfo.create(mCeDir + "/baz.apk", mUserHandle,
                                 SecondaryDexInfo.UNSUPPORTED_CLASS_LOADER_CONTEXT,
                                 Set.of("arm64-v8a"),
                                 Set.of(DexLoader.create(
                                         OWNING_PKG_NAME, false /* isolatedProcess */)),
-                                false /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                                false /* isUsedByOtherApps */, mDefaultFileVisibility));
 
         assertThat(mDexUseManager.getSecondaryDexContainerFileUseInfo(OWNING_PKG_NAME))
                 .containsExactly(DexContainerFileUseInfo.create(mCeDir + "/foo.apk", mUserHandle,
@@ -525,7 +525,7 @@ public class DexUseManagerTest {
     }
 
     @Test
-    public void testFilteredDetailedSecondaryDexPublic() throws Exception {
+    public void testCheckedSecondaryDexPublic() throws Exception {
         when(mArtd.getDexFileVisibility(mCeDir + "/foo.apk"))
                 .thenReturn(FileVisibility.OTHER_READABLE);
 
@@ -534,16 +534,17 @@ public class DexUseManagerTest {
         mDexUseManager.notifyDexContainersLoaded(
                 mSnapshot, LOADING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
 
-        assertThat(mDexUseManager.getFilteredDetailedSecondaryDexInfo(OWNING_PKG_NAME))
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, true /* excludeObsoleteDexesAndLoaders */))
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("arm64-v8a", "armeabi-v7a"),
                         Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */),
                                 DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, true /* isDexFilePublic */));
+                        true /* isUsedByOtherApps */, FileVisibility.OTHER_READABLE));
     }
 
     @Test
-    public void testFilteredDetailedSecondaryDexPrivate() throws Exception {
+    public void testCheckedSecondaryDexPrivate() throws Exception {
         when(mArtd.getDexFileVisibility(mCeDir + "/foo.apk"))
                 .thenReturn(FileVisibility.NOT_OTHER_READABLE);
 
@@ -556,36 +557,57 @@ public class DexUseManagerTest {
         mDexUseManager.notifyDexContainersLoaded(
                 mSnapshot, OWNING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
 
-        assertThat(mDexUseManager.getFilteredDetailedSecondaryDexInfo(OWNING_PKG_NAME))
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, true /* excludeObsoleteDexesAndLoaders */))
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("arm64-v8a"),
                         Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */)),
-                        false /* isUsedByOtherApps */, false /* isDexFilePublic */));
+                        false /* isUsedByOtherApps */, FileVisibility.NOT_OTHER_READABLE));
+
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, false /* excludeObsoleteDexesAndLoaders */))
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                        "CLC", Set.of("arm64-v8a", "armeabi-v7a"),
+                        Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */),
+                                DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */),
+                                DexLoader.create(OWNING_PKG_NAME, true /* isolatedProcess */)),
+                        true /* isUsedByOtherApps */, FileVisibility.NOT_OTHER_READABLE));
     }
 
     @Test
-    public void testFilteredDetailedSecondaryDexFilteredDueToVisibility() throws Exception {
-        when(mArtd.getDexFileVisibility(mCeDir + "/foo.apk"))
-                .thenReturn(FileVisibility.NOT_OTHER_READABLE);
-
-        mDexUseManager.notifyDexContainersLoaded(
-                mSnapshot, LOADING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
-
-        when(Process.isIsolatedUid(anyInt())).thenReturn(true);
-        mDexUseManager.notifyDexContainersLoaded(
-                mSnapshot, OWNING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
-
-        assertThat(mDexUseManager.getFilteredDetailedSecondaryDexInfo(OWNING_PKG_NAME)).isEmpty();
-    }
-
-    @Test
-    public void testFilteredDetailedSecondaryDexFilteredDueToNotFound() throws Exception {
+    public void testCheckedSecondaryDexNotFound() throws Exception {
         when(mArtd.getDexFileVisibility(mCeDir + "/foo.apk")).thenReturn(FileVisibility.NOT_FOUND);
 
         mDexUseManager.notifyDexContainersLoaded(
                 mSnapshot, OWNING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
 
-        assertThat(mDexUseManager.getFilteredDetailedSecondaryDexInfo(OWNING_PKG_NAME)).isEmpty();
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, true /* excludeObsoleteDexesAndLoaders */))
+                .isEmpty();
+
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, false /* excludeObsoleteDexesAndLoaders */))
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                        "CLC", Set.of("arm64-v8a"),
+                        Set.of(DexLoader.create(OWNING_PKG_NAME, false /* isolatedProcess */)),
+                        false /* isUsedByOtherApps */, FileVisibility.NOT_FOUND));
+    }
+
+    @Test
+    public void testCheckedSecondaryDexFilteredDueToVisibility() throws Exception {
+        when(mArtd.getDexFileVisibility(mCeDir + "/foo.apk"))
+                .thenReturn(FileVisibility.NOT_OTHER_READABLE);
+
+        mDexUseManager.notifyDexContainersLoaded(
+                mSnapshot, LOADING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
+
+        when(Process.isIsolatedUid(anyInt())).thenReturn(true);
+        mDexUseManager.notifyDexContainersLoaded(
+                mSnapshot, OWNING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
+
+        assertThat(mDexUseManager.getCheckedSecondaryDexInfo(
+                           OWNING_PKG_NAME, true /* excludeObsoleteDexesAndLoaders */))
+                .isEmpty();
     }
 
     @Test
@@ -746,10 +768,10 @@ public class DexUseManagerTest {
                 mSnapshot, LOADING_PKG_NAME, Map.of(mCeDir + "/foo.apk", "CLC"));
 
         assertThat(mDexUseManager.getSecondaryDexInfo(OWNING_PKG_NAME))
-                .containsExactly(DetailedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
+                .containsExactly(CheckedSecondaryDexInfo.create(mCeDir + "/foo.apk", mUserHandle,
                         "CLC", Set.of("armeabi-v7a"),
                         Set.of(DexLoader.create(LOADING_PKG_NAME, false /* isolatedProcess */)),
-                        true /* isUsedByOtherApps */, mDefaultIsDexFilePublic));
+                        true /* isUsedByOtherApps */, mDefaultFileVisibility));
     }
 
     private AndroidPackage createPackage(String packageName) {
