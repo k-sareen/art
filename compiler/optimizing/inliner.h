@@ -59,6 +59,7 @@ class HInliner : public HOptimization {
         depth_(depth),
         inlining_budget_(0),
         try_catch_inlining_allowed_(try_catch_inlining_allowed),
+        run_extra_type_propagation_(false),
         inline_stats_(nullptr) {}
 
   bool Run() override;
@@ -340,6 +341,9 @@ class HInliner : public HOptimization {
 
   // States if we are allowing try catch inlining to occur at this particular instance of inlining.
   bool try_catch_inlining_allowed_;
+
+  // True if we need to run type propagation to type guards we inserted.
+  bool run_extra_type_propagation_;
 
   // Used to record stats about optimizations on the inlined graph.
   // If the inlining is successful, these stats are merged to the caller graph's stats.
