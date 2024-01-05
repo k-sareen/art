@@ -451,6 +451,24 @@ void SignalChain::Handler(int signo, siginfo_t* siginfo, void* ucontext_raw) {
 
       linked_sigprocmask(SIG_SETMASK, &previous_mask, nullptr);
     }
+  } else {
+#if defined(__aarch64__)
+    // Log the specific value if we're handling more than one signal (or if the bit is
+    // concurrently cleared) to help diagnose rare crashes. Multiple bits set may
+    // indicate memory corruption of the specific value in TLS. Bugs: 304237198, 294339122.
+    size_t bit_idx = signo - 1;
+    size_t key_idx = bit_idx / kNumSignalsPerKey;
+    uintptr_t expected = static_cast<uintptr_t>(1) << (bit_idx % kNumSignalsPerKey);
+    uintptr_t value =
+        reinterpret_cast<uintptr_t>(pthread_getspecific(GetHandlingSignalKey(key_idx)));
+    if (value != expected) {
+      LogError(
+          "Already handling signal %d, value=0x%" PRIxPTR " differs from expected=0x%" PRIxPTR,
+          signo,
+          value,
+          expected);
+    }
+#endif
   }
 
   // In Android 14, there's a special feature called "recoverable" GWP-ASan. GWP-ASan is a tool that
