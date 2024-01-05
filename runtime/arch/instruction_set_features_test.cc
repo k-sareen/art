@@ -28,7 +28,7 @@
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
-namespace art {
+namespace art HIDDEN {
 
 #ifdef ART_TARGET_ANDROID
 

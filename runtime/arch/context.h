@@ -22,7 +22,7 @@
 
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class QuickMethodFrameInfo;
 
@@ -31,7 +31,7 @@ class QuickMethodFrameInfo;
 class Context {
  public:
   // Creates a context for the running architecture
-  static Context* Create();
+  EXPORT static Context* Create();
 
   virtual ~Context() {}
 

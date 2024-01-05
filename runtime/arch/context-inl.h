@@ -41,7 +41,7 @@
 #error unimplemented
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 using RuntimeContextType = RUNTIME_CONTEXT_TYPE;
 

@@ -22,7 +22,7 @@
 #include "entrypoints/quick/callee_save_frame.h"
 #include "quick/quick_method_frame_info.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArchTest : public CommonArtTest {};
 

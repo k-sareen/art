@@ -16,7 +16,7 @@
 
 #include "context-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 Context* Context::Create() {
   return new RuntimeContextType;

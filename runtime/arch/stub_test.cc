@@ -32,7 +32,7 @@
 #include "mirror/object_array-alloc-inl.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 
 class StubTest : public CommonRuntimeTest {
