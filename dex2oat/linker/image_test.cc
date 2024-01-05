@@ -110,7 +110,11 @@ TEST_F(ImageTest, ImageHeaderIsValid) {
 // only if the copied method and the origin method are located in the
 // same oat file.
 TEST_F(ImageTest, TestDefaultMethods) {
-  TEST_DISABLED_FOR_RISCV64();
+  // Use this test to compile managed code to catch crashes when compiling the boot class path.
+  // This test already needs to compile some managed methods and by compiling with "speed" we
+  // avoid the need to create a specialized profile for the "speed-profile" compilation.
+  // (Using "speed" shall compile most methods. We could compile more with "everything".)
+  SetCompilerFilter(CompilerFilter::kSpeed);
   CompilationHelper helper;
   Compile(ImageHeader::kStorageModeUncompressed,
           /*max_image_block_size=*/std::numeric_limits<uint32_t>::max(),
@@ -123,7 +127,7 @@ TEST_F(ImageTest, TestDefaultMethods) {
   ScopedObjectAccess soa(self);
 
   // Test the pointer to quick code is the same in origin method
-  // and in the copied method form the same oat file.
+  // and in the copied method from the same oat file.
   ObjPtr<mirror::Class> iface_klass =
       class_linker_->LookupClass(self, "LIface;", /*class_loader=*/ nullptr);
   ASSERT_NE(nullptr, iface_klass);
