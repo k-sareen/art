@@ -63,3 +63,98 @@ sh_binary_host {
     src: "appcompat.sh",
     filename_from_src: true,
 }
+
+genrule {
+    name: "system_stub_dex_d8_input_jar",
+    srcs: [":system_android_jar"],
+    tools: ["zip2zip"],
+    out: ["system_stub_dex_d8_input.jar"],
+    cmd: "$(location zip2zip) " +
+        "-j -i $(in) " +
+        "-o $(out) \"**/*.class\" ",
+}
+
+genrule {
+    name: "system_stub_dex",
+    srcs: [
+        ":system_stub_dex_d8_input_jar",
+    ],
+    tools: [
+        "d8",
+    ],
+    out: [
+        "dex_dir/classes.dex",
+        "dex_dir/classes2.dex",
+    ],
+    cmd: "mkdir -p $(genDir)/dex_dir &&" +
+        "$(location d8) " +
+        "-JXmx4096M -JXX:+TieredCompilation -JXX:TieredStopAtLevel=1 " +
+        "-JDcom.android.tools.r8.emitRecordAnnotationsInDex " +
+        "-JDcom.android.tools.r8.emitPermittedSubclassesAnnotationsInDex " +
+        "-JXX:OnError=\"cat hs_err_pid%p.log\" " +
+        "-JXX:CICompilerCount=6 -JXX:+UseDynamicNumberOfGCThreads " +
+        "--output $(genDir)/dex_dir " +
+        "--min-api 1000 " +
+        "$(in)",
+}
+
+genrule {
+    name: "public_oahl_stub_dex_d8_input_jar",
+    srcs: [":public.org.apache.http.legacy.jar"],
+    tools: ["zip2zip"],
+    out: ["oahl_stub_dex_d8_input.jar"],
+    cmd: "$(location zip2zip) " +
+        "-j -i $(in) " +
+        "-o $(out) \"**/*.class\" ",
+}
+
+genrule {
+    name: "public_oahl_stub_dex",
+    srcs: [
+        ":public_oahl_stub_dex_d8_input_jar",
+    ],
+    tools: [
+        "d8",
+    ],
+    out: [
+        "dex_dir/classes.dex",
+    ],
+    cmd: "mkdir -p $(genDir)/dex_dir &&" +
+        "$(location d8) " +
+        "-JXmx4096M -JXX:+TieredCompilation -JXX:TieredStopAtLevel=1 " +
+        "-JDcom.android.tools.r8.emitRecordAnnotationsInDex " +
+        "-JDcom.android.tools.r8.emitPermittedSubclassesAnnotationsInDex " +
+        "-JXX:OnError=\"cat hs_err_pid%p.log\" " +
+        "-JXX:CICompilerCount=6 -JXX:+UseDynamicNumberOfGCThreads " +
+        "--output $(genDir)/dex_dir " +
+        "--min-api 1000 " +
+        "$(in)",
+}
+
+genrule {
+    name: "veridex_zip",
+    srcs: [
+        "appcompat.sh",
+        ":platform-bootclasspath{hiddenapi-flags.csv}",
+        ":system_stub_dex",
+        ":public_oahl_stub_dex",
+    ],
+    tools: [
+        "soong_zip",
+        "veridex",
+    ],
+    out: ["veridex.zip"],
+    cmd: "mkdir -p $(genDir)/tmp &&" +
+        "ls -1 $(locations :system_stub_dex) | sort > $(genDir)/tmp/system-stubs.zip.list && " +
+        "$(locations soong_zip) -o $(genDir)/tmp/system-stubs.zip" +
+        " -j -l $(genDir)/tmp/system-stubs.zip.list && " +
+        "ls -1 $(locations :public_oahl_stub_dex) | sort > $(genDir)/tmp/org.apache.http.legacy-stubs.zip.list && " +
+        "$(locations soong_zip) -o $(genDir)/tmp/org.apache.http.legacy-stubs.zip " +
+        " -j -l $(genDir)/tmp/org.apache.http.legacy-stubs.zip.list && " +
+        "$(locations soong_zip) -o $(out)" +
+        " -C `dirname $(location appcompat.sh)` -f $(location appcompat.sh)" +
+        " -C `dirname $(location :platform-bootclasspath{hiddenapi-flags.csv})` -f $(location :platform-bootclasspath{hiddenapi-flags.csv})" +
+        " -C `dirname $(location veridex)` -f $(location veridex)" +
+        " -j -f $(genDir)/tmp/system-stubs.zip" +
+        " -j -f $(genDir)/tmp/org.apache.http.legacy-stubs.zip",
+}
