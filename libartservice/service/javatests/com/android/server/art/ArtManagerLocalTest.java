@@ -61,6 +61,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.modules.utils.pm.PackageStateModulesUtils;
 import com.android.server.art.model.ArtFlags;
+import com.android.server.art.model.ArtManagedFileStats;
 import com.android.server.art.model.Config;
 import com.android.server.art.model.DeleteResult;
 import com.android.server.art.model.DexoptParams;
@@ -1108,6 +1109,91 @@ public class ArtManagerLocalTest {
                                              PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64"),
                         AidlUtils.buildRuntimeArtifactsPath(
                                 PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+    }
+
+    @Test
+    public void testGetArtManagedFileStats() throws Exception {
+        // The same setup as `testCleanup`.
+
+        // It should count all artifacts, but not runtime images.
+        doReturn(createGetDexoptStatusResult(
+                         "speed-profile", "bg-dexopt", "location", ArtifactsLocation.NEXT_TO_DEX))
+                .when(mArtd)
+                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm64"), any());
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "cmdline", "location", ArtifactsLocation.NEXT_TO_DEX))
+                .when(mArtd)
+                .getDexoptStatus(eq("/data/user/0/foo/1.apk"), eq("arm64"), any());
+
+        // It should count all artifacts and runtime images.
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "bg-dexopt", "location", ArtifactsLocation.DALVIK_CACHE))
+                .when(mArtd)
+                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm64"), any());
+
+        // It should only count VDEX files and runtime images.
+        doReturn(createGetDexoptStatusResult(
+                         "verify", "vdex", "location", ArtifactsLocation.NEXT_TO_DEX))
+                .when(mArtd)
+                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm"), any());
+
+        // It should not count any artifacts or runtime images.
+        doReturn(createGetDexoptStatusResult(
+                         "run-from-apk", "unknown", "unknown", ArtifactsLocation.NONE_OR_ERROR))
+                .when(mArtd)
+                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm"), any());
+
+        // These are counted as TYPE_DEXOPT_ARTIFACT.
+        doReturn(1l << 0).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
+                "/data/app/foo/base.apk", "arm64", false /* isInDalvikCache */)));
+        doReturn(1l << 1).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
+                "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */)));
+        doReturn(1l << 2).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
+                "/data/app/foo/split_0.apk", "arm64", true /* isInDalvikCache */)));
+        doReturn(1l << 3).when(mArtd).getVdexFileSize(
+                deepEq(VdexPath.artifactsPath(AidlUtils.buildArtifactsPath(
+                        "/data/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))));
+        doReturn(1l << 4).when(mArtd).getRuntimeArtifactsSize(
+                deepEq(AidlUtils.buildRuntimeArtifactsPath(
+                        PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64")));
+        doReturn(1l << 5).when(mArtd).getRuntimeArtifactsSize(
+                deepEq(AidlUtils.buildRuntimeArtifactsPath(
+                        PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+
+        // These are counted as TYPE_REF_PROFILE.
+        doReturn(1l << 6).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "primary")));
+        doReturn(1l << 7).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "split_0.split")));
+        doReturn(1l << 8).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk")));
+
+        // These are counted as TYPE_CUR_PROFILE.
+        doReturn(1l << 9).when(mArtd).getProfileSize(deepEq(
+                AidlUtils.buildProfilePathForPrimaryCur(0 /* userId */, PKG_NAME_1, "primary")));
+        doReturn(1l << 10).when(mArtd).getProfileSize(deepEq(
+                AidlUtils.buildProfilePathForPrimaryCur(1 /* userId */, PKG_NAME_1, "primary")));
+        doReturn(1l << 11).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForPrimaryCur(
+                        0 /* userId */, PKG_NAME_1, "split_0.split")));
+        doReturn(1l << 12).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForPrimaryCur(
+                        1 /* userId */, PKG_NAME_1, "split_0.split")));
+        doReturn(1l << 13).when(mArtd).getProfileSize(
+                deepEq(AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/1.apk")));
+
+        ArtManagedFileStats stats = mArtManagerLocal.getArtManagedFileStats(mSnapshot, PKG_NAME_1);
+        assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_DEXOPT_ARTIFACT))
+                .isEqualTo((1l << 0) + (1l << 1) + (1l << 2) + (1l << 3) + (1l << 4) + (1l << 5));
+        assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_REF_PROFILE))
+                .isEqualTo((1l << 6) + (1l << 7) + (1l << 8));
+        assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_CUR_PROFILE))
+                .isEqualTo((1l << 9) + (1l << 10) + (1l << 11) + (1l << 12) + (1l << 13));
+
+        verify(mArtd, times(3)).getArtifactsSize(any());
+        verify(mArtd, times(1)).getVdexFileSize(any());
+        verify(mArtd, times(2)).getRuntimeArtifactsSize(any());
+        verify(mArtd, times(8)).getProfileSize(any());
     }
 
     private AndroidPackage createPackage(boolean multiSplit) {

@@ -177,6 +177,20 @@ class Artd : public aidl::com::android::server::art::BnArtd {
       const aidl::com::android::server::art::RuntimeArtifactsPath& in_runtimeArtifactsPath,
       int64_t* _aidl_return) override;
 
+  ndk::ScopedAStatus getArtifactsSize(
+      const aidl::com::android::server::art::ArtifactsPath& in_artifactsPath,
+      int64_t* _aidl_return) override;
+
+  ndk::ScopedAStatus getVdexFileSize(const aidl::com::android::server::art::VdexPath& in_vdexPath,
+                                     int64_t* _aidl_return) override;
+
+  ndk::ScopedAStatus getRuntimeArtifactsSize(
+      const aidl::com::android::server::art::RuntimeArtifactsPath& in_runtimeArtifactsPath,
+      int64_t* _aidl_return) override;
+
+  ndk::ScopedAStatus getProfileSize(const aidl::com::android::server::art::ProfilePath& in_profile,
+                                    int64_t* _aidl_return) override;
+
   android::base::Result<void> Start();
 
  private:

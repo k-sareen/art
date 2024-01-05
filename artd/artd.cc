@@ -1290,6 +1290,44 @@ ScopedAStatus Artd::deleteRuntimeArtifacts(const RuntimeArtifactsPath& in_runtim
   return ScopedAStatus::ok();
 }
 
+ScopedAStatus Artd::getArtifactsSize(const ArtifactsPath& in_artifactsPath, int64_t* _aidl_return) {
+  std::string oat_path = OR_RETURN_FATAL(BuildOatPath(in_artifactsPath));
+  *_aidl_return = 0;
+  *_aidl_return += GetSize(oat_path).value_or(0);
+  *_aidl_return += GetSize(OatPathToVdexPath(oat_path)).value_or(0);
+  *_aidl_return += GetSize(OatPathToArtPath(oat_path)).value_or(0);
+  return ScopedAStatus::ok();
+}
+
+ScopedAStatus Artd::getVdexFileSize(const VdexPath& in_vdexPath, int64_t* _aidl_return) {
+  std::string vdex_path = OR_RETURN_FATAL(BuildVdexPath(in_vdexPath));
+  *_aidl_return = GetSize(vdex_path).value_or(0);
+  return ScopedAStatus::ok();
+}
+
+ScopedAStatus Artd::getRuntimeArtifactsSize(const RuntimeArtifactsPath& in_runtimeArtifactsPath,
+                                            int64_t* _aidl_return) {
+  OR_RETURN_FATAL(ValidateRuntimeArtifactsPath(in_runtimeArtifactsPath));
+  *_aidl_return = 0;
+  Result<std::string> android_data = GetAndroidDataOrError();
+  Result<std::string> android_expand = GetAndroidExpandOrError();
+  if (!android_data.ok() || !android_expand.ok()) {
+    LOG(ERROR) << "Failed to get the path to ANDROID_DATA or ANDROID_EXPAND";
+    return ScopedAStatus::ok();
+  }
+  for (const std::string& file : ListRuntimeArtifactsFiles(
+           android_data.value(), android_expand.value(), in_runtimeArtifactsPath)) {
+    *_aidl_return += GetSize(file).value_or(0);
+  }
+  return ScopedAStatus::ok();
+}
+
+ScopedAStatus Artd::getProfileSize(const ProfilePath& in_profile, int64_t* _aidl_return) {
+  std::string profile_path = OR_RETURN_FATAL(BuildProfileOrDmPath(in_profile));
+  *_aidl_return = GetSize(profile_path).value_or(0);
+  return ScopedAStatus::ok();
+}
+
 Result<void> Artd::Start() {
   OR_RETURN(SetLogVerbosity());
   MemMap::Init();

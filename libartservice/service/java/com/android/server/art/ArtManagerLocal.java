@@ -58,6 +58,7 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.LocalManagerRegistry;
 import com.android.server.art.model.ArtFlags;
+import com.android.server.art.model.ArtManagedFileStats;
 import com.android.server.art.model.BatchDexoptParams;
 import com.android.server.art.model.Config;
 import com.android.server.art.model.DeleteResult;
@@ -871,6 +872,57 @@ public final class ArtManagerLocal {
             @NonNull PackageManagerLocal.FilteredSnapshot snapshot, @NonNull String packageName) {
         new DumpHelper(this).dumpPackage(
                 pw, snapshot, Utils.getPackageStateOrThrow(snapshot, packageName));
+    }
+
+    /**
+     * Returns the statistics of the files managed by ART of a package.
+     *
+     * @throws IllegalArgumentException if the package is not found
+     * @throws IllegalStateException if the operation encounters an error that should never happen
+     *         (e.g., an internal logic error).
+     *
+     * @hide
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @NonNull
+    public ArtManagedFileStats getArtManagedFileStats(
+            @NonNull PackageManagerLocal.FilteredSnapshot snapshot, @NonNull String packageName) {
+        PackageState pkgState = Utils.getPackageStateOrThrow(snapshot, packageName);
+        AndroidPackage pkg = Utils.getPackageOrThrow(pkgState);
+
+        try {
+            long artifactsSize = 0;
+            long refProfilesSize = 0;
+            long curProfilesSize = 0;
+            IArtd artd = mInjector.getArtd();
+
+            UsableArtifactLists artifactLists =
+                    mInjector.getArtFileManager().getUsableArtifacts(pkgState, pkg);
+            for (ArtifactsPath artifacts : artifactLists.artifacts()) {
+                artifactsSize += artd.getArtifactsSize(artifacts);
+            }
+            for (VdexPath vdexFile : artifactLists.vdexFiles()) {
+                artifactsSize += artd.getVdexFileSize(vdexFile);
+            }
+            for (RuntimeArtifactsPath runtimeArtifacts : artifactLists.runtimeArtifacts()) {
+                artifactsSize += artd.getRuntimeArtifactsSize(runtimeArtifacts);
+            }
+
+            ProfileLists profileLists = mInjector.getArtFileManager().getProfiles(
+                    pkgState, pkg, true /* alsoForSecondaryDex */, true /* excludeDexNotFound */);
+            for (ProfilePath profile : profileLists.refProfiles()) {
+                refProfilesSize += artd.getProfileSize(profile);
+            }
+            for (ProfilePath profile : profileLists.curProfiles()) {
+                curProfilesSize += artd.getProfileSize(profile);
+            }
+
+            return ArtManagedFileStats.create(artifactsSize, refProfilesSize, curProfilesSize);
+        } catch (RemoteException e) {
+            Utils.logArtdException(e);
+            return ArtManagedFileStats.create(
+                    0 /* artifactsSize */, 0 /* refProfilesSize */, 0 /* curProfilesSize */);
+        }
     }
 
     /**

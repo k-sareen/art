@@ -199,4 +199,39 @@ interface IArtd {
      */
     long deleteRuntimeArtifacts(
             in com.android.server.art.RuntimeArtifactsPath runtimeArtifactsPath);
+
+    /**
+     * Returns the size of the dexopt artifacts, in bytes, or 0 if they don't exist or a non-fatal
+     * error occurred.
+     *
+     * Throws fatal errors. Logs and ignores non-fatal errors.
+     */
+    long getArtifactsSize(in com.android.server.art.ArtifactsPath artifactsPath);
+
+    /**
+     * Returns the size of the vdex file, in bytes, or 0 if it doesn't exist or a non-fatal error
+     * occurred.
+     *
+     * Throws fatal errors. Logs and ignores non-fatal errors.
+     */
+    long getVdexFileSize(in com.android.server.art.VdexPath vdexPath);
+
+    /**
+     * Returns the size of the runtime artifacts, in bytes, or 0 if they don't exist or a non-fatal
+     * error occurred.
+     *
+     * Throws fatal errors. Logs and ignores non-fatal errors.
+     */
+    long getRuntimeArtifactsSize(
+            in com.android.server.art.RuntimeArtifactsPath runtimeArtifactsPath);
+
+    /**
+     * Returns the size of the profile, in bytes, or 0 if it doesn't exist or a non-fatal error
+     * occurred.
+     *
+     * Operates on the whole DM file if given one.
+     *
+     * Throws fatal errors. Logs and ignores non-fatal errors.
+     */
+    long getProfileSize(in com.android.server.art.ProfilePath profile);
 }
