@@ -27,7 +27,7 @@
 #include "heap_bitmap.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace accounting {
 

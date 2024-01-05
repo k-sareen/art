@@ -24,7 +24,7 @@
 #include "base/macros.h"
 #include "space_bitmap.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 class Heap;

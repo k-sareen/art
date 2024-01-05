@@ -25,7 +25,7 @@
 #include <set>
 #include <vector>
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 namespace collector {

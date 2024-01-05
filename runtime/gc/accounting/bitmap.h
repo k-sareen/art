@@ -29,7 +29,7 @@
 #include "base/mem_map.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace gc {
 namespace accounting {

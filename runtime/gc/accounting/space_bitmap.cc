@@ -28,7 +28,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace accounting {
 
