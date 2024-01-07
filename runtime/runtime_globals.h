@@ -19,6 +19,7 @@
 
 #include <android-base/logging.h>
 
+#include "base/bit_utils.h"
 #include "base/globals.h"
 
 namespace art {
@@ -36,7 +37,7 @@ struct PageSize {
   PageSize()
     : is_initialized_(true), is_access_allowed_(false) {}
 
-  ALWAYS_INLINE operator size_t() const {
+  constexpr ALWAYS_INLINE operator size_t() const {
     DCHECK(is_initialized_ && is_access_allowed_);
     return value_;
   }
@@ -90,6 +91,20 @@ extern PageSize gPageSize ALWAYS_HIDDEN;
 #else
 static constexpr size_t gPageSize = kMinPageSize;
 #endif
+
+// In the page-size-agnostic configuration the compiler may not recognise gPageSize as a
+// power-of-two value, and may therefore miss opportunities to optimize: divisions via a
+// right-shift, modulo via a bitwise-AND.
+// Here, define two functions which use the optimized implementations explicitly, which should be
+// used when dividing by or applying modulo of the page size. For simplificty, the same functions
+// are used under both configurations, as they optimize the page-size-agnostic configuration while
+// only replicating what the compiler already does on the non-page-size-agnostic configuration.
+static constexpr ALWAYS_INLINE size_t DivideByPageSize(size_t num) {
+  return (num >> WhichPowerOf2(static_cast<size_t>(gPageSize)));
+}
+static constexpr ALWAYS_INLINE size_t ModuloPageSize(size_t num) {
+  return (num & (gPageSize-1));
+}
 
 // Returns whether the given memory offset can be used for generating
 // an implicit null check.

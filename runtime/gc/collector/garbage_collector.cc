@@ -168,13 +168,13 @@ uint64_t GarbageCollector::ExtractRssFromMincore(
     }
     size_t length = static_cast<uint8_t*>(it->second) - static_cast<uint8_t*>(it->first);
     // Compute max length for vector allocation later.
-    vec_len = std::max(vec_len, length / gPageSize);
+    vec_len = std::max(vec_len, DivideByPageSize(length));
   }
   std::unique_ptr<unsigned char[]> vec(new unsigned char[vec_len]);
   for (const auto it : *gc_ranges) {
     size_t length = static_cast<uint8_t*>(it.second) - static_cast<uint8_t*>(it.first);
     if (mincore(it.first, length, vec.get()) == 0) {
-      for (size_t i = 0; i < length / gPageSize; i++) {
+      for (size_t i = 0; i < DivideByPageSize(length); i++) {
         // Least significant bit represents residency of a page. Other bits are
         // reserved.
         rss += vec[i] & 0x1;

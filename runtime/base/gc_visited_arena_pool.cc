@@ -43,7 +43,7 @@ TrackedArena::TrackedArena(uint8_t* start, size_t size, bool pre_zygote_fork, bo
   } else {
     DCHECK_ALIGNED_PARAM(size, gPageSize);
     DCHECK_ALIGNED_PARAM(start, gPageSize);
-    size_t arr_size = size / gPageSize;
+    size_t arr_size = DivideByPageSize(size);
     first_obj_array_.reset(new uint8_t*[arr_size]);
     std::fill_n(first_obj_array_.get(), arr_size, nullptr);
   }
@@ -69,7 +69,7 @@ void TrackedArena::Release() {
   if (bytes_allocated_ > 0) {
     ReleasePages(Begin(), Size(), pre_zygote_fork_);
     if (first_obj_array_.get() != nullptr) {
-      std::fill_n(first_obj_array_.get(), Size() / gPageSize, nullptr);
+      std::fill_n(first_obj_array_.get(), DivideByPageSize(Size()), nullptr);
     }
     bytes_allocated_ = 0;
   }
@@ -81,8 +81,8 @@ void TrackedArena::SetFirstObject(uint8_t* obj_begin, uint8_t* obj_end) {
   DCHECK_LT(static_cast<void*>(obj_begin), static_cast<void*>(obj_end));
   GcVisitedArenaPool* arena_pool =
       static_cast<GcVisitedArenaPool*>(Runtime::Current()->GetLinearAllocArenaPool());
-  size_t idx = static_cast<size_t>(obj_begin - Begin()) / gPageSize;
-  size_t last_byte_idx = static_cast<size_t>(obj_end - 1 - Begin()) / gPageSize;
+  size_t idx = DivideByPageSize(static_cast<size_t>(obj_begin - Begin()));
+  size_t last_byte_idx = DivideByPageSize(static_cast<size_t>(obj_end - 1 - Begin()));
   // Do the update below with arena-pool's lock in shared-mode to serialize with
   // the compaction-pause wherein we acquire it exclusively. This is to ensure
   // that last-byte read there doesn't change after reading it and before

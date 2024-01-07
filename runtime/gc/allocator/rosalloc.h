@@ -62,7 +62,7 @@ class RosAlloc {
     }
     void SetByteSize(RosAlloc* rosalloc, size_t byte_size)
         REQUIRES(rosalloc->lock_) {
-      DCHECK_EQ(byte_size % gPageSize, static_cast<size_t>(0));
+      DCHECK_EQ(ModuloPageSize(byte_size), static_cast<size_t>(0));
       uint8_t* fpr_base = reinterpret_cast<uint8_t*>(this);
       size_t pm_idx = rosalloc->ToPageMapIndex(fpr_base);
       rosalloc->free_page_run_size_map_[pm_idx] = byte_size;
@@ -103,7 +103,7 @@ class RosAlloc {
     void ReleasePages(RosAlloc* rosalloc) REQUIRES(rosalloc->lock_) {
       uint8_t* start = reinterpret_cast<uint8_t*>(this);
       size_t byte_size = ByteSize(rosalloc);
-      DCHECK_EQ(byte_size % gPageSize, static_cast<size_t>(0));
+      DCHECK_EQ(ModuloPageSize(byte_size), static_cast<size_t>(0));
       if (ShouldReleasePages(rosalloc)) {
         rosalloc->ReleasePageRange(start, start + byte_size);
       }
@@ -611,13 +611,13 @@ class RosAlloc {
     DCHECK_LE(base_, addr);
     DCHECK_LT(addr, base_ + capacity_);
     size_t byte_offset = reinterpret_cast<const uint8_t*>(addr) - base_;
-    DCHECK_EQ(byte_offset % static_cast<size_t>(gPageSize), static_cast<size_t>(0));
-    return byte_offset / gPageSize;
+    DCHECK_EQ(ModuloPageSize(byte_offset), static_cast<size_t>(0));
+    return DivideByPageSize(byte_offset);
   }
   // Returns the page map index from an address with rounding.
   size_t RoundDownToPageMapIndex(const void* addr) const {
     DCHECK(base_ <= addr && addr < reinterpret_cast<uint8_t*>(base_) + capacity_);
-    return (reinterpret_cast<uintptr_t>(addr) - reinterpret_cast<uintptr_t>(base_)) / gPageSize;
+    return DivideByPageSize(reinterpret_cast<uintptr_t>(addr) - reinterpret_cast<uintptr_t>(base_));
   }
 
   // A memory allocation request larger than this size is treated as a large object and allocated
@@ -916,7 +916,7 @@ class RosAlloc {
     return dedicated_full_run_;
   }
   bool IsFreePage(size_t idx) const {
-    DCHECK_LT(idx, capacity_ / gPageSize);
+    DCHECK_LT(idx, DivideByPageSize(capacity_));
     uint8_t pm_type = page_map_[idx];
     return pm_type == kPageMapReleased || pm_type == kPageMapEmpty;
   }
