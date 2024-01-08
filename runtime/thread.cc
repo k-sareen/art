@@ -1724,8 +1724,10 @@ bool Thread::RequestSynchronousCheckpoint(Closure* function, ThreadState wait_st
       }
     }
     if (!is_suspended) {
-      bool success =
-          Runtime::Current()->GetThreadList()->WaitForSuspendBarrier(&wrapped_barrier.barrier_);
+      bool success = !Runtime::Current()
+                          ->GetThreadList()
+                          ->WaitForSuspendBarrier(&wrapped_barrier.barrier_)
+                          .has_value();
       CHECK(success);
     }
 

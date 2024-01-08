@@ -655,36 +655,107 @@ void ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
   Locks::mutator_lock_->SharedUnlock(self);
 }
 
-bool ThreadList::WaitForSuspendBarrier(AtomicInteger* barrier) {
 #if ART_USE_FUTEXES
-  // Only fail after multiple timeouts, to make us robust against app freezing.
-  static constexpr int kIters = 5;
+static constexpr int kSuspendBarrierIters = 5;
+
+// Returns true if it timed out.
+static bool WaitOnceForSuspendBarrier(AtomicInteger* barrier,
+                                      int32_t cur_val,
+                                      uint64_t timeout_ns) {
   timespec wait_timeout;
-  InitTimeSpec(
-      false, CLOCK_MONOTONIC, NsToMs(thread_suspend_timeout_ns_ / kIters), 0, &wait_timeout);
+  DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
+  InitTimeSpec(false, CLOCK_MONOTONIC, NsToMs(timeout_ns / kSuspendBarrierIters), 0, &wait_timeout);
+  if (futex(barrier->Address(), FUTEX_WAIT_PRIVATE, cur_val, &wait_timeout, nullptr, 0) != 0) {
+    if (errno == ETIMEDOUT) {
+      return true;
+    } else if (errno != EAGAIN && errno != EINTR) {
+      PLOG(FATAL) << "futex wait for suspend barrier failed";
+    }
+  }
+  return false;
+}
+
 #else
-  static constexpr int kIters = 10'000'000;
+static constexpr int kSuspendBarrierIters = 10;
+
+static bool WaitOnceForSuspendBarrier(AtomicInteger* barrier,
+                                      int32_t cur_val,
+                                      uint64_t timeout_ns) {
+  DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
+  for (int i = 0; i < 1'000'000; ++i) {
+    sched_yield();
+    if (barrier->load(std::memory_order_acquire) == 0) {
+      return false;
+    }
+  }
+  return true;
+}
 #endif
-  for (int i = 0; i < kIters;) {
-    int32_t cur_val = barrier->load(std::memory_order_acquire);
+
+// Return a short string describing the scheduling state of the thread with the given tid.
+static std::string GetThreadState(pid_t t) {
+#if defined(__linux__)
+  static constexpr int BUF_SIZE = 90;
+  char file_name_buf[BUF_SIZE];
+  char buf[BUF_SIZE];
+  snprintf(file_name_buf, BUF_SIZE, "/proc/%d/stat", t);
+  int stat_fd = open(file_name_buf, O_RDONLY | O_CLOEXEC);
+  if (stat_fd < 0) {
+    return std::string("failed to get thread state: ") + std::string(strerror(errno));
+  }
+  CHECK(stat_fd >= 0) << strerror(errno);
+  ssize_t bytes_read = TEMP_FAILURE_RETRY(read(stat_fd, buf, BUF_SIZE));
+  CHECK(bytes_read >= 0) << strerror(errno);
+  int ret = close(stat_fd);
+  DCHECK(ret == 0) << strerror(errno);
+  buf[BUF_SIZE - 1] = '\0';
+  return buf;
+#else
+  return "unknown state";
+#endif
+}
+
+std::optional<std::string> ThreadList::WaitForSuspendBarrier(AtomicInteger* barrier, pid_t t) {
+  // Only fail after kIter timeouts, to make us robust against app freezing.
+#if ART_USE_FUTEXES
+  const uint64_t start_time = NanoTime();
+#endif
+  int32_t cur_val = barrier->load(std::memory_order_acquire);
+  if (cur_val <= 0) {
+    DCHECK_EQ(cur_val, 0);
+    return std::nullopt;
+  }
+  int i = 0;
+  if (WaitOnceForSuspendBarrier(barrier, cur_val, thread_suspend_timeout_ns_)) {
+    i = 1;
+  }
+  cur_val = barrier->load(std::memory_order_acquire);
+  if (cur_val <= 0) {
+    DCHECK_EQ(cur_val, 0);
+    return std::nullopt;
+  }
+
+  // Long wait; gather information in case of timeout.
+  std::string sampled_state = t == 0 ? "" : GetThreadState(t);
+  while (i < kSuspendBarrierIters) {
+    if (WaitOnceForSuspendBarrier(barrier, cur_val, thread_suspend_timeout_ns_)) {
+#if ART_USE_FUTEXES
+      CHECK_GE(NanoTime() - start_time,
+               i * thread_suspend_timeout_ns_ / kSuspendBarrierIters - 1'000'000);
+#endif
+      ++i;
+    }
+    cur_val = barrier->load(std::memory_order_acquire);
     if (cur_val <= 0) {
       DCHECK_EQ(cur_val, 0);
-      return true;
+      return std::nullopt;
     }
-#if ART_USE_FUTEXES
-    if (futex(barrier->Address(), FUTEX_WAIT_PRIVATE, cur_val, &wait_timeout, nullptr, 0) != 0) {
-      if (errno == ETIMEDOUT) {
-        ++i;
-      } else if (errno != EAGAIN && errno != EINTR) {
-        PLOG(FATAL) << "futex wait for suspend barrier failed";
-      }
-    }
-#else
-    sched_yield();  // Not ideal, but ART_USE_FUTEXES is set on Linux, including all targets.
-    ++i;
-#endif
   }
-  return barrier->load(std::memory_order_acquire) == 0;
+  std::string result = t == 0 ? "" :
+                                "Target states: [" + sampled_state + ", " + GetThreadState(t) +
+                                    "]" + std::to_string(cur_val) + "@" +
+                                    std::to_string((uintptr_t)barrier) + "->";
+  return result + std::to_string(barrier->load(std::memory_order_acquire));
 }
 
 void ThreadList::SuspendAll(const char* cause, bool long_suspend) {
@@ -830,7 +901,7 @@ void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason) {
     // We're already not runnable, so an attempt to suspend us should succeed.
   }
 
-  if (!WaitForSuspendBarrier(&pending_threads)) {
+  if (WaitForSuspendBarrier(&pending_threads).has_value()) {
     const uint64_t wait_time = NanoTime() - start_time;
     MutexLock mu(self, *Locks::thread_list_lock_);
     MutexLock mu2(self, *Locks::thread_suspend_count_lock_);
@@ -1005,7 +1076,7 @@ Thread* ThreadList::SuspendThreadByPeer(jobject peer, SuspendReason reason) {
     usleep(kThreadSuspendSleepUs);
   }
   // Now wait for target to decrement suspend barrier.
-  if (is_suspended || WaitForSuspendBarrier(&wrapped_barrier.barrier_)) {
+  if (is_suspended || !WaitForSuspendBarrier(&wrapped_barrier.barrier_).has_value()) {
     // wrapped_barrier.barrier_ has been decremented and will no longer be accessed.
     VLOG(threads) << "SuspendThreadByPeer thread suspended: " << *thread;
     if (ATraceEnabled()) {
@@ -1035,7 +1106,11 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
   CHECK_NE(thread_id, kInvalidThreadId);
   VLOG(threads) << "SuspendThreadByThreadId starting";
   Thread* thread;
+  pid_t tid;
+  uint8_t suspended_count;
+  uint8_t checkpoint_count;
   WrappedSuspend1Barrier wrapped_barrier{};
+  static_assert(sizeof wrapped_barrier.barrier_ == sizeof(uint32_t));
   for (int iter_count = 1;; ++iter_count) {
     {
       // Note: this will transition to runnable and potentially suspend.
@@ -1053,6 +1128,9 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
       {
         MutexLock suspend_count_mu(self, *Locks::thread_suspend_count_lock_);
         if (LIKELY(self->GetSuspendCount() == 0)) {
+          tid = thread->GetTid();
+          suspended_count = thread->suspended_count_;
+          checkpoint_count = thread->checkpoint_count_;
           thread->IncrementSuspendCount(self, nullptr, &wrapped_barrier, reason);
           if (thread->IsSuspended()) {
             // See the discussion in mutator_gc_coord.md and SuspendAllInternal for the race here.
@@ -1077,7 +1155,17 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
     usleep(kThreadSuspendSleepUs);
   }
   // Now wait for target to decrement suspend barrier.
-  if (is_suspended || WaitForSuspendBarrier(&wrapped_barrier.barrier_)) {
+  std::optional<std::string> failure_info;
+  if (!is_suspended) {
+    // As an experiment, redundantly trigger suspension. TODO: Remove this.
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    thread->TriggerSuspend();
+    failure_info = WaitForSuspendBarrier(&wrapped_barrier.barrier_, tid);
+    if (!failure_info.has_value()) {
+      is_suspended = true;
+    }
+  }
+  if (is_suspended) {
     // wrapped_barrier.barrier_ has been decremented and will no longer be accessed.
     VLOG(threads) << "SuspendThreadByThreadId thread suspended: " << *thread;
     if (ATraceEnabled()) {
@@ -1099,15 +1187,20 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
       MutexLock suspend_count_mu(self, *Locks::thread_suspend_count_lock_);
       first_barrier = thread->tlsPtr_.active_suspend1_barriers;
     }
+    // 'thread' should still be suspended, and hence stick around.
     LOG(FATAL) << StringPrintf(
         "SuspendThreadByThreadId timed out: %d (%s), state&flags: 0x%x, priority: %d,"
-        " barriers: %p, ours: %p",
+        " barriers: %p, ours: %p, barrier value: %d, nsusps: %d, ncheckpts: %d, thread_info: %s",
         thread_id,
         name.c_str(),
         thread->GetStateAndFlags(std::memory_order_relaxed).GetValue(),
         thread->GetNativePriority(),
         first_barrier,
-        &wrapped_barrier);
+        &wrapped_barrier,
+        wrapped_barrier.barrier_.load(),
+        thread->suspended_count_ - suspended_count,
+        thread->checkpoint_count_ - checkpoint_count,
+        failure_info.value().c_str());
     UNREACHABLE();
   }
 }

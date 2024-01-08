@@ -237,6 +237,7 @@ inline void Thread::TransitionToSuspendedAndRunCheckpoints(ThreadState new_state
     StateAndFlags old_state_and_flags = GetStateAndFlags(std::memory_order_relaxed);
     DCHECK_EQ(old_state_and_flags.GetState(), ThreadState::kRunnable);
     if (UNLIKELY(old_state_and_flags.IsFlagSet(ThreadFlag::kCheckpointRequest))) {
+      IncrementStatsCounter(&checkpoint_count_);
       RunCheckpointFunction();
       continue;
     }
@@ -255,6 +256,7 @@ inline void Thread::TransitionToSuspendedAndRunCheckpoints(ThreadState new_state
         tls32_.state_and_flags.CompareAndSetWeakRelease(old_state_and_flags.GetValue(),
                                                         new_state_and_flags.GetValue());
     if (LIKELY(done)) {
+      IncrementStatsCounter(&suspended_count_);
       break;
     }
   }

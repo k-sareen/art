@@ -2324,6 +2324,15 @@ class EXPORT Thread {
   // Debug disable read barrier count, only is checked for debug builds and only in the runtime.
   uint8_t debug_disallow_read_barrier_ = 0;
 
+  // Counters used only for debugging and error reporting.  Likely to wrap.  Small to avoid
+  // increasing Thread size.
+  // We currently maintain these unconditionally, since it doesn't cost much, and we seem to have
+  // persistent issues with suspension timeouts, which these should help to diagnose.
+  // TODO: Reconsider this.
+  std::atomic<uint8_t> suspended_count_ = 0;   // Number of times we entered a suspended state after
+                                               // running checkpoints.
+  std::atomic<uint8_t> checkpoint_count_ = 0;  // Number of checkpoints we started running.
+
   // Note that it is not in the packed struct, may not be accessed for cross compilation.
   uintptr_t poison_object_cookie_ = 0;
 

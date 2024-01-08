@@ -125,6 +125,14 @@ class PACKED(sizeof(T)) Atomic : public std::atomic<T> {
   }
 };
 
+// Increment a debug- or statistics-only counter when there is a single writer, especially if
+// concurrent reads are uncommon. Usually appreciably faster in this case.
+// NOT suitable as an approximate counter with multiple writers.
+template <typename T>
+void IncrementStatsCounter(std::atomic<T>* a) {
+  a->store(a->load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+}
+
 using AtomicInteger = Atomic<int32_t>;
 
 static_assert(sizeof(AtomicInteger) == sizeof(int32_t), "Weird AtomicInteger size");
