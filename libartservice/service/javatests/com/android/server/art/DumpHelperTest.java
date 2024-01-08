@@ -102,16 +102,16 @@ public class DumpHelperTest {
     @Test
     public void testDump() throws Exception {
         String expected = "[com.example1.foo]\n"
-                + "  path: /data/app/foo/base.apk\n"
+                + "  path: /somewhere/app/foo/base.apk\n"
                 + "    arm64: [status=speed-profile] [reason=bg-dexopt] [primary-abi]\n"
-                + "      [location is /data/app/foo/oat/arm64/base.odex]\n"
+                + "      [location is /somewhere/app/foo/oat/arm64/base.odex]\n"
                 + "    arm: [status=verify] [reason=install]\n"
-                + "      [location is /data/app/foo/oat/arm/base.odex]\n"
-                + "  path: /data/app/foo/split_0.apk\n"
+                + "      [location is /somewhere/app/foo/oat/arm/base.odex]\n"
+                + "  path: /somewhere/app/foo/split_0.apk\n"
                 + "    arm64: [status=verify] [reason=vdex] [primary-abi]\n"
-                + "      [location is primary.vdex in /data/app/foo/split_0.dm]\n"
+                + "      [location is primary.vdex in /somewhere/app/foo/split_0.dm]\n"
                 + "    arm: [status=verify] [reason=vdex]\n"
-                + "      [location is primary.vdex in /data/app/foo/split_0.dm]\n"
+                + "      [location is primary.vdex in /somewhere/app/foo/split_0.dm]\n"
                 + "    used by other apps: [com.example2.bar (isa=arm)]\n"
                 + "  known secondary dex files:\n"
                 + "    /data/user_de/0/foo/1.apk (removed)\n"
@@ -128,11 +128,11 @@ public class DumpHelperTest {
                 + "        [location is /data/user_de/0/foo/oat/arm/2.vdex]\n"
                 + "      class loader context: PCL[]\n"
                 + "[com.example2.bar]\n"
-                + "  path: /data/app/bar/base.apk\n"
+                + "  path: /somewhere/app/bar/base.apk\n"
                 + "    arm: [status=verify] [reason=install] [primary-abi]\n"
-                + "      [location is /data/app/bar/oat/arm/base.odex]\n"
+                + "      [location is /somewhere/app/bar/oat/arm/base.odex]\n"
                 + "    arm64: [status=verify] [reason=install]\n"
-                + "      [location is /data/app/bar/oat/arm64/base.odex]\n";
+                + "      [location is /somewhere/app/bar/oat/arm64/base.odex]\n";
 
         var stringWriter = new StringWriter();
         mDumpHelper.dump(new PrintWriter(stringWriter), mSnapshot);
@@ -175,18 +175,18 @@ public class DumpHelperTest {
         // The order of the primary dex files and the ABIs should be kept in the output. Secondary
         // dex files should be reordered in lexicographical order.
         var status = DexoptStatus.create(List.of(
-                DexContainerFileDexoptStatus.create("/data/app/foo/base.apk",
+                DexContainerFileDexoptStatus.create("/somewhere/app/foo/base.apk",
                         true /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
-                        "speed-profile", "bg-dexopt", "/data/app/foo/oat/arm64/base.odex"),
-                DexContainerFileDexoptStatus.create("/data/app/foo/base.apk",
+                        "speed-profile", "bg-dexopt", "/somewhere/app/foo/oat/arm64/base.odex"),
+                DexContainerFileDexoptStatus.create("/somewhere/app/foo/base.apk",
                         true /* isPrimaryDex */, false /* isPrimaryAbi */, "armeabi-v7a", "verify",
-                        "install", "/data/app/foo/oat/arm/base.odex"),
-                DexContainerFileDexoptStatus.create("/data/app/foo/split_0.apk",
+                        "install", "/somewhere/app/foo/oat/arm/base.odex"),
+                DexContainerFileDexoptStatus.create("/somewhere/app/foo/split_0.apk",
                         true /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a", "verify",
-                        "vdex", "primary.vdex in /data/app/foo/split_0.dm"),
-                DexContainerFileDexoptStatus.create("/data/app/foo/split_0.apk",
+                        "vdex", "primary.vdex in /somewhere/app/foo/split_0.dm"),
+                DexContainerFileDexoptStatus.create("/somewhere/app/foo/split_0.apk",
                         true /* isPrimaryDex */, false /* isPrimaryAbi */, "armeabi-v7a", "verify",
-                        "vdex", "primary.vdex in /data/app/foo/split_0.dm"),
+                        "vdex", "primary.vdex in /somewhere/app/foo/split_0.dm"),
                 DexContainerFileDexoptStatus.create("/data/user_de/0/foo/2.apk",
                         false /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
                         "speed-profile", "bg-dexopt", "/data/user_de/0/foo/oat/arm64/2.odex"),
@@ -204,13 +204,13 @@ public class DumpHelperTest {
         // The output should not show "used by other apps:".
         lenient()
                 .when(mDexUseManagerLocal.getPrimaryDexLoaders(
-                        PKG_NAME_FOO, "/data/app/foo/base.apk"))
+                        PKG_NAME_FOO, "/somewhere/app/foo/base.apk"))
                 .thenReturn(Set.of());
 
         // The output should not show "foo" in "used by other apps:".
         lenient()
                 .when(mDexUseManagerLocal.getPrimaryDexLoaders(
-                        PKG_NAME_FOO, "/data/app/foo/split_0.apk"))
+                        PKG_NAME_FOO, "/somewhere/app/foo/split_0.apk"))
                 .thenReturn(Set.of(DexLoader.create(PKG_NAME_FOO, false /* isolatedProcess */),
                         DexLoader.create(PKG_NAME_BAR, false /* isolatedProcess */)));
 
@@ -270,12 +270,12 @@ public class DumpHelperTest {
         // order for package "foo".
         // The output should not show "known secondary dex files:".
         var status = DexoptStatus.create(
-                List.of(DexContainerFileDexoptStatus.create("/data/app/bar/base.apk",
+                List.of(DexContainerFileDexoptStatus.create("/somewhere/app/bar/base.apk",
                                 true /* isPrimaryDex */, true /* isPrimaryAbi */, "armeabi-v7a",
-                                "verify", "install", "/data/app/bar/oat/arm/base.odex"),
-                        DexContainerFileDexoptStatus.create("/data/app/bar/base.apk",
+                                "verify", "install", "/somewhere/app/bar/oat/arm/base.odex"),
+                        DexContainerFileDexoptStatus.create("/somewhere/app/bar/base.apk",
                                 true /* isPrimaryDex */, false /* isPrimaryAbi */, "arm64-v8a",
-                                "verify", "install", "/data/app/bar/oat/arm64/base.odex")));
+                                "verify", "install", "/somewhere/app/bar/oat/arm64/base.odex")));
 
         lenient()
                 .when(mArtManagerLocal.getDexoptStatus(any(), eq(PKG_NAME_BAR)))
@@ -283,7 +283,7 @@ public class DumpHelperTest {
 
         lenient()
                 .when(mDexUseManagerLocal.getPrimaryDexLoaders(
-                        PKG_NAME_BAR, "/data/app/bar/base.apk"))
+                        PKG_NAME_BAR, "/somewhere/app/bar/base.apk"))
                 .thenReturn(Set.of());
     }
 }

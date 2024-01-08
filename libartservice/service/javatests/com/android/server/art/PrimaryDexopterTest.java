@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class PrimaryDexopterTest extends PrimaryDexopterTestBase {
-    private final String mDexPath = "/data/app/foo/base.apk";
+    private final String mDexPath = "/somewhere/app/foo/base.apk";
     private final ProfilePath mRefProfile =
             AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME, "primary");
     private final ProfilePath mPrebuiltProfile = AidlUtils.buildProfilePathForPrebuilt(mDexPath);
@@ -76,7 +76,7 @@ public class PrimaryDexopterTest extends PrimaryDexopterTestBase {
     private final OutputProfile mPrivateOutputProfile = AidlUtils.buildOutputProfileForPrimary(
             PKG_NAME, "primary", Process.SYSTEM_UID, SHARED_GID, false /* isOtherReadable */);
 
-    private final String mSplit0DexPath = "/data/app/foo/split_0.apk";
+    private final String mSplit0DexPath = "/somewhere/app/foo/split_0.apk";
     private final ProfilePath mSplit0RefProfile =
             AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME, "split_0.split");
 

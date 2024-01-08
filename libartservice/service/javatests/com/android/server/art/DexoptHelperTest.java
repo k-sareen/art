@@ -135,9 +135,9 @@ public class DexoptHelperTest {
 
         preparePackagesAndLibraries();
 
-        mPrimaryResults =
-                createResults("/data/app/foo/base.apk", DexoptResult.DEXOPT_PERFORMED /* status1 */,
-                        DexoptResult.DEXOPT_PERFORMED /* status2 */);
+        mPrimaryResults = createResults("/somewhere/app/foo/base.apk",
+                DexoptResult.DEXOPT_PERFORMED /* status1 */,
+                DexoptResult.DEXOPT_PERFORMED /* status2 */);
         mSecondaryResults = createResults("/data/user_de/0/foo/foo.apk",
                 DexoptResult.DEXOPT_PERFORMED /* status1 */,
                 DexoptResult.DEXOPT_PERFORMED /* status2 */);
@@ -176,9 +176,9 @@ public class DexoptHelperTest {
     public void testDexopt() throws Exception {
         // Only package libbaz fails.
         var failingPrimaryDexopter = mock(PrimaryDexopter.class);
-        List<DexContainerFileDexoptResult> partialFailureResults =
-                createResults("/data/app/foo/base.apk", DexoptResult.DEXOPT_PERFORMED /* status1 */,
-                        DexoptResult.DEXOPT_FAILED /* status2 */);
+        List<DexContainerFileDexoptResult> partialFailureResults = createResults(
+                "/somewhere/app/foo/base.apk", DexoptResult.DEXOPT_PERFORMED /* status1 */,
+                DexoptResult.DEXOPT_FAILED /* status2 */);
         lenient().when(failingPrimaryDexopter.dexopt()).thenReturn(partialFailureResults);
         when(mInjector.getPrimaryDexopter(same(mPkgStateLibbaz), any(), any(), any()))
                 .thenReturn(failingPrimaryDexopter);
@@ -645,18 +645,18 @@ public class DexoptHelperTest {
                 result -> listOnlyIncludeUpdates.add(result));
 
         // Dexopt partially fails on package "foo".
-        List<DexContainerFileDexoptResult> partialFailureResults =
-                createResults("/data/app/foo/base.apk", DexoptResult.DEXOPT_PERFORMED /* status1 */,
-                        DexoptResult.DEXOPT_FAILED /* status2 */);
+        List<DexContainerFileDexoptResult> partialFailureResults = createResults(
+                "/somewhere/app/foo/base.apk", DexoptResult.DEXOPT_PERFORMED /* status1 */,
+                DexoptResult.DEXOPT_FAILED /* status2 */);
         var fooPrimaryDexopter = mock(PrimaryDexopter.class);
         when(mInjector.getPrimaryDexopter(same(mPkgStateFoo), any(), any(), any()))
                 .thenReturn(fooPrimaryDexopter);
         when(fooPrimaryDexopter.dexopt()).thenReturn(partialFailureResults);
 
         // Dexopt totally fails on package "bar".
-        List<DexContainerFileDexoptResult> totalFailureResults =
-                createResults("/data/app/bar/base.apk", DexoptResult.DEXOPT_FAILED /* status1 */,
-                        DexoptResult.DEXOPT_FAILED /* status2 */);
+        List<DexContainerFileDexoptResult> totalFailureResults = createResults(
+                "/somewhere/app/bar/base.apk", DexoptResult.DEXOPT_FAILED /* status1 */,
+                DexoptResult.DEXOPT_FAILED /* status2 */);
         var barPrimaryDexopter = mock(PrimaryDexopter.class);
         when(mInjector.getPrimaryDexopter(same(mPkgStateBar), any(), any(), any()))
                 .thenReturn(barPrimaryDexopter);

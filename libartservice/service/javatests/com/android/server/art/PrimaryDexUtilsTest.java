@@ -115,25 +115,25 @@ public class PrimaryDexUtilsTest {
     }
 
     private <T extends PrimaryDexInfo> void checkBasicInfo(List<T> infos) {
-        assertThat(infos.get(0).dexPath()).isEqualTo("/data/app/foo/base.apk");
+        assertThat(infos.get(0).dexPath()).isEqualTo("/somewhere/app/foo/base.apk");
         assertThat(infos.get(0).hasCode()).isTrue();
         assertThat(infos.get(0).splitName()).isNull();
 
-        assertThat(infos.get(1).dexPath()).isEqualTo("/data/app/foo/split_0.apk");
+        assertThat(infos.get(1).dexPath()).isEqualTo("/somewhere/app/foo/split_0.apk");
         assertThat(infos.get(1).hasCode()).isTrue();
         assertThat(infos.get(1).splitName()).isEqualTo("split_0");
 
         // split_1 is skipped because it has no code.
 
-        assertThat(infos.get(2).dexPath()).isEqualTo("/data/app/foo/split_2.apk");
+        assertThat(infos.get(2).dexPath()).isEqualTo("/somewhere/app/foo/split_2.apk");
         assertThat(infos.get(2).hasCode()).isTrue();
         assertThat(infos.get(2).splitName()).isEqualTo("split_2");
 
-        assertThat(infos.get(3).dexPath()).isEqualTo("/data/app/foo/split_3.apk");
+        assertThat(infos.get(3).dexPath()).isEqualTo("/somewhere/app/foo/split_3.apk");
         assertThat(infos.get(3).hasCode()).isTrue();
         assertThat(infos.get(3).splitName()).isEqualTo("split_3");
 
-        assertThat(infos.get(4).dexPath()).isEqualTo("/data/app/foo/split_4.apk");
+        assertThat(infos.get(4).dexPath()).isEqualTo("/somewhere/app/foo/split_4.apk");
         assertThat(infos.get(4).hasCode()).isTrue();
         assertThat(infos.get(4).splitName()).isEqualTo("split_4");
     }
@@ -142,33 +142,33 @@ public class PrimaryDexUtilsTest {
         AndroidPackage pkg = mock(AndroidPackage.class);
 
         var baseSplit = mock(AndroidPackageSplit.class);
-        lenient().when(baseSplit.getPath()).thenReturn("/data/app/foo/base.apk");
+        lenient().when(baseSplit.getPath()).thenReturn("/somewhere/app/foo/base.apk");
         lenient().when(baseSplit.isHasCode()).thenReturn(true);
         lenient().when(baseSplit.getClassLoaderName()).thenReturn(PathClassLoader.class.getName());
 
         var split0 = mock(AndroidPackageSplit.class);
         lenient().when(split0.getName()).thenReturn("split_0");
-        lenient().when(split0.getPath()).thenReturn("/data/app/foo/split_0.apk");
+        lenient().when(split0.getPath()).thenReturn("/somewhere/app/foo/split_0.apk");
         lenient().when(split0.isHasCode()).thenReturn(true);
 
         var split1 = mock(AndroidPackageSplit.class);
         lenient().when(split1.getName()).thenReturn("split_1");
-        lenient().when(split1.getPath()).thenReturn("/data/app/foo/split_1.apk");
+        lenient().when(split1.getPath()).thenReturn("/somewhere/app/foo/split_1.apk");
         lenient().when(split1.isHasCode()).thenReturn(false);
 
         var split2 = mock(AndroidPackageSplit.class);
         lenient().when(split2.getName()).thenReturn("split_2");
-        lenient().when(split2.getPath()).thenReturn("/data/app/foo/split_2.apk");
+        lenient().when(split2.getPath()).thenReturn("/somewhere/app/foo/split_2.apk");
         lenient().when(split2.isHasCode()).thenReturn(true);
 
         var split3 = mock(AndroidPackageSplit.class);
         lenient().when(split3.getName()).thenReturn("split_3");
-        lenient().when(split3.getPath()).thenReturn("/data/app/foo/split_3.apk");
+        lenient().when(split3.getPath()).thenReturn("/somewhere/app/foo/split_3.apk");
         lenient().when(split3.isHasCode()).thenReturn(true);
 
         var split4 = mock(AndroidPackageSplit.class);
         lenient().when(split4.getName()).thenReturn("split_4");
-        lenient().when(split4.getPath()).thenReturn("/data/app/foo/split_4.apk");
+        lenient().when(split4.getPath()).thenReturn("/somewhere/app/foo/split_4.apk");
         lenient().when(split4.isHasCode()).thenReturn(true);
 
         var splits = List.of(baseSplit, split0, split1, split2, split3, split4);

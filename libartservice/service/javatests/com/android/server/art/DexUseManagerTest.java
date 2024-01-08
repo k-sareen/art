@@ -77,8 +77,8 @@ import java.util.UUID;
 public class DexUseManagerTest {
     private static final String LOADING_PKG_NAME = "com.example.loadingpackage";
     private static final String OWNING_PKG_NAME = "com.example.owningpackage";
-    private static final String BASE_APK = "/data/app/" + OWNING_PKG_NAME + "/base.apk";
-    private static final String SPLIT_APK = "/data/app/" + OWNING_PKG_NAME + "/split_0.apk";
+    private static final String BASE_APK = "/somewhere/app/" + OWNING_PKG_NAME + "/base.apk";
+    private static final String SPLIT_APK = "/somewhere/app/" + OWNING_PKG_NAME + "/split_0.apk";
 
     @Rule
     public StaticMockitoRule mockitoRule = new StaticMockitoRule(
@@ -271,7 +271,7 @@ public class DexUseManagerTest {
         mDexUseManager.notifyDexContainersLoaded(
                 mSnapshot, Utils.PLATFORM_PACKAGE_NAME, Map.of(BASE_APK, "CLC"));
         mDexUseManager.notifyDexContainersLoaded(mSnapshot, OWNING_PKG_NAME,
-                Map.of("/data/app/" + OWNING_PKG_NAME + "/non-existing.apk", "CLC"));
+                Map.of("/somewhere/app/" + OWNING_PKG_NAME + "/non-existing.apk", "CLC"));
 
         // Some of these should be deduped.
         mDexUseManager.notifyDexContainersLoaded(
@@ -594,17 +594,19 @@ public class DexUseManagerTest {
                 "com.example.deletedpackage", "arm64-v8a", true /* hasPackage */);
         addPackage("com.example.deletedpackage", pkgState);
         lenient()
-                .when(mArtd.getDexFileVisibility("/data/app/com.example.deletedpackage/base.apk"))
+                .when(mArtd.getDexFileVisibility(
+                        "/somewhere/app/com.example.deletedpackage/base.apk"))
                 .thenReturn(FileVisibility.OTHER_READABLE);
         lenient()
                 .when(mArtd.getDexFileVisibility(BASE_APK))
                 .thenReturn(FileVisibility.OTHER_READABLE);
         // Simulate that a package loads its own dex file and another package's dex file.
         mDexUseManager.notifyDexContainersLoaded(mSnapshot, "com.example.deletedpackage",
-                Map.of("/data/app/com.example.deletedpackage/base.apk", "CLC", BASE_APK, "CLC"));
+                Map.of("/somewhere/app/com.example.deletedpackage/base.apk", "CLC", BASE_APK,
+                        "CLC"));
         // Simulate that another package loads this package's dex file.
         mDexUseManager.notifyDexContainersLoaded(mSnapshot, LOADING_PKG_NAME,
-                Map.of("/data/app/com.example.deletedpackage/base.apk", "CLC"));
+                Map.of("/somewhere/app/com.example.deletedpackage/base.apk", "CLC"));
         // Simulate that the package is then deleted.
         removePackage("com.example.deletedpackage");
 
@@ -650,12 +652,14 @@ public class DexUseManagerTest {
         // Simulate that all the files of a package are deleted. The whole container entry of the
         // package should be cleaned up, though the package still exists.
         lenient()
-                .when(mArtd.getDexFileVisibility("/data/app/" + LOADING_PKG_NAME + "/base.apk"))
+                .when(mArtd.getDexFileVisibility(
+                        "/somewhere/app/" + LOADING_PKG_NAME + "/base.apk"))
                 .thenReturn(FileVisibility.OTHER_READABLE);
         mDexUseManager.notifyDexContainersLoaded(mSnapshot, LOADING_PKG_NAME,
-                Map.of("/data/app/" + LOADING_PKG_NAME + "/base.apk", "CLC"));
+                Map.of("/somewhere/app/" + LOADING_PKG_NAME + "/base.apk", "CLC"));
         lenient()
-                .when(mArtd.getDexFileVisibility("/data/app/" + LOADING_PKG_NAME + "/base.apk"))
+                .when(mArtd.getDexFileVisibility(
+                        "/somewhere/app/" + LOADING_PKG_NAME + "/base.apk"))
                 .thenReturn(FileVisibility.NOT_FOUND);
 
         // Run cleanup.
@@ -753,13 +757,17 @@ public class DexUseManagerTest {
         lenient().when(pkg.getStorageUuid()).thenReturn(StorageManager.UUID_DEFAULT);
 
         var baseSplit = mock(AndroidPackageSplit.class);
-        lenient().when(baseSplit.getPath()).thenReturn("/data/app/" + packageName + "/base.apk");
+        lenient()
+                .when(baseSplit.getPath())
+                .thenReturn("/somewhere/app/" + packageName + "/base.apk");
         lenient().when(baseSplit.isHasCode()).thenReturn(true);
         lenient().when(baseSplit.getClassLoaderName()).thenReturn(PathClassLoader.class.getName());
 
         var split0 = mock(AndroidPackageSplit.class);
         lenient().when(split0.getName()).thenReturn("split_0");
-        lenient().when(split0.getPath()).thenReturn("/data/app/" + packageName + "/split_0.apk");
+        lenient()
+                .when(split0.getPath())
+                .thenReturn("/somewhere/app/" + packageName + "/split_0.apk");
         lenient().when(split0.isHasCode()).thenReturn(true);
 
         lenient().when(pkg.getSplits()).thenReturn(List.of(baseSplit, split0));

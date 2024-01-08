@@ -263,27 +263,27 @@ public class ArtManagerLocalTest {
         assertThat(result.getFreedBytes())
                 .isEqualTo(6 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
 
-        verify(mArtd).deleteArtifacts(deepEq(
-                AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm64", mIsInDalvikCache)));
-        verify(mArtd).deleteArtifacts(deepEq(
-                AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "arm64", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "arm64", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "arm", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "arm", mIsInDalvikCache)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/somewhere/app/foo/split_0.apk", "arm64", mIsInDalvikCache)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/somewhere/app/foo/split_0.apk", "arm", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/user/0/foo/not_found.apk", "arm64", false /* isInDalvikCache */)));
 
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/base.apk", "arm64")));
-        verify(mArtd).deleteRuntimeArtifacts(deepEq(
-                AidlUtils.buildRuntimeArtifactsPath(PKG_NAME_1, "/data/app/foo/base.apk", "arm")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "arm64")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "arm")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm64")));
+        verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm")));
 
         // Verify that there are no more calls than the ones above.
         verify(mArtd, times(6)).deleteArtifacts(any());
@@ -311,22 +311,22 @@ public class ArtManagerLocalTest {
                 .isEqualTo(6 * DEXOPT_ARTIFACTS_FREED + 4 * RUNTIME_ARTIFACTS_FREED);
 
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/base.apk", "x86_64", mIsInDalvikCache)));
-        verify(mArtd).deleteArtifacts(deepEq(
-                AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "x86", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "x86_64", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "x86_64", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "x86", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "x86", mIsInDalvikCache)));
+                "/somewhere/app/foo/split_0.apk", "x86_64", mIsInDalvikCache)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/somewhere/app/foo/split_0.apk", "x86", mIsInDalvikCache)));
 
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/base.apk", "x86_64")));
-        verify(mArtd).deleteRuntimeArtifacts(deepEq(
-                AidlUtils.buildRuntimeArtifactsPath(PKG_NAME_1, "/data/app/foo/base.apk", "x86")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "x86_64")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "x86_64")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "x86")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "x86")));
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "x86_64")));
+        verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "x86")));
 
         // We assume that the ISA got from `DexUseManagerLocal` is already the translated one.
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
@@ -358,19 +358,19 @@ public class ArtManagerLocalTest {
         doReturn(createGetDexoptStatusResult("speed", "compilation-reason-0",
                          "location-debug-string-0", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus("/data/app/foo/base.apk", "arm64", "PCL[]");
+                .getDexoptStatus("/somewhere/app/foo/base.apk", "arm64", "PCL[]");
         doReturn(createGetDexoptStatusResult("speed-profile", "compilation-reason-1",
                          "location-debug-string-1", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus("/data/app/foo/base.apk", "arm", "PCL[]");
+                .getDexoptStatus("/somewhere/app/foo/base.apk", "arm", "PCL[]");
         doReturn(createGetDexoptStatusResult("verify", "compilation-reason-2",
                          "location-debug-string-2", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus("/data/app/foo/split_0.apk", "arm64", "PCL[base.apk]");
+                .getDexoptStatus("/somewhere/app/foo/split_0.apk", "arm64", "PCL[base.apk]");
         doReturn(createGetDexoptStatusResult("extract", "compilation-reason-3",
                          "location-debug-string-3", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus("/data/app/foo/split_0.apk", "arm", "PCL[base.apk]");
+                .getDexoptStatus("/somewhere/app/foo/split_0.apk", "arm", "PCL[base.apk]");
         doReturn(createGetDexoptStatusResult(
                          "run-from-apk", "unknown", "unknown", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
@@ -385,16 +385,16 @@ public class ArtManagerLocalTest {
         assertThat(result.getDexContainerFileDexoptStatuses())
                 .comparingElementsUsing(TestingUtils.<DexContainerFileDexoptStatus>deepEquality())
                 .containsExactly(
-                        DexContainerFileDexoptStatus.create("/data/app/foo/base.apk",
+                        DexContainerFileDexoptStatus.create("/somewhere/app/foo/base.apk",
                                 true /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
                                 "speed", "compilation-reason-0", "location-debug-string-0"),
-                        DexContainerFileDexoptStatus.create("/data/app/foo/base.apk",
+                        DexContainerFileDexoptStatus.create("/somewhere/app/foo/base.apk",
                                 true /* isPrimaryDex */, false /* isPrimaryAbi */, "armeabi-v7a",
                                 "speed-profile", "compilation-reason-1", "location-debug-string-1"),
-                        DexContainerFileDexoptStatus.create("/data/app/foo/split_0.apk",
+                        DexContainerFileDexoptStatus.create("/somewhere/app/foo/split_0.apk",
                                 true /* isPrimaryDex */, true /* isPrimaryAbi */, "arm64-v8a",
                                 "verify", "compilation-reason-2", "location-debug-string-2"),
-                        DexContainerFileDexoptStatus.create("/data/app/foo/split_0.apk",
+                        DexContainerFileDexoptStatus.create("/somewhere/app/foo/split_0.apk",
                                 true /* isPrimaryDex */, false /* isPrimaryAbi */, "armeabi-v7a",
                                 "extract", "compilation-reason-3", "location-debug-string-3"),
                         DexContainerFileDexoptStatus.create("/data/user/0/foo/1.apk",
@@ -506,23 +506,23 @@ public class ArtManagerLocalTest {
         verify(mArtd).deleteProfile(deepEq(
                 AidlUtils.buildProfilePathForPrimaryCur(1 /* userId */, PKG_NAME_1, "primary")));
 
-        verify(mArtd).deleteArtifacts(deepEq(
-                AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm64", mIsInDalvikCache)));
-        verify(mArtd).deleteArtifacts(deepEq(
-                AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "arm64", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "arm64", mIsInDalvikCache)));
         verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "arm", mIsInDalvikCache)));
+                "/somewhere/app/foo/base.apk", "arm", mIsInDalvikCache)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/somewhere/app/foo/split_0.apk", "arm64", mIsInDalvikCache)));
+        verify(mArtd).deleteArtifacts(deepEq(AidlUtils.buildArtifactsPath(
+                "/somewhere/app/foo/split_0.apk", "arm", mIsInDalvikCache)));
 
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/base.apk", "arm64")));
-        verify(mArtd).deleteRuntimeArtifacts(deepEq(
-                AidlUtils.buildRuntimeArtifactsPath(PKG_NAME_1, "/data/app/foo/base.apk", "arm")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "arm64")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64")));
+                PKG_NAME_1, "/somewhere/app/foo/base.apk", "arm")));
         verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm64")));
+        verify(mArtd).deleteRuntimeArtifacts(deepEq(AidlUtils.buildRuntimeArtifactsPath(
+                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm")));
 
         verify(mArtd).deleteProfile(
                 deepEq(AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk")));
@@ -816,7 +816,7 @@ public class ArtManagerLocalTest {
         tempFile.deleteOnExit();
 
         ProfilePath refProfile = AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "primary");
-        String dexPath = "/data/app/foo/base.apk";
+        String dexPath = "/somewhere/app/foo/base.apk";
 
         when(mArtd.isProfileUsable(deepEq(refProfile), eq(dexPath))).thenReturn(true);
 
@@ -860,7 +860,7 @@ public class ArtManagerLocalTest {
         tempFileForSnapshot.deleteOnExit();
 
         ProfilePath refProfile = AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "primary");
-        String dexPath = "/data/app/foo/base.apk";
+        String dexPath = "/somewhere/app/foo/base.apk";
 
         // Simulate that the reference profile doesn't exist.
         when(mArtd.isProfileUsable(deepEq(refProfile), eq(dexPath))).thenReturn(false);
@@ -901,7 +901,7 @@ public class ArtManagerLocalTest {
     public void testSnapshotAppProfileSplit() throws Exception {
         ProfilePath refProfile =
                 AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "split_0.split");
-        String dexPath = "/data/app/foo/split_0.apk";
+        String dexPath = "/somewhere/app/foo/split_0.apk";
 
         when(mArtd.isProfileUsable(deepEq(refProfile), eq(dexPath))).thenReturn(true);
 
@@ -1057,7 +1057,7 @@ public class ArtManagerLocalTest {
         doReturn(createGetDexoptStatusResult(
                          "speed-profile", "bg-dexopt", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm64"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/base.apk"), eq("arm64"), any());
         doReturn(createGetDexoptStatusResult(
                          "verify", "cmdline", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
@@ -1067,19 +1067,19 @@ public class ArtManagerLocalTest {
         doReturn(createGetDexoptStatusResult(
                          "verify", "bg-dexopt", "location", ArtifactsLocation.DALVIK_CACHE))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm64"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/split_0.apk"), eq("arm64"), any());
 
         // It should only keep VDEX files and runtime images.
         doReturn(createGetDexoptStatusResult(
                          "verify", "vdex", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/split_0.apk"), eq("arm"), any());
 
         // It should not keep any artifacts or runtime images.
         doReturn(createGetDexoptStatusResult(
                          "run-from-apk", "unknown", "unknown", ArtifactsLocation.NONE_OR_ERROR))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/base.apk"), eq("arm"), any());
 
         when(mSnapshot.getPackageStates()).thenReturn(Map.of(PKG_NAME_1, mPkgState1));
         mArtManagerLocal.cleanup(mSnapshot);
@@ -1097,18 +1097,18 @@ public class ArtManagerLocalTest {
                                 1 /* userId */, PKG_NAME_1, "split_0.split"),
                         AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk"),
                         AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/1.apk")),
-                inAnyOrderDeepEquals(AidlUtils.buildArtifactsPath("/data/app/foo/base.apk", "arm64",
-                                             false /* isInDalvikCache */),
+                inAnyOrderDeepEquals(AidlUtils.buildArtifactsPath("/somewhere/app/foo/base.apk",
+                                             "arm64", false /* isInDalvikCache */),
                         AidlUtils.buildArtifactsPath(
                                 "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */),
-                        AidlUtils.buildArtifactsPath(
-                                "/data/app/foo/split_0.apk", "arm64", true /* isInDalvikCache */)),
+                        AidlUtils.buildArtifactsPath("/somewhere/app/foo/split_0.apk", "arm64",
+                                true /* isInDalvikCache */)),
                 inAnyOrderDeepEquals(VdexPath.artifactsPath(AidlUtils.buildArtifactsPath(
-                        "/data/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))),
+                        "/somewhere/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))),
                 inAnyOrderDeepEquals(AidlUtils.buildRuntimeArtifactsPath(
-                                             PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64"),
+                                             PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm64"),
                         AidlUtils.buildRuntimeArtifactsPath(
-                                PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+                                PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm")));
     }
 
     @Test
@@ -1119,7 +1119,7 @@ public class ArtManagerLocalTest {
         doReturn(createGetDexoptStatusResult(
                          "speed-profile", "bg-dexopt", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm64"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/base.apk"), eq("arm64"), any());
         doReturn(createGetDexoptStatusResult(
                          "verify", "cmdline", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
@@ -1129,36 +1129,36 @@ public class ArtManagerLocalTest {
         doReturn(createGetDexoptStatusResult(
                          "verify", "bg-dexopt", "location", ArtifactsLocation.DALVIK_CACHE))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm64"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/split_0.apk"), eq("arm64"), any());
 
         // It should only count VDEX files and runtime images.
         doReturn(createGetDexoptStatusResult(
                          "verify", "vdex", "location", ArtifactsLocation.NEXT_TO_DEX))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/split_0.apk"), eq("arm"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/split_0.apk"), eq("arm"), any());
 
         // It should not count any artifacts or runtime images.
         doReturn(createGetDexoptStatusResult(
                          "run-from-apk", "unknown", "unknown", ArtifactsLocation.NONE_OR_ERROR))
                 .when(mArtd)
-                .getDexoptStatus(eq("/data/app/foo/base.apk"), eq("arm"), any());
+                .getDexoptStatus(eq("/somewhere/app/foo/base.apk"), eq("arm"), any());
 
         // These are counted as TYPE_DEXOPT_ARTIFACT.
         doReturn(1l << 0).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/base.apk", "arm64", false /* isInDalvikCache */)));
+                "/somewhere/app/foo/base.apk", "arm64", false /* isInDalvikCache */)));
         doReturn(1l << 1).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
                 "/data/user/0/foo/1.apk", "arm64", false /* isInDalvikCache */)));
         doReturn(1l << 2).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
-                "/data/app/foo/split_0.apk", "arm64", true /* isInDalvikCache */)));
+                "/somewhere/app/foo/split_0.apk", "arm64", true /* isInDalvikCache */)));
         doReturn(1l << 3).when(mArtd).getVdexFileSize(
                 deepEq(VdexPath.artifactsPath(AidlUtils.buildArtifactsPath(
-                        "/data/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))));
+                        "/somewhere/app/foo/split_0.apk", "arm", false /* isInDalvikCache */))));
         doReturn(1l << 4).when(mArtd).getRuntimeArtifactsSize(
                 deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                        PKG_NAME_1, "/data/app/foo/split_0.apk", "arm64")));
+                        PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm64")));
         doReturn(1l << 5).when(mArtd).getRuntimeArtifactsSize(
                 deepEq(AidlUtils.buildRuntimeArtifactsPath(
-                        PKG_NAME_1, "/data/app/foo/split_0.apk", "arm")));
+                        PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm")));
 
         // These are counted as TYPE_REF_PROFILE.
         doReturn(1l << 6).when(mArtd).getProfileSize(
@@ -1200,18 +1200,18 @@ public class ArtManagerLocalTest {
         AndroidPackage pkg = mock(AndroidPackage.class);
 
         var baseSplit = mock(AndroidPackageSplit.class);
-        lenient().when(baseSplit.getPath()).thenReturn("/data/app/foo/base.apk");
+        lenient().when(baseSplit.getPath()).thenReturn("/somewhere/app/foo/base.apk");
         lenient().when(baseSplit.isHasCode()).thenReturn(true);
 
         if (multiSplit) {
             // split_0 has code while split_1 doesn't.
             var split0 = mock(AndroidPackageSplit.class);
             lenient().when(split0.getName()).thenReturn("split_0");
-            lenient().when(split0.getPath()).thenReturn("/data/app/foo/split_0.apk");
+            lenient().when(split0.getPath()).thenReturn("/somewhere/app/foo/split_0.apk");
             lenient().when(split0.isHasCode()).thenReturn(true);
             var split1 = mock(AndroidPackageSplit.class);
             lenient().when(split1.getName()).thenReturn("split_1");
-            lenient().when(split1.getPath()).thenReturn("/data/app/foo/split_1.apk");
+            lenient().when(split1.getPath()).thenReturn("/somewhere/app/foo/split_1.apk");
             lenient().when(split1.isHasCode()).thenReturn(false);
 
             lenient().when(pkg.getSplits()).thenReturn(List.of(baseSplit, split0, split1));

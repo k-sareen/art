@@ -116,18 +116,18 @@ public class PrimaryDexopterTestBase {
         // This package has the base APK and one split APK that has code.
         AndroidPackage pkg = mock(AndroidPackage.class);
         var baseSplit = mock(AndroidPackageSplit.class);
-        lenient().when(baseSplit.getPath()).thenReturn("/data/app/foo/base.apk");
+        lenient().when(baseSplit.getPath()).thenReturn("/somewhere/app/foo/base.apk");
         lenient().when(baseSplit.isHasCode()).thenReturn(true);
         lenient().when(baseSplit.getClassLoaderName()).thenReturn(PathClassLoader.class.getName());
 
         var split0 = mock(AndroidPackageSplit.class);
         lenient().when(split0.getName()).thenReturn("split_0");
-        lenient().when(split0.getPath()).thenReturn("/data/app/foo/split_0.apk");
+        lenient().when(split0.getPath()).thenReturn("/somewhere/app/foo/split_0.apk");
         lenient().when(split0.isHasCode()).thenReturn(true);
 
         var split1 = mock(AndroidPackageSplit.class);
         lenient().when(split1.getName()).thenReturn("split_1");
-        lenient().when(split1.getPath()).thenReturn("/data/app/foo/split_1.apk");
+        lenient().when(split1.getPath()).thenReturn("/somewhere/app/foo/split_1.apk");
         lenient().when(split1.isHasCode()).thenReturn(false);
 
         var splits = List.of(baseSplit, split0, split1);
