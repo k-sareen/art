@@ -151,7 +151,7 @@ public class DeviceState {
     /** Simulates that there is an OTA that updates a boot classpath jar. */
     public void simulateBootClasspathOta() throws Exception {
         File localFile = mTestUtils.copyResourceToFile(TEST_JAR_RESOURCE_NAME);
-        pushAndBindMount(localFile, "/system/framework/framework.jar");
+        pushAndBindMount(localFile, "/system/framework/framework-graphics.jar");
     }
 
     /** Simulates that there is an OTA that updates a system server jar. */
