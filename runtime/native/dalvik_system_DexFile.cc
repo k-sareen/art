@@ -62,7 +62,7 @@
 #include <sys/system_properties.h>
 #endif  // ART_TARGET_ANDROID
 
-namespace art HIDDEN {
+namespace art {
 
 // Should be the same as dalvik.system.DexFile.ENFORCE_READ_ONLY_JAVA_DCL
 static constexpr uint64_t kEnforceReadOnlyJavaDcl = 218865702;

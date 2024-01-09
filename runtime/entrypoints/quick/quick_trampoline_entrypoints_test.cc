@@ -22,7 +22,7 @@
 #include "common_runtime_test.h"
 #include "quick/quick_method_frame_info.h"
 
-namespace art HIDDEN {
+namespace art {
 
 class QuickTrampolineEntrypointsTest : public CommonRuntimeTest {
  protected:

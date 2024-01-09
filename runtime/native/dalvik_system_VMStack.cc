@@ -32,7 +32,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "thread_list.h"
 
-namespace art HIDDEN {
+namespace art {
 
 template <typename T,
           typename ResultT =

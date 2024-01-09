@@ -29,7 +29,7 @@
 #include "thread_list.h"
 #include "verify_object.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobject Thread_currentThread(JNIEnv* env, jclass) {
   ScopedFastNativeObjectAccess soa(env);

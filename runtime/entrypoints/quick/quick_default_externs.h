@@ -19,7 +19,7 @@
 
 #include <cstdint>
 
-namespace art HIDDEN {
+namespace art {
 namespace mirror {
 class Array;
 class Class;

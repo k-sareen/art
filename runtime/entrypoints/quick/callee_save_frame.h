@@ -32,7 +32,7 @@
 #include "arch/x86/callee_save_frame_x86.h"
 #include "arch/x86_64/callee_save_frame_x86_64.h"
 
-namespace art HIDDEN {
+namespace art {
 class ArtMethod;
 
 class ScopedQuickEntrypointChecks {

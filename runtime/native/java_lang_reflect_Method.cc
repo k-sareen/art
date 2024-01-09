@@ -32,7 +32,7 @@
 #include "reflection.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobject Method_getDefaultValue(JNIEnv* env, jobject javaMethod) {
   ScopedFastNativeObjectAccess soa(env);

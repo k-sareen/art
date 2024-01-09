@@ -17,14 +17,13 @@
 #ifndef ART_RUNTIME_NATIVE_STRING_ARRAY_UTILS_H_
 #define ART_RUNTIME_NATIVE_STRING_ARRAY_UTILS_H_
 
-#include "base/macros.h"
 #include "base/locks.h"
 #include "class_root-inl.h"
 #include "handle_scope-inl.h"
 #include "mirror/object_array-alloc-inl.h"
 #include "mirror/string.h"
 
-namespace art HIDDEN {
+namespace art {
 
 namespace detail {
 

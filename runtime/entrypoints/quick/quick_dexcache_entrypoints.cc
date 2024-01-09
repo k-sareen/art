@@ -32,7 +32,7 @@
 #include "oat_file-inl.h"
 #include "runtime.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static void StoreObjectInBss(ArtMethod* outer_method,
                              const OatFile* oat_file,

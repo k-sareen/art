@@ -22,7 +22,7 @@
 #include "art_method.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 inline ScopedFastNativeObjectAccess::ScopedFastNativeObjectAccess(JNIEnv* env)
     : ScopedObjectAccessAlreadyRunnable(env) {

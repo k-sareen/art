@@ -29,7 +29,7 @@
 #include "native_util.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 /*
  * We make guarantees about the atomicity of accesses to primitive variables.  These guarantees

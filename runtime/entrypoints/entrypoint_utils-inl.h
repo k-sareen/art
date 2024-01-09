@@ -47,7 +47,7 @@
 #include "thread.h"
 #include "well_known_classes.h"
 
-namespace art HIDDEN {
+namespace art {
 
 inline std::string GetResolvedMethodErrorString(ClassLinker* class_linker,
                                                 ArtMethod* inlined_method,

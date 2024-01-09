@@ -29,7 +29,7 @@
 #include "native_util.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobject Array_createMultiArray(
     JNIEnv* env, jclass, jclass javaElementClass, jintArray javaDimArray) {

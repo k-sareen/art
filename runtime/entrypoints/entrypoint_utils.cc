@@ -43,7 +43,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 void CheckReferenceResult(Handle<mirror::Object> o, Thread* self) {
   if (o == nullptr) {

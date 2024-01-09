@@ -26,7 +26,7 @@
 #include "native_util.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobject Reference_getReferent(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);

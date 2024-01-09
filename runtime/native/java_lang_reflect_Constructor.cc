@@ -34,7 +34,7 @@
 #include "reflection.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobjectArray Constructor_getExceptionTypes(JNIEnv* env, jobject javaMethod) {
   ScopedFastNativeObjectAccess soa(env);

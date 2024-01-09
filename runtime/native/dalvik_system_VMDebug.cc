@@ -51,7 +51,7 @@
 #include "thread-inl.h"
 #include "trace.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static jobjectArray VMDebug_getVmFeatureList(JNIEnv* env, jclass) {
   ScopedObjectAccess soa(Thread::ForEnv(env));

@@ -16,7 +16,7 @@
 
 #include "quick_entrypoints_enum.h"
 
-namespace art HIDDEN {
+namespace art {
 
 bool EntrypointRequiresStackMap(QuickEntrypointEnum trampoline) {
   // Entrypoints that do not require a stackmap. In general leaf methods

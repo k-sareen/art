@@ -66,7 +66,7 @@ extern "C" void android_set_application_target_sdk_version(uint32_t version);
 #include "thread-inl.h"
 #include "thread_list.h"
 
-namespace art HIDDEN {
+namespace art {
 
 using android::base::StringPrintf;
 

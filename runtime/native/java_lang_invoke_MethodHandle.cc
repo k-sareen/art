@@ -27,7 +27,7 @@
 #include "native_util.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static void MethodHandle_invokeExactWithFrame(JNIEnv* env, jobject thiz, jobject arguments) {
   ScopedObjectAccess soa(env);

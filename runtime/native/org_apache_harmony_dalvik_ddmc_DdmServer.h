@@ -19,9 +19,7 @@
 
 #include <jni.h>
 
-#include "base/macros.h"
-
-namespace art HIDDEN {
+namespace art {
 
 void register_org_apache_harmony_dalvik_ddmc_DdmServer(JNIEnv* env);
 

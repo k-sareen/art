@@ -20,9 +20,7 @@
 #include <jni.h>
 #include <unistd.h>
 
-#include "base/macros.h"
-
-namespace art HIDDEN {
+namespace art {
 
 void register_dalvik_system_BaseDexClassLoader(JNIEnv* env);
 

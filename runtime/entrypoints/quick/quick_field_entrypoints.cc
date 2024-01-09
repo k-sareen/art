@@ -26,7 +26,7 @@
 #include "mirror/class-inl.h"
 #include "mirror/object_reference.h"
 
-namespace art HIDDEN {
+namespace art {
 
 // Fast path field resolution that can't initialize classes or throw exceptions.
 inline ArtField* FindFieldFast(uint32_t field_idx,

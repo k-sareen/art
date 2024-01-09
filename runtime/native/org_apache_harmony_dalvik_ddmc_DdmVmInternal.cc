@@ -31,7 +31,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "thread_list.h"
 
-namespace art HIDDEN {
+namespace art {
 
 static void DdmVmInternal_setRecentAllocationsTrackingEnabled(JNIEnv*, jclass, jboolean enable) {
   Dbg::SetAllocTrackingEnabled(enable);

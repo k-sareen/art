@@ -36,7 +36,7 @@
     }                                                    \
   }
 
-namespace art HIDDEN {
+namespace art {
 
 extern "C" int artMethodExitHook(Thread* self,
                                  ArtMethod* method,

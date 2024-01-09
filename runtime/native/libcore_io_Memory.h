@@ -19,9 +19,7 @@
 
 #include <jni.h>
 
-#include "base/macros.h"
-
-namespace art HIDDEN {
+namespace art {
 
 void register_libcore_io_Memory(JNIEnv* env);
 

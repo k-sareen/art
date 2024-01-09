@@ -24,7 +24,7 @@
 #include "thread.h"
 #include "well_known_classes.h"
 
-namespace art HIDDEN {
+namespace art {
 
 // Deliver an exception that's pending on thread helping set up a callee save frame on the way.
 extern "C" NO_RETURN void artDeliverPendingExceptionFromCode(Thread* self)

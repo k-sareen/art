@@ -36,7 +36,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 namespace {
   // Checks a JNI argument `size` fits inside a size_t and throws a RuntimeException if not (see

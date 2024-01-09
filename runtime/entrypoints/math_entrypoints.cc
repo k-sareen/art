@@ -18,7 +18,7 @@
 
 #include "entrypoint_utils-inl.h"
 
-namespace art HIDDEN {
+namespace art {
 
 extern "C" double art_l2d(int64_t l) {
   return static_cast<double>(l);
