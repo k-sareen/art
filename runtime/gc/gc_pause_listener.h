@@ -17,7 +17,9 @@
 #ifndef ART_RUNTIME_GC_GC_PAUSE_LISTENER_H_
 #define ART_RUNTIME_GC_GC_PAUSE_LISTENER_H_
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace gc {
 
 class GcPauseListener {

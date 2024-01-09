@@ -21,7 +21,7 @@
 #include "runtime.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 const char* GCCriticalSection::Enter(GcCause cause, CollectorType type) {

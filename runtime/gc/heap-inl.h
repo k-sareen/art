@@ -38,7 +38,7 @@
 #include "verify_object.h"
 #include "write_barrier-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 template <bool kInstrumented, bool kCheckLargeObject, typename PreFenceVisitor>

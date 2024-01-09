@@ -18,10 +18,11 @@
 #define ART_RUNTIME_GC_SCOPED_GC_CRITICAL_SECTION_H_
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "collector_type.h"
 #include "gc_cause.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Thread;
 
@@ -35,10 +36,10 @@ class GCCriticalSection {
   ~GCCriticalSection() {}
 
   // Starts a GCCriticalSection. Returns the previous no-suspension reason.
-  const char* Enter(GcCause cause, CollectorType type) ACQUIRE(Roles::uninterruptible_);
+  EXPORT const char* Enter(GcCause cause, CollectorType type) ACQUIRE(Roles::uninterruptible_);
 
   // Ends a GCCriticalSection. Takes the old no-suspension reason.
-  void Exit(const char* old_reason) RELEASE(Roles::uninterruptible_);
+  EXPORT void Exit(const char* old_reason) RELEASE(Roles::uninterruptible_);
 
  private:
   Thread* const self_;
@@ -50,9 +51,9 @@ class GCCriticalSection {
 // suspended.
 class ScopedGCCriticalSection {
  public:
-  ScopedGCCriticalSection(Thread* self, GcCause cause, CollectorType collector_type)
+  EXPORT ScopedGCCriticalSection(Thread* self, GcCause cause, CollectorType collector_type)
       ACQUIRE(Roles::uninterruptible_);
-  ~ScopedGCCriticalSection() RELEASE(Roles::uninterruptible_);
+  EXPORT ~ScopedGCCriticalSection() RELEASE(Roles::uninterruptible_);
 
  private:
   GCCriticalSection critical_section_;

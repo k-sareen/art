@@ -25,7 +25,7 @@
 #include "mirror/reference-inl.h"
 #include "object_callbacks.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 ReferenceQueue::ReferenceQueue(Mutex* lock) : lock_(lock), list_(nullptr) {

@@ -29,7 +29,7 @@
 #include "thread-current-inl.h"
 #include "thread_list.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 // Visit objects when threads aren't suspended. If concurrent moving

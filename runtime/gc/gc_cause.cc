@@ -23,7 +23,7 @@
 
 #include <ostream>
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 const char* PrettyCause(GcCause cause) {

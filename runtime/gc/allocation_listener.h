@@ -26,7 +26,7 @@
 #include "handle.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Class;

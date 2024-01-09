@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_GC_SYSTEM_WEAK_H_
 #define ART_RUNTIME_GC_SYSTEM_WEAK_H_
 
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "object_callbacks.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 class AbstractSystemWeakHolder {

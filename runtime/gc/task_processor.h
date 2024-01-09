@@ -20,11 +20,12 @@
 #include <memory>
 #include <set>
 
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "runtime_globals.h"
 #include "thread_pool.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 class HeapTask : public SelfDeletingTask {

@@ -25,7 +25,7 @@
 #include "mirror/class-inl.h"
 #include "mirror/object-refvisitor-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 std::string Verification::DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) const {

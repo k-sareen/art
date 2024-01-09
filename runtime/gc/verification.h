@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_GC_VERIFICATION_H_
 #define ART_RUNTIME_GC_VERIFICATION_H_
 
+#include "base/macros.h"
 #include "obj_ptr.h"
 #include "offsets.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Class;
@@ -45,10 +46,10 @@ class Verification {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Don't use ObjPtr for things that might not be aligned like the invalid reference.
-  void LogHeapCorruption(ObjPtr<mirror::Object> holder,
-                         MemberOffset offset,
-                         mirror::Object* ref,
-                         bool fatal) const REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT void LogHeapCorruption(ObjPtr<mirror::Object> holder,
+                                MemberOffset offset,
+                                mirror::Object* ref,
+                                bool fatal) const REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Return true if the klass is likely to be a valid mirror::Class.
   // Returns true if the class is a valid mirror::Class or possibly spuriously.
@@ -68,7 +69,7 @@ class Verification {
 
   // Find the first path to the target from the root set. Should be called while paused since
   // visiting roots is not safe otherwise.
-  std::string FirstPathFromRootSet(ObjPtr<mirror::Object> target) const
+  EXPORT std::string FirstPathFromRootSet(ObjPtr<mirror::Object> target) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Does not check alignment, used by DumpRAMAroundAddress.

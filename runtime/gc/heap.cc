@@ -108,7 +108,7 @@
 #include "verify_object-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 
 #ifdef ART_TARGET_ANDROID
 namespace {

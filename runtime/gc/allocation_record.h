@@ -20,11 +20,12 @@
 #include <list>
 #include <memory>
 
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "gc_root.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 class IsMarkedVisitor;
@@ -215,11 +216,8 @@ class AllocRecordObjectMap {
 
   // Caller needs to check that it is enabled before calling since we read the stack trace before
   // checking the enabled boolean.
-  void RecordAllocation(Thread* self,
-                        ObjPtr<mirror::Object>* obj,
-                        size_t byte_count)
-      REQUIRES(!Locks::alloc_tracker_lock_)
-      REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT void RecordAllocation(Thread* self, ObjPtr<mirror::Object>* obj, size_t byte_count)
+      REQUIRES(!Locks::alloc_tracker_lock_) REQUIRES_SHARED(Locks::mutator_lock_);
 
   static void SetAllocTrackingEnabled(bool enabled) REQUIRES(!Locks::alloc_tracker_lock_);
 
