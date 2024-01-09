@@ -1173,7 +1173,7 @@ public class DexUseManagerLocal {
 
         @NonNull
         public ScheduledExecutorService createScheduledExecutor() {
-            return Executors.newSingleThreadScheduledExecutor();
+            return Executors.newScheduledThreadPool(1 /* corePoolSize */);
         }
 
         @NonNull
