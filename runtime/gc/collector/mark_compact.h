@@ -37,9 +37,9 @@
 #include "immune_spaces.h"
 #include "offsets.h"
 
-namespace art {
+namespace art HIDDEN {
 
-bool KernelSupportsUffd();
+EXPORT bool KernelSupportsUffd();
 
 namespace mirror {
 class DexCache;

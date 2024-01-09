@@ -24,7 +24,7 @@
 #include "mirror/object.h"
 #include "oat_file.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

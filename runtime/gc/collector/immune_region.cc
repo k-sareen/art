@@ -19,7 +19,7 @@
 #include "gc/space/space-inl.h"
 #include "mirror/object.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

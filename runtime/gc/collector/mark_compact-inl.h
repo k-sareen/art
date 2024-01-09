@@ -21,7 +21,7 @@
 #include "mark_compact.h"
 #include "mirror/object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

@@ -24,7 +24,7 @@
 
 #include <set>
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 class ContinuousSpace;

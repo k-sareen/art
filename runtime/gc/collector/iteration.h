@@ -21,11 +21,12 @@
 #include <vector>
 
 #include "android-base/macros.h"
+#include "base/macros.h"
 #include "base/timing_logger.h"
 #include "gc/gc_cause.h"
 #include "object_byte_pair.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

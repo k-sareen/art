@@ -29,7 +29,7 @@
 #include "mirror/object_reference.h"
 #include "offsets.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Thread;
 

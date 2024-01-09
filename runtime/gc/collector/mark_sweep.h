@@ -29,7 +29,7 @@
 #include "immune_spaces.h"
 #include "offsets.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Class;

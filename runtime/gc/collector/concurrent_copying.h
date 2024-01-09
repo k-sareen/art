@@ -17,6 +17,7 @@
 #ifndef ART_RUNTIME_GC_COLLECTOR_CONCURRENT_COPYING_H_
 #define ART_RUNTIME_GC_COLLECTOR_CONCURRENT_COPYING_H_
 
+#include "base/macros.h"
 #include "garbage_collector.h"
 #include "gc/accounting/space_bitmap.h"
 #include "immune_spaces.h"
@@ -27,7 +28,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace art {
+namespace art HIDDEN {
 class Barrier;
 class Closure;
 class RootInfo;
@@ -167,17 +168,15 @@ class ConcurrentCopying : public GarbageCollector {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:
-  void PushOntoMarkStack(Thread* const self, mirror::Object* obj)
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!mark_stack_lock_);
+  EXPORT void PushOntoMarkStack(Thread* const self, mirror::Object* obj)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!mark_stack_lock_);
   // Returns a to-space copy of the from-space object from_ref, and atomically installs a
   // forwarding pointer. Ensures that the forwarding reference is visible to other threads before
   // the returned to-space pointer becomes visible to them.
-  mirror::Object* Copy(Thread* const self,
-                       mirror::Object* from_ref,
-                       mirror::Object* holder,
-                       MemberOffset offset)
-      REQUIRES_SHARED(Locks::mutator_lock_)
+  EXPORT mirror::Object* Copy(Thread* const self,
+                              mirror::Object* from_ref,
+                              mirror::Object* holder,
+                              MemberOffset offset) REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!mark_stack_lock_, !skipped_blocks_lock_, !immune_gray_stack_lock_);
   // Scan the reference fields of object `to_ref`.
   template <bool kNoUnEvac>
@@ -288,8 +287,9 @@ class ConcurrentCopying : public GarbageCollector {
       REQUIRES_SHARED(Locks::mutator_lock_);
   // Dump information about heap reference `ref`, referenced from object `obj` at offset `offset`,
   // and return it as a string.
-  std::string DumpHeapReference(mirror::Object* obj, MemberOffset offset, mirror::Object* ref)
-      REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT std::string DumpHeapReference(mirror::Object* obj,
+                                       MemberOffset offset,
+                                       mirror::Object* ref) REQUIRES_SHARED(Locks::mutator_lock_);
   // Dump information about GC root `ref` and return it as a string.
   std::string DumpGcRoot(mirror::Object* ref) REQUIRES_SHARED(Locks::mutator_lock_);
   void AssertToSpaceInvariantInNonMovingSpace(mirror::Object* obj, mirror::Object* ref)
@@ -298,12 +298,11 @@ class ConcurrentCopying : public GarbageCollector {
   void DisableMarking() REQUIRES_SHARED(Locks::mutator_lock_);
   void IssueDisableMarkingCheckpoint() REQUIRES_SHARED(Locks::mutator_lock_);
   void ExpandGcMarkStack() REQUIRES_SHARED(Locks::mutator_lock_);
-  mirror::Object* MarkNonMoving(Thread* const self,
-                                mirror::Object* from_ref,
-                                mirror::Object* holder = nullptr,
-                                MemberOffset offset = MemberOffset(0))
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!mark_stack_lock_, !skipped_blocks_lock_);
+  EXPORT mirror::Object* MarkNonMoving(Thread* const self,
+                                       mirror::Object* from_ref,
+                                       mirror::Object* holder = nullptr,
+                                       MemberOffset offset = MemberOffset(0))
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!mark_stack_lock_, !skipped_blocks_lock_);
   ALWAYS_INLINE mirror::Object* MarkUnevacFromSpaceRegion(Thread* const self,
       mirror::Object* from_ref,
       accounting::SpaceBitmap<kObjectAlignment>* bitmap)
@@ -315,8 +314,8 @@ class ConcurrentCopying : public GarbageCollector {
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!immune_gray_stack_lock_);
   void ScanImmuneObject(mirror::Object* obj)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!mark_stack_lock_);
-  mirror::Object* MarkFromReadBarrierWithMeasurements(Thread* const self,
-                                                      mirror::Object* from_ref)
+  EXPORT mirror::Object* MarkFromReadBarrierWithMeasurements(Thread* const self,
+                                                             mirror::Object* from_ref)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!mark_stack_lock_, !skipped_blocks_lock_, !immune_gray_stack_lock_);
   void DumpPerformanceInfo(std::ostream& os) override REQUIRES(!rb_slow_path_histogram_lock_);

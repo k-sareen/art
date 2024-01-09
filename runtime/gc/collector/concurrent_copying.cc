@@ -47,7 +47,7 @@
 #include "thread_list.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

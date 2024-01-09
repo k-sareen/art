@@ -25,7 +25,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/reference.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

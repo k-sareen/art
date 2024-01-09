@@ -19,7 +19,9 @@
 
 #include "mark_sweep.h"
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace gc {
 namespace collector {
 

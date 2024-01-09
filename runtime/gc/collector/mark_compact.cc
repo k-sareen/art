@@ -93,7 +93,7 @@ using ::android::base::ParseBoolResult;
 }  // namespace
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 static bool HaveMremapDontunmap() {
   const size_t page_size = GetPageSizeSlow();

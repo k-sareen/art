@@ -19,7 +19,7 @@
 
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 class Object;
 }  // namespace mirror
