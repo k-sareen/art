@@ -25,7 +25,7 @@
 #include <functional>
 #include <map>
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 namespace accounting {
@@ -99,7 +99,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!region_lock_) {
     return AllocationSizeNonvirtual(obj, usable_size);
   }
-  size_t AllocationSizeNonvirtual(mirror::Object* obj, size_t* usable_size)
+  EXPORT size_t AllocationSizeNonvirtual(mirror::Object* obj, size_t* usable_size)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!region_lock_);
 
   size_t Free(Thread*, mirror::Object*) override {
@@ -117,7 +117,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
     return &mark_bitmap_;
   }
 
-  void Clear() override REQUIRES(!region_lock_);
+  EXPORT void Clear() override REQUIRES(!region_lock_);
 
   // Remove read and write memory protection from the whole region space,
   // i.e. make memory pages backing the region area not readable and not
@@ -128,7 +128,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
   // pages backing the region area readable and writable. This method is useful
   // to avoid page protection faults when dumping information about an invalid
   // reference.
-  void Unprotect();
+  EXPORT void Unprotect();
 
   // Change the non growth limit capacity to new capacity by shrinking or expanding the map.
   // Currently, only shrinking is supported.
@@ -137,15 +137,15 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
   // growth limit.
   void ClampGrowthLimit(size_t new_capacity) REQUIRES(!region_lock_);
 
-  void Dump(std::ostream& os) const override;
+  EXPORT void Dump(std::ostream& os) const override;
   void DumpRegions(std::ostream& os) REQUIRES(!region_lock_);
   // Dump region containing object `obj`. Precondition: `obj` is in the region space.
   void DumpRegionForObject(std::ostream& os, mirror::Object* obj) REQUIRES(!region_lock_);
-  void DumpNonFreeRegions(std::ostream& os) REQUIRES(!region_lock_);
+  EXPORT void DumpNonFreeRegions(std::ostream& os) REQUIRES(!region_lock_);
 
-  size_t RevokeThreadLocalBuffers(Thread* thread) override REQUIRES(!region_lock_);
+  EXPORT size_t RevokeThreadLocalBuffers(Thread* thread) override REQUIRES(!region_lock_);
   size_t RevokeThreadLocalBuffers(Thread* thread, const bool reuse) REQUIRES(!region_lock_);
-  size_t RevokeAllThreadLocalBuffers() override
+  EXPORT size_t RevokeAllThreadLocalBuffers() override
       REQUIRES(!Locks::runtime_shutdown_lock_, !Locks::thread_list_lock_, !region_lock_);
   void AssertThreadLocalBuffersAreRevoked(Thread* thread) REQUIRES(!region_lock_);
   void AssertAllThreadLocalBuffersAreRevoked()
@@ -227,7 +227,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
   accounting::ContinuousSpaceBitmap::SweepCallback* GetSweepCallback() override {
     return nullptr;
   }
-  bool LogFragmentationAllocFailure(std::ostream& os, size_t failed_alloc_bytes) override
+  EXPORT bool LogFragmentationAllocFailure(std::ostream& os, size_t failed_alloc_bytes) override
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!region_lock_);
 
   // Object alignment within the space.
@@ -453,11 +453,11 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
         REQUIRES(region_space->region_lock_);
 
     // Given a free region, declare it non-free (allocated) and large.
-    void UnfreeLarge(RegionSpace* region_space, uint32_t alloc_time)
+    EXPORT void UnfreeLarge(RegionSpace* region_space, uint32_t alloc_time)
         REQUIRES(region_space->region_lock_);
 
     // Given a free region, declare it non-free (allocated) and large tail.
-    void UnfreeLargeTail(RegionSpace* region_space, uint32_t alloc_time)
+    EXPORT void UnfreeLargeTail(RegionSpace* region_space, uint32_t alloc_time)
         REQUIRES(region_space->region_lock_);
 
     void MarkAsAllocated(RegionSpace* region_space, uint32_t alloc_time)
@@ -715,7 +715,7 @@ class RegionSpace final : public ContinuousMemMapAllocSpace {
     }
   }
 
-  Region* AllocateRegion(bool for_evac) REQUIRES(region_lock_);
+  EXPORT Region* AllocateRegion(bool for_evac) REQUIRES(region_lock_);
   void RevokeThreadLocalBuffersLocked(Thread* thread, bool reuse) REQUIRES(region_lock_);
 
   // Scan region range [`begin`, `end`) in increasing order to try to

@@ -22,7 +22,7 @@
 #include "region_space.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

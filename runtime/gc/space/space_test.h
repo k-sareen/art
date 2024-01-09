@@ -31,7 +31,7 @@
 #include "thread_list.h"
 #include "zygote_space.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

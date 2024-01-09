@@ -17,7 +17,7 @@
 #ifndef ART_RUNTIME_GC_SPACE_MEMORY_TOOL_SETTINGS_H_
 #define ART_RUNTIME_GC_SPACE_MEMORY_TOOL_SETTINGS_H_
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

@@ -28,7 +28,7 @@
 #include "noop_compiler_callbacks.h"
 #include "oat_file.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

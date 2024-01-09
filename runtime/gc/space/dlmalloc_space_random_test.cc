@@ -18,7 +18,7 @@
 
 #include "dlmalloc_space.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 namespace {

@@ -20,7 +20,7 @@
 #include "malloc_space.h"
 #include "space.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 
 namespace collector {

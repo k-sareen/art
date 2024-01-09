@@ -24,7 +24,7 @@
 #include "gc/space/memory_tool_settings.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

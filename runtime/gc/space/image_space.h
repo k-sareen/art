@@ -24,7 +24,7 @@
 #include "runtime.h"
 #include "space.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class DexFile;
 enum class InstructionSet;
@@ -152,9 +152,9 @@ class ImageSpace : public MemMapSpace {
 
   // Try to open an existing app image space for an oat file,
   // using the boot image spaces from the current Runtime.
-  static std::unique_ptr<ImageSpace> CreateFromAppImage(const char* image,
-                                                        const OatFile* oat_file,
-                                                        std::string* error_msg)
+  EXPORT static std::unique_ptr<ImageSpace> CreateFromAppImage(const char* image,
+                                                               const OatFile* oat_file,
+                                                               std::string* error_msg)
       REQUIRES_SHARED(Locks::mutator_lock_);
   // Try to open an existing app image space for an the oat file and given boot image spaces.
   static std::unique_ptr<ImageSpace> CreateFromAppImage(
@@ -167,7 +167,7 @@ class ImageSpace : public MemMapSpace {
   static bool IsBootClassPathOnDisk(InstructionSet image_isa);
 
   // Give access to the OatFile.
-  const OatFile* GetOatFile() const;
+  EXPORT const OatFile* GetOatFile() const;
 
   // Releases the OatFile from the ImageSpace so it can be transfer to
   // the caller, presumably the OatFileManager.
@@ -238,8 +238,8 @@ class ImageSpace : public MemMapSpace {
   // Returns the checksums for the boot image, extensions and extra boot class path dex files,
   // based on the image spaces and boot class path dex files loaded in memory.
   // The `image_spaces` must correspond to the head of the `boot_class_path`.
-  static std::string GetBootClassPathChecksums(ArrayRef<ImageSpace* const> image_spaces,
-                                               ArrayRef<const DexFile* const> boot_class_path);
+  EXPORT static std::string GetBootClassPathChecksums(
+      ArrayRef<ImageSpace* const> image_spaces, ArrayRef<const DexFile* const> boot_class_path);
 
   // Returns the total number of components (jar files) associated with the image spaces.
   static size_t GetNumberOfComponents(ArrayRef<gc::space::ImageSpace* const> image_spaces);
@@ -255,7 +255,7 @@ class ImageSpace : public MemMapSpace {
       /*out*/std::string* error_msg);
 
   // Expand a single image location to multi-image locations based on the dex locations.
-  static std::vector<std::string> ExpandMultiImageLocations(
+  EXPORT static std::vector<std::string> ExpandMultiImageLocations(
       ArrayRef<const std::string> dex_locations,
       const std::string& image_location,
       bool boot_image_extension = false);

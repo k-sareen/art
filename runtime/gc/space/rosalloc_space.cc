@@ -31,7 +31,7 @@
 #include "thread.h"
 #include "thread_list.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

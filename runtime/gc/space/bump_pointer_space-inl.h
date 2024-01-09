@@ -22,7 +22,7 @@
 #include "base/bit_utils.h"
 #include "mirror/object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 

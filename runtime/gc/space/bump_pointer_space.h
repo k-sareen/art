@@ -22,7 +22,7 @@
 
 #include <deque>
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;
@@ -39,7 +39,7 @@ namespace space {
 
 // A bump pointer space allocates by incrementing a pointer, it doesn't provide a free
 // implementation as its intended to be evacuated.
-class BumpPointerSpace final : public ContinuousMemMapAllocSpace {
+class EXPORT BumpPointerSpace final : public ContinuousMemMapAllocSpace {
  public:
   using WalkCallback = void (*)(void *, void *, int, void *);
 

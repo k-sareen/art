@@ -24,7 +24,7 @@
 #include "mirror/object-inl.h"
 #include "thread_list.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace gc {
 namespace space {
 
