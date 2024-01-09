@@ -225,6 +225,7 @@ known_failing_tests = frozenset([
 # from this set (in order to promote them to presubmits).
 postsubmit_only_tests = frozenset([
   "851-null-instanceof",
+  "853-checker-inlining",
   "2266-checker-remove-empty-ifs",
   "2268-checker-remove-dead-phis",
   "2269-checker-constant-folding-instrinsics",

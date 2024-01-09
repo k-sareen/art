@@ -4263,6 +4263,9 @@
     },
     {
       "name": "art-run-test-851-null-instanceof"
+    },
+    {
+      "name": "art-run-test-853-checker-inlining"
     }
   ]
 }
