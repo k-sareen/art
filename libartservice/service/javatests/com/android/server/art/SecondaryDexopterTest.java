@@ -43,6 +43,7 @@ import androidx.test.filters.SmallTest;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.server.art.model.ArtFlags;
+import com.android.server.art.model.Config;
 import com.android.server.art.model.DexoptParams;
 import com.android.server.art.model.DexoptResult;
 import com.android.server.art.testing.StaticMockitoRule;
@@ -105,11 +106,17 @@ public class SecondaryDexopterTest {
     private PackageState mPkgState;
     private AndroidPackage mPkg;
     private CancellationSignal mCancellationSignal;
+    protected Config mConfig;
 
     private SecondaryDexopter mSecondaryDexopter;
 
     @Before
     public void setUp() throws Exception {
+        mPkgState = createPackageState();
+        mPkg = mPkgState.getAndroidPackage();
+        mCancellationSignal = new CancellationSignal();
+        mConfig = new Config();
+
         lenient()
                 .when(SystemProperties.getBoolean(eq("dalvik.vm.always_debuggable"), anyBoolean()))
                 .thenReturn(false);
@@ -129,16 +136,13 @@ public class SecondaryDexopterTest {
         lenient().when(mInjector.isSystemUiPackage(any())).thenReturn(false);
         lenient().when(mInjector.isLauncherPackage(any())).thenReturn(false);
         lenient().when(mInjector.getDexUseManager()).thenReturn(mDexUseManager);
+        lenient().when(mInjector.getConfig()).thenReturn(mConfig);
 
         List<CheckedSecondaryDexInfo> secondaryDexInfo = createSecondaryDexInfo();
         lenient()
                 .when(mDexUseManager.getCheckedSecondaryDexInfo(
                         eq(PKG_NAME), eq(true) /* excludeObsoleteDexesAndLoaders */))
                 .thenReturn(secondaryDexInfo);
-
-        mPkgState = createPackageState();
-        mPkg = mPkgState.getAndroidPackage();
-        mCancellationSignal = new CancellationSignal();
 
         prepareProfiles();
 

@@ -30,6 +30,7 @@ import android.os.CancellationSignal;
 import androidx.annotation.RequiresApi;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.art.model.Config;
 import com.android.server.art.model.DexoptParams;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.PackageState;
@@ -41,10 +42,10 @@ import java.util.List;
 public class SecondaryDexopter extends Dexopter<CheckedSecondaryDexInfo> {
     private static final String TAG = ArtManagerLocal.TAG;
 
-    public SecondaryDexopter(@NonNull Context context, @NonNull PackageState pkgState,
-            @NonNull AndroidPackage pkg, @NonNull DexoptParams params,
-            @NonNull CancellationSignal cancellationSignal) {
-        this(new Injector(context), pkgState, pkg, params, cancellationSignal);
+    public SecondaryDexopter(@NonNull Context context, @NonNull Config config,
+            @NonNull PackageState pkgState, @NonNull AndroidPackage pkg,
+            @NonNull DexoptParams params, @NonNull CancellationSignal cancellationSignal) {
+        this(new Injector(context, config), pkgState, pkg, params, cancellationSignal);
     }
 
     @VisibleForTesting

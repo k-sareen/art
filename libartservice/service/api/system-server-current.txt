@@ -6,6 +6,7 @@ package com.android.server.art {
     ctor public ArtManagerLocal(@NonNull android.content.Context);
     method public void addDexoptDoneCallback(boolean, @NonNull java.util.concurrent.Executor, @NonNull com.android.server.art.ArtManagerLocal.DexoptDoneCallback);
     method public void cancelBackgroundDexoptJob();
+    method public void clearAdjustCompilerFilterCallback();
     method @NonNull public void clearAppProfiles(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String);
     method public void clearBatchDexoptStartCallback();
     method public void clearScheduleBackgroundDexoptJobCallback();
@@ -22,12 +23,17 @@ package com.android.server.art {
     method public void printShellCommandHelp(@NonNull java.io.PrintWriter);
     method public void removeDexoptDoneCallback(@NonNull com.android.server.art.ArtManagerLocal.DexoptDoneCallback);
     method public int scheduleBackgroundDexoptJob();
+    method public void setAdjustCompilerFilterCallback(@NonNull java.util.concurrent.Executor, @NonNull com.android.server.art.ArtManagerLocal.AdjustCompilerFilterCallback);
     method public void setBatchDexoptStartCallback(@NonNull java.util.concurrent.Executor, @NonNull com.android.server.art.ArtManagerLocal.BatchDexoptStartCallback);
     method public void setScheduleBackgroundDexoptJobCallback(@NonNull java.util.concurrent.Executor, @NonNull com.android.server.art.ArtManagerLocal.ScheduleBackgroundDexoptJobCallback);
     method @NonNull public android.os.ParcelFileDescriptor snapshotAppProfile(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot, @NonNull String, @Nullable String) throws com.android.server.art.ArtManagerLocal.SnapshotProfileException;
     method @NonNull public android.os.ParcelFileDescriptor snapshotBootImageProfile(@NonNull com.android.server.pm.PackageManagerLocal.FilteredSnapshot) throws com.android.server.art.ArtManagerLocal.SnapshotProfileException;
     method public void startBackgroundDexoptJob();
     method public void unscheduleBackgroundDexoptJob();
+  }
+
+  public static interface ArtManagerLocal.AdjustCompilerFilterCallback {
+    method @NonNull public String onAdjustCompilerFilter(@NonNull String, @NonNull String, @NonNull String);
   }
 
   public static interface ArtManagerLocal.BatchDexoptStartCallback {

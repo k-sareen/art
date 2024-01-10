@@ -16,11 +16,13 @@
 
 package com.android.server.art;
 
+import static com.android.server.art.ArtManagerLocal.AdjustCompilerFilterCallback;
 import static com.android.server.art.OutputArtifacts.PermissionSettings;
 import static com.android.server.art.ProfilePath.TmpProfilePath;
 import static com.android.server.art.Utils.Abi;
 import static com.android.server.art.Utils.InitProfileResult;
 import static com.android.server.art.model.ArtFlags.DexoptFlags;
+import static com.android.server.art.model.Config.Callback;
 import static com.android.server.art.model.DexoptResult.DexContainerFileDexoptResult;
 
 import android.R;
@@ -45,6 +47,7 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.LocalManagerRegistry;
 import com.android.server.art.model.ArtFlags;
+import com.android.server.art.model.Config;
 import com.android.server.art.model.DetailedDexInfo;
 import com.android.server.art.model.DexoptParams;
 import com.android.server.art.model.DexoptResult;
@@ -300,6 +303,8 @@ public abstract class Dexopter<DexInfoType extends DetailedDexInfo> {
         return results;
     }
 
+    // The javadoc on `AdjustCompilerFilterCallback.onAdjustCompilerFilter` may need updating when
+    // this method is changed.
     @NonNull
     private String adjustCompilerFilter(
             @NonNull String targetCompilerFilter, @NonNull DexInfoType dexInfo) {
@@ -310,6 +315,17 @@ public abstract class Dexopter<DexInfoType extends DetailedDexInfo> {
             }
         } else if (mInjector.isLauncherPackage(mPkgState.getPackageName())) {
             targetCompilerFilter = "speed-profile";
+        }
+
+        Callback<AdjustCompilerFilterCallback, Void> callback =
+                mInjector.getConfig().getAdjustCompilerFilterCallback();
+        if (callback != null) {
+            // Local variables passed to the lambda must be final or effectively final.
+            final String originalCompilerFilter = targetCompilerFilter;
+            targetCompilerFilter = Utils.executeAndWait(callback.executor(), () -> {
+                return callback.get().onAdjustCompilerFilter(
+                        mPkgState.getPackageName(), originalCompilerFilter, mParams.getReason());
+            });
         }
 
         // Code below should only downgrade the compiler filter. Don't upgrade the compiler filter
@@ -688,9 +704,11 @@ public abstract class Dexopter<DexInfoType extends DetailedDexInfo> {
     @VisibleForTesting(visibility = VisibleForTesting.Visibility.PROTECTED)
     public static class Injector {
         @NonNull private final Context mContext;
+        @NonNull private final Config mConfig;
 
-        public Injector(@NonNull Context context) {
+        public Injector(@NonNull Context context, @NonNull Config config) {
             mContext = context;
+            mConfig = config;
 
             // Call the getters for various dependencies, to ensure correct initialization order.
             getUserManager();
@@ -746,6 +764,11 @@ public abstract class Dexopter<DexInfoType extends DetailedDexInfo> {
                 }
             }
             return -1;
+        }
+
+        @NonNull
+        public Config getConfig() {
+            return mConfig;
         }
     }
 }

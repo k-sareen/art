@@ -928,6 +928,28 @@ public final class ArtManagerLocal {
     }
 
     /**
+     * Overrides the compiler filter of a package. The callback is called whenever a package is
+     * going to be dexopted. This method is thread-safe.
+     */
+    @SuppressLint("UnflaggedApi") // Flag support for mainline is not available.
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void setAdjustCompilerFilterCallback(@NonNull @CallbackExecutor Executor executor,
+            @NonNull AdjustCompilerFilterCallback callback) {
+        mInjector.getConfig().setAdjustCompilerFilterCallback(executor, callback);
+    }
+
+    /**
+     * Clears the callback set by {@link
+     * #setAdjustCompilerFilterCallback(Executor, AdjustCompilerFilterCallback)}. This
+     * method is thread-safe.
+     */
+    @SuppressLint("UnflaggedApi") // Flag support for mainline is not available.
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void clearAdjustCompilerFilterCallback() {
+        mInjector.getConfig().clearAdjustCompilerFilterCallback();
+    }
+
+    /**
      * Cleans up obsolete profiles and artifacts.
      *
      * This is done in a mark-and-sweep approach.
@@ -1241,6 +1263,55 @@ public final class ArtManagerLocal {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public interface DexoptDoneCallback {
         void onDexoptDone(@NonNull DexoptResult result);
+    }
+
+    /** @hide */
+    @SuppressLint("UnflaggedApi") // Flag support for mainline is not available.
+    @SystemApi(client = SystemApi.Client.SYSTEM_SERVER)
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public interface AdjustCompilerFilterCallback {
+        /**
+         * Returns the adjusted compiler filter for the given package. If a package doesn't need
+         * adjustment, this callback must return {@code originalCompilerFilter}. The callback must
+         * be able to handle unknown {@code originalCompilerFilter} and unknown {@code reason}
+         * because more compiler filters and reasons may be added in the future.
+         *
+         * The returned compiler filter overrides any compiler filter set by {@link
+         * DexoptParams.Builder#setCompilerFilter}, no matter the dexopt is initiated by a
+         * {@link #dexoptPackage} API call or any automatic batch dexopt (e.g., dexopt on boot and
+         * background dexopt).
+         *
+         * This callback is useful for:
+         * - Consistently overriding the compiler filter regardless of the dexopt initiator, for
+         *   some performance-sensitive packages.
+         * - Providing a compiler filter for specific packages during batch dexopt.
+         *
+         * The actual compiler filter to be used for dexopt will be determined in the following
+         * order:
+         *
+         * 1. The default compiler filter for the given reason.
+         * 2. The compiler filter set explicitly by {@link DexoptParams.Builder#setCompilerFilter}.
+         * 3. ART Service's internal adjustments to upgrade the compiler filter, based on whether
+         *    the package is System UI, etc.
+         * 4. The adjustments made by this callback.
+         * 5. ART Service's internal adjustments to downgrade the compiler filter, based on whether
+         *    the profile is available, etc.
+         *
+         * @param packageName the name of the package to be dexopted
+         * @param originalCompilerFilter the compiler filter before adjustment. This is the result
+         *         of step 3 described above. It would be the input to step 5 described above if
+         *         it wasn't for this callback.
+         * @param reason the compilation reason of this dexopt operation. It is a string defined in
+         *         {@link ReasonMapping} or a custom string passed to {@link
+         *         DexoptParams.Builder#Builder(String)}
+         *
+         * @return the compiler filter after adjustment. This will be the input to step 5 described
+         *         above
+         */
+        @SuppressLint("UnflaggedApi") // Flag support for mainline is not available.
+        @NonNull
+        String onAdjustCompilerFilter(@NonNull String packageName,
+                @NonNull String originalCompilerFilter, @NonNull String reason);
     }
 
     /**

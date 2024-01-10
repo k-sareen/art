@@ -168,6 +168,32 @@ public class PrimaryDexopterParameterizedTest extends PrimaryDexopterTestBase {
         params.mExpectedCompilerFilter = "speed";
         list.add(params);
 
+        // It respects the adjustment made by the callback.
+        params = new Params();
+        params.mRequestedCompilerFilter = "speed-profile";
+        params.mExpectedCallbackInputCompilerFilter = "speed-profile";
+        params.mCallbackReturnedCompilerFilter = "speed";
+        params.mExpectedCompilerFilter = "speed";
+        list.add(params);
+
+        // It upgrades the compiler filter before calling the callback.
+        params = new Params();
+        params.mRequestedCompilerFilter = "speed-profile";
+        params.mIsSystemUi = true;
+        params.mExpectedCallbackInputCompilerFilter = "speed";
+        params.mCallbackReturnedCompilerFilter = "speed";
+        params.mExpectedCompilerFilter = "speed";
+        list.add(params);
+
+        // It downgrades the compiler filter after calling the callback.
+        params = new Params();
+        params.mRequestedCompilerFilter = "speed-profile";
+        params.mExpectedCallbackInputCompilerFilter = "speed-profile";
+        params.mCallbackReturnedCompilerFilter = "speed-profile";
+        params.mIsUseEmbeddedDex = true;
+        params.mExpectedCompilerFilter = "verify";
+        list.add(params);
+
         return list;
     }
 
@@ -197,6 +223,17 @@ public class PrimaryDexopterParameterizedTest extends PrimaryDexopterTestBase {
         lenient().when(mArtd.mergeProfiles(any(), any(), any(), any(), any())).thenReturn(false);
 
         lenient().when(mArtd.isInDalvikCache(any())).thenReturn(mParams.mIsInDalvikCache);
+
+        if (mParams.mCallbackReturnedCompilerFilter != null) {
+            mConfig.setAdjustCompilerFilterCallback(
+                    Runnable::run, (packageName, originalCompilerFilter, reason) -> {
+                        assertThat(packageName).isEqualTo(PKG_NAME);
+                        assertThat(originalCompilerFilter)
+                                .isEqualTo(mParams.mExpectedCallbackInputCompilerFilter);
+                        assertThat(reason).isEqualTo("install");
+                        return mParams.mCallbackReturnedCompilerFilter;
+                    });
+        }
 
         mDexoptParams =
                 new DexoptParams.Builder("install")
@@ -334,6 +371,7 @@ public class PrimaryDexopterParameterizedTest extends PrimaryDexopterTestBase {
 
         // Options.
         public String mRequestedCompilerFilter = "verify";
+        public String mCallbackReturnedCompilerFilter = null;
         public boolean mForce = false;
         public boolean mShouldDowngrade = false;
         public boolean mSkipIfStorageLow = false;
@@ -343,6 +381,7 @@ public class PrimaryDexopterParameterizedTest extends PrimaryDexopterTestBase {
         public boolean mAlwaysDebuggable = false;
 
         // Expectations.
+        public String mExpectedCallbackInputCompilerFilter = "verify";
         public String mExpectedCompilerFilter = "verify";
         public int mExpectedDexoptTrigger = DexoptTrigger.COMPILER_FILTER_IS_BETTER
                 | DexoptTrigger.PRIMARY_BOOT_IMAGE_BECOMES_USABLE | DexoptTrigger.NEED_EXTRACTION;
@@ -358,19 +397,22 @@ public class PrimaryDexopterParameterizedTest extends PrimaryDexopterTestBase {
                             + "isLauncher=%b,"
                             + "isUseEmbeddedDex=%b,"
                             + "requestedCompilerFilter=%s,"
+                            + "callbackReturnedCompilerFilter=%s,"
                             + "force=%b,"
                             + "shouldDowngrade=%b,"
                             + "skipIfStorageLow=%b,"
                             + "ignoreProfile=%b,"
                             + "alwaysDebuggable=%b"
                             + " => "
-                            + "targetCompilerFilter=%s,"
+                            + "expectedCallbackInputCompilerFilter=%s,"
+                            + "expectedCompilerFilter=%s,"
                             + "expectedDexoptTrigger=%d,"
                             + "expectedIsDebuggable=%b,"
                             + "expectedIsHiddenApiPolicyEnabled=%b",
                     mIsInDalvikCache, mHiddenApiEnforcementPolicy, mIsVmSafeMode, mIsDebuggable,
-                    mIsSystemUi, mIsLauncher, mIsUseEmbeddedDex, mRequestedCompilerFilter, mForce,
-                    mShouldDowngrade, mSkipIfStorageLow, mIgnoreProfile, mAlwaysDebuggable,
+                    mIsSystemUi, mIsLauncher, mIsUseEmbeddedDex, mRequestedCompilerFilter,
+                    mCallbackReturnedCompilerFilter, mForce, mShouldDowngrade, mSkipIfStorageLow,
+                    mIgnoreProfile, mAlwaysDebuggable, mExpectedCallbackInputCompilerFilter,
                     mExpectedCompilerFilter, mExpectedDexoptTrigger, mExpectedIsDebuggable,
                     mExpectedIsHiddenApiPolicyEnabled);
         }

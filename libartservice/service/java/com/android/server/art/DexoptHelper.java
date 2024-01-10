@@ -347,14 +347,16 @@ public class DexoptHelper {
         PrimaryDexopter getPrimaryDexopter(@NonNull PackageState pkgState,
                 @NonNull AndroidPackage pkg, @NonNull DexoptParams params,
                 @NonNull CancellationSignal cancellationSignal) {
-            return new PrimaryDexopter(mContext, pkgState, pkg, params, cancellationSignal);
+            return new PrimaryDexopter(
+                    mContext, mConfig, pkgState, pkg, params, cancellationSignal);
         }
 
         @NonNull
         SecondaryDexopter getSecondaryDexopter(@NonNull PackageState pkgState,
                 @NonNull AndroidPackage pkg, @NonNull DexoptParams params,
                 @NonNull CancellationSignal cancellationSignal) {
-            return new SecondaryDexopter(mContext, pkgState, pkg, params, cancellationSignal);
+            return new SecondaryDexopter(
+                    mContext, mConfig, pkgState, pkg, params, cancellationSignal);
         }
 
         @NonNull

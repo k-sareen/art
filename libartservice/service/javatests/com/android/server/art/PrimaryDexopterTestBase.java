@@ -31,6 +31,7 @@ import android.os.UserManager;
 import android.os.storage.StorageManager;
 
 import com.android.modules.utils.pm.PackageStateModulesUtils;
+import com.android.server.art.model.Config;
 import com.android.server.art.testing.StaticMockitoRule;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.AndroidPackageSplit;
@@ -68,9 +69,17 @@ public class PrimaryDexopterTestBase {
     protected PackageUserState mPkgUserStateNotInstalled;
     protected PackageUserState mPkgUserStateInstalled;
     protected CancellationSignal mCancellationSignal;
+    protected Config mConfig;
 
     @Before
     public void setUp() throws Exception {
+        mPkgUserStateNotInstalled = createPackageUserState(false /* installed */);
+        mPkgUserStateInstalled = createPackageUserState(true /* installed */);
+        mPkgState = createPackageState();
+        mPkg = mPkgState.getAndroidPackage();
+        mCancellationSignal = new CancellationSignal();
+        mConfig = new Config();
+
         lenient().when(mInjector.getArtd()).thenReturn(mArtd);
         lenient().when(mInjector.isSystemUiPackage(any())).thenReturn(false);
         lenient().when(mInjector.isLauncherPackage(any())).thenReturn(false);
@@ -78,6 +87,7 @@ public class PrimaryDexopterTestBase {
         lenient().when(mInjector.getDexUseManager()).thenReturn(mDexUseManager);
         lenient().when(mInjector.getStorageManager()).thenReturn(mStorageManager);
         lenient().when(mInjector.getArtVersion()).thenReturn(ART_VERSION);
+        lenient().when(mInjector.getConfig()).thenReturn(mConfig);
 
         lenient()
                 .when(SystemProperties.get("dalvik.vm.systemuicompilerfilter"))
@@ -104,12 +114,6 @@ public class PrimaryDexopterTestBase {
         lenient().when(mDexUseManager.isPrimaryDexUsedByOtherApps(any(), any())).thenReturn(false);
 
         lenient().when(mStorageManager.getAllocatableBytes(any())).thenReturn(1l);
-
-        mPkgUserStateNotInstalled = createPackageUserState(false /* installed */);
-        mPkgUserStateInstalled = createPackageUserState(true /* installed */);
-        mPkgState = createPackageState();
-        mPkg = mPkgState.getAndroidPackage();
-        mCancellationSignal = new CancellationSignal();
     }
 
     private AndroidPackage createPackage() {

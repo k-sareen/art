@@ -16,6 +16,7 @@
 
 package com.android.server.art.model;
 
+import static com.android.server.art.ArtManagerLocal.AdjustCompilerFilterCallback;
 import static com.android.server.art.ArtManagerLocal.BatchDexoptStartCallback;
 import static com.android.server.art.ArtManagerLocal.DexoptDoneCallback;
 import static com.android.server.art.ArtManagerLocal.ScheduleBackgroundDexoptJobCallback;
@@ -62,6 +63,14 @@ public class Config {
     private LinkedHashMap<DexoptDoneCallback, Callback<DexoptDoneCallback, Boolean>>
             mDexoptDoneCallbacks = new LinkedHashMap<>();
 
+    /**
+     * @see ArtManagerLocal#setAdjustCompilerFilterCallback(Executor,
+     *         AdjustCompilerFilterCallback)
+     */
+    @GuardedBy("this")
+    @Nullable
+    private Callback<AdjustCompilerFilterCallback, Void> mAdjustCompilerFilterCallback = null;
+
     public synchronized void setBatchDexoptStartCallback(
             @NonNull Executor executor, @NonNull BatchDexoptStartCallback callback) {
         mBatchDexoptStartCallback = Callback.create(callback, executor);
@@ -107,6 +116,21 @@ public class Config {
     @NonNull
     public synchronized List<Callback<DexoptDoneCallback, Boolean>> getDexoptDoneCallbacks() {
         return new ArrayList<>(mDexoptDoneCallbacks.values());
+    }
+
+    public synchronized void setAdjustCompilerFilterCallback(
+            @NonNull Executor executor, @NonNull AdjustCompilerFilterCallback callback) {
+        mAdjustCompilerFilterCallback = Callback.create(callback, executor);
+    }
+
+    public synchronized void clearAdjustCompilerFilterCallback() {
+        mAdjustCompilerFilterCallback = null;
+    }
+
+    @Nullable
+    public synchronized Callback<AdjustCompilerFilterCallback, Void>
+    getAdjustCompilerFilterCallback() {
+        return mAdjustCompilerFilterCallback;
     }
 
     @AutoValue

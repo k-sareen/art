@@ -65,6 +65,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /** @hide */
@@ -272,6 +273,10 @@ public final class Utils {
 
     public static void executeAndWait(@NonNull Executor executor, @NonNull Runnable runnable) {
         getFuture(CompletableFuture.runAsync(runnable, executor));
+    }
+
+    public static <T> T executeAndWait(@NonNull Executor executor, @NonNull Supplier<T> supplier) {
+        return getFuture(CompletableFuture.supplyAsync(supplier, executor));
     }
 
     public static <T> T getFuture(Future<T> future) {
