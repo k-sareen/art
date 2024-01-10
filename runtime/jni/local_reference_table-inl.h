@@ -27,7 +27,7 @@
 #include "mirror/object_reference.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace jni {
 
 inline void LrtEntry::SetReference(ObjPtr<mirror::Object> ref) {

@@ -27,14 +27,14 @@
 #include "runtime.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 class ArtMethod;
 class ScopedObjectAccess;
 
 const JNINativeInterface* GetJniNativeInterface();
-const JNINativeInterface* GetRuntimeShutdownNativeInterface();
+EXPORT const JNINativeInterface* GetRuntimeShutdownNativeInterface();
 
 int ThrowNewException(JNIEnv* env, jclass exception_class, const char* msg, jobject cause);
 

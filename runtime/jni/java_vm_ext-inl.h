@@ -22,7 +22,7 @@
 #include "read_barrier_config.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline bool JavaVMExt::MayAccessWeakGlobals(Thread* self) const {
   DCHECK(self != nullptr);

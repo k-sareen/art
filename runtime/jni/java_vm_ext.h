@@ -25,7 +25,7 @@
 #include "obj_ptr.h"
 #include "reference_table.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace linker {
 class ImageWriter;
@@ -103,11 +103,11 @@ class JavaVMExt : public JavaVM {
    * Returns 'true' on success. On failure, sets 'error_msg' to a
    * human-readable description of the error.
    */
-  bool LoadNativeLibrary(JNIEnv* env,
-                         const std::string& path,
-                         jobject class_loader,
-                         jclass caller_class,
-                         std::string* error_msg);
+  EXPORT bool LoadNativeLibrary(JNIEnv* env,
+                                const std::string& path,
+                                jobject class_loader,
+                                jclass caller_class,
+                                std::string* error_msg);
 
   // Unload native libraries with cleared class loaders.
   void UnloadNativeLibraries()
@@ -139,7 +139,7 @@ class JavaVMExt : public JavaVM {
 
   bool SetCheckJniEnabled(bool enabled);
 
-  void VisitRoots(RootVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_)
+  EXPORT void VisitRoots(RootVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jni_globals_lock_);
 
   void DisallowNewWeakGlobals()
@@ -151,17 +151,15 @@ class JavaVMExt : public JavaVM {
   void BroadcastForNewWeakGlobals()
       REQUIRES(!Locks::jni_weak_globals_lock_);
 
-  jobject AddGlobalRef(Thread* self, ObjPtr<mirror::Object> obj)
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!Locks::jni_globals_lock_);
+  EXPORT jobject AddGlobalRef(Thread* self, ObjPtr<mirror::Object> obj)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::jni_globals_lock_);
 
-  jweak AddWeakGlobalRef(Thread* self, ObjPtr<mirror::Object> obj)
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!Locks::jni_weak_globals_lock_);
+  EXPORT jweak AddWeakGlobalRef(Thread* self, ObjPtr<mirror::Object> obj)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::jni_weak_globals_lock_);
 
-  void DeleteGlobalRef(Thread* self, jobject obj) REQUIRES(!Locks::jni_globals_lock_);
+  EXPORT void DeleteGlobalRef(Thread* self, jobject obj) REQUIRES(!Locks::jni_globals_lock_);
 
-  void DeleteWeakGlobalRef(Thread* self, jweak obj) REQUIRES(!Locks::jni_weak_globals_lock_);
+  EXPORT void DeleteWeakGlobalRef(Thread* self, jweak obj) REQUIRES(!Locks::jni_weak_globals_lock_);
 
   void SweepJniWeakGlobals(IsMarkedVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_)
@@ -214,8 +212,7 @@ class JavaVMExt : public JavaVM {
   jint HandleGetEnv(/*out*/void** env, jint version)
       REQUIRES(!env_hooks_lock_);
 
-  void AddEnvironmentHook(GetEnvHook hook)
-      REQUIRES(!env_hooks_lock_);
+  EXPORT void AddEnvironmentHook(GetEnvHook hook) REQUIRES(!env_hooks_lock_);
 
   static bool IsBadJniVersion(int version);
 

@@ -23,7 +23,7 @@
 #include "java_vm_ext.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class JavaVmExtTest : public CommonRuntimeTest {
  protected:
