@@ -27,7 +27,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/string-alloc-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static constexpr bool kUseTlabFastPath = true;
 

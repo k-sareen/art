@@ -29,7 +29,7 @@
 #include "handle.h"
 #include "jvalue.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Array;

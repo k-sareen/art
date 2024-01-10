@@ -20,7 +20,7 @@
 
 #include "base/common_art_test.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MathEntrypointsTest : public CommonArtTest {};
 

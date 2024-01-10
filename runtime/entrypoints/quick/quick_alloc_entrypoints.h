@@ -21,7 +21,7 @@
 #include "gc/allocator_type.h"
 #include "quick_entrypoints.h"
 
-namespace art {
+namespace art HIDDEN {
 
 void ResetQuickAllocEntryPoints(QuickEntryPoints* qpoints);
 

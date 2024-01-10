@@ -33,7 +33,7 @@
 #include "stack_map.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static inline uint32_t GetInvokeStaticMethodIndex(ArtMethod* caller, uint32_t dex_pc)
     REQUIRES_SHARED(Locks::mutator_lock_) {

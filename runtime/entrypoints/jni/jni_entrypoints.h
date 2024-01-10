@@ -25,7 +25,7 @@
 #define JNI_ENTRYPOINT_OFFSET(ptr_size, x) \
     Thread::JniEntryPointOffset<ptr_size>(OFFSETOF_MEMBER(JniEntryPoints, x))
 
-namespace art {
+namespace art HIDDEN {
 
 // Pointers to functions that are called by JNI trampolines via thread-local storage.
 struct JniEntryPoints {

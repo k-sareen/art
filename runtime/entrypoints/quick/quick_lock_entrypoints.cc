@@ -18,7 +18,7 @@
 #include "common_throws.h"
 #include "mirror/object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 extern "C" int artLockObjectFromCode(mirror::Object* obj, Thread* self)
     NO_THREAD_SAFETY_ANALYSIS
