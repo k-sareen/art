@@ -23,7 +23,7 @@
 #include "base/bit_utils.h"
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Thread;
 
@@ -60,7 +60,7 @@ class ALIGNED(16) InterpreterCache {
   }
 
   // Clear the whole cache. It requires the owning thread for DCHECKs.
-  void Clear(Thread* owning_thread);
+  EXPORT void Clear(Thread* owning_thread);
 
   ALWAYS_INLINE bool Get(Thread* self, const void* key, /* out */ size_t* value);
 

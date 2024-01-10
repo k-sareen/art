@@ -19,11 +19,12 @@
 
 #include "interpreter.h"
 
+#include "base/macros.h"
 #include "dex/dex_file.h"
 #include "jvalue.h"
 #include "unstarted_runtime_list.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 class CodeItemDataAccessor;
@@ -47,7 +48,7 @@ namespace interpreter {
 
 class UnstartedRuntime {
  public:
-  static void Initialize();
+  EXPORT static void Initialize();
 
   // For testing. When we destroy the Runtime and create a new one,
   // we need to reinitialize maps with new `ArtMethod*` keys.

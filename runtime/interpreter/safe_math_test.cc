@@ -20,7 +20,7 @@
 
 #include "gtest/gtest.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 TEST(SafeMath, Add) {

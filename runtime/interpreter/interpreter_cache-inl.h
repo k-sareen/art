@@ -21,7 +21,7 @@
 
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline bool InterpreterCache::Get(Thread* self, const void* key, /* out */ size_t* value) {
   DCHECK(self->GetInterpreterCache() == this) << "Must be called from owning thread";

@@ -23,7 +23,7 @@
 #include "mirror/object-inl.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 void LockCountData::AddMonitor(Thread* self, mirror::Object* obj) {
   if (obj == nullptr) {

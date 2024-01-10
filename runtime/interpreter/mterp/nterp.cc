@@ -31,7 +31,7 @@
 #include "mirror/string-alloc-inl.h"
 #include "nterp_helpers.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 bool IsNterpSupported() {

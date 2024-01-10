@@ -18,10 +18,11 @@
 #define ART_RUNTIME_INTERPRETER_INTERPRETER_H_
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "dex/dex_file.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 class Object;
 }  // namespace mirror

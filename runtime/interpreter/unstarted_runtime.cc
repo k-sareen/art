@@ -66,7 +66,7 @@
 #include "unstarted_runtime_list.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 using android::base::StringAppendV;

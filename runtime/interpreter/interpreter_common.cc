@@ -50,7 +50,7 @@
 #include "var_handles.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 void ThrowNullPointerExceptionFromInterpreter() {

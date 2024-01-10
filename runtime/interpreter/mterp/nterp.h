@@ -19,11 +19,12 @@
 
 #include "base/array_ref.h"
 #include "base/globals.h"
+#include "base/macros.h"
 
 extern "C" void* artNterpAsmInstructionStart[];
 extern "C" void* artNterpAsmInstructionEnd[];
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 

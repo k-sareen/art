@@ -20,7 +20,9 @@
 #include <functional>
 #include <type_traits>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace interpreter {
 
 // Declares a type which is the larger in bit size of the two template parameters.

@@ -19,7 +19,7 @@
 
 #include "interpreter_switch_impl-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 // Explicit definition of ExecuteSwitchImplCpp.

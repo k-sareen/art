@@ -45,7 +45,7 @@
 #include "transaction.h"
 #include "unstarted_runtime_list.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 // Deleter to be used with ShadowFrame::CreateDeoptimizedFrame objects.

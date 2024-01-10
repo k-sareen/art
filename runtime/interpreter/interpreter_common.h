@@ -64,7 +64,7 @@
 #include "unstarted_runtime.h"
 #include "verifier/method_verifier.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace interpreter {
 
 void ThrowNullPointerExceptionFromInterpreter()

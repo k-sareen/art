@@ -21,8 +21,9 @@
 #include <vector>
 
 #include "base/locks.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;

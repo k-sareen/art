@@ -28,7 +28,7 @@
 #include "stack_reference.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;
