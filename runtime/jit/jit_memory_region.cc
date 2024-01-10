@@ -34,7 +34,7 @@
 
 using android::base::unique_fd;
 
-namespace art {
+namespace art HIDDEN {
 namespace jit {
 
 // Data cache will be half of the capacity

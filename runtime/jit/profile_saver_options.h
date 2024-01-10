@@ -17,7 +17,7 @@
 #include <ostream>
 #include <string>
 
-namespace art {
+namespace art HIDDEN {
 
 struct ProfileSaverOptions {
  public:

@@ -25,7 +25,7 @@
 #include "base/array_ref.h"
 #include "base/locks.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class DexFile;
 class Mutex;
@@ -70,7 +70,7 @@ size_t GetJitMiniDebugInfoMemUsage() REQUIRES_SHARED(Locks::jit_lock_);
 // Get the lock which protects the native debug info.
 // Used only in tests to unwind while the JIT thread is running.
 // TODO: Unwinding should be race-free. Remove this.
-Mutex* GetNativeDebugInfoLock();
+EXPORT Mutex* GetNativeDebugInfoLock();
 
 // Call given callback for every non-zygote symbol.
 // The callback parameters are (address, size, name).

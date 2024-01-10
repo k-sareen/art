@@ -22,7 +22,7 @@
 #include "profile_saver.h"
 #include "profile/profile_compilation_info.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using Hotness = ProfileCompilationInfo::MethodHotness;
 

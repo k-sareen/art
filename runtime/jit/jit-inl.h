@@ -24,7 +24,7 @@
 #include "thread.h"
 #include "runtime-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace jit {
 
 inline void Jit::AddSamples(Thread* self, ArtMethod* method) {

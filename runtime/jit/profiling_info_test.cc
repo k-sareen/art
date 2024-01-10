@@ -33,7 +33,7 @@
 #include "profile/profile_test_helper.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using Hotness = ProfileCompilationInfo::MethodHotness;
 

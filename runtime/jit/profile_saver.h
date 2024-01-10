@@ -24,7 +24,7 @@
 #include "profile/profile_compilation_info.h"
 #include "profile_saver_options.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ProfileSaver {
  public:
@@ -53,7 +53,7 @@ class ProfileSaver {
   static void NotifyJitActivity() REQUIRES(!Locks::profiler_lock_, !instance_->wait_lock_);
 
   // For testing or manual purposes (SIGUSR1).
-  static void ForceProcessProfiles() REQUIRES(!Locks::profiler_lock_, !Locks::mutator_lock_);
+  EXPORT static void ForceProcessProfiles() REQUIRES(!Locks::profiler_lock_, !Locks::mutator_lock_);
 
   // Notify that startup has completed.
   static void NotifyStartupCompleted() REQUIRES(!Locks::profiler_lock_, !instance_->wait_lock_);

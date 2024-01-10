@@ -37,7 +37,7 @@
 #include "jit_memory_region.h"
 #include "profiling_info.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 template<class T> class Handle;
@@ -211,7 +211,7 @@ class JitCodeCache {
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
 
-  void NotifyMethodRedefined(ArtMethod* method)
+  EXPORT void NotifyMethodRedefined(ArtMethod* method)
       REQUIRES(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
 
@@ -232,13 +232,13 @@ class JitCodeCache {
       REQUIRES(!Locks::jit_lock_);
 
   // Return true if the code cache contains this pc.
-  bool ContainsPc(const void* pc) const;
+  EXPORT bool ContainsPc(const void* pc) const;
 
   // Return true if the code cache contains this pc in the private region (i.e. not from zygote).
   bool PrivateRegionContainsPc(const void* pc) const;
 
   // Return true if the code cache contains this method.
-  bool ContainsMethod(ArtMethod* method)
+  EXPORT bool ContainsMethod(ArtMethod* method)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::jit_lock_);
 
   // Return the code pointer for a JNI-compiled stub if the method is in the cache, null otherwise.
@@ -289,7 +289,7 @@ class JitCodeCache {
       REQUIRES(Locks::jit_lock_);
 
   // Perform a collection on the code cache.
-  void GarbageCollectCache(Thread* self)
+  EXPORT void GarbageCollectCache(Thread* self)
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
@@ -300,14 +300,14 @@ class JitCodeCache {
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  OatQuickMethodHeader* LookupOsrMethodHeader(ArtMethod* method)
+  EXPORT OatQuickMethodHeader* LookupOsrMethodHeader(ArtMethod* method)
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Removes method from the cache for testing purposes. The caller
   // must ensure that all threads are suspended and the method should
   // not be in any thread's stack.
-  bool RemoveMethod(ArtMethod* method, bool release_memory)
+  EXPORT bool RemoveMethod(ArtMethod* method, bool release_memory)
       REQUIRES(!Locks::jit_lock_)
       REQUIRES(Locks::mutator_lock_);
 
@@ -338,12 +338,12 @@ class JitCodeCache {
   // Adds to `methods` all profiled methods which are part of any of the given dex locations.
   // Saves inline caches for a method if its hotness meets `inline_cache_threshold` after being
   // baseline compiled.
-  void GetProfiledMethods(const std::set<std::string>& dex_base_locations,
-                          std::vector<ProfileMethodInfo>& methods,
-                          uint16_t inline_cache_threshold) REQUIRES(!Locks::jit_lock_)
+  EXPORT void GetProfiledMethods(const std::set<std::string>& dex_base_locations,
+                                 std::vector<ProfileMethodInfo>& methods,
+                                 uint16_t inline_cache_threshold) REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  void InvalidateAllCompiledCode()
+  EXPORT void InvalidateAllCompiledCode()
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
@@ -370,11 +370,11 @@ class JitCodeCache {
 
   // Notify the code cache that the method at the pointer 'old_method' is being moved to the pointer
   // 'new_method' since it is being made obsolete.
-  void MoveObsoleteMethod(ArtMethod* old_method, ArtMethod* new_method)
+  EXPORT void MoveObsoleteMethod(ArtMethod* old_method, ArtMethod* new_method)
       REQUIRES(!Locks::jit_lock_) REQUIRES(Locks::mutator_lock_);
 
   // Dynamically change whether we want to garbage collect code.
-  void SetGarbageCollectCode(bool value) REQUIRES(!Locks::jit_lock_);
+  EXPORT void SetGarbageCollectCode(bool value) REQUIRES(!Locks::jit_lock_);
 
   bool GetGarbageCollectCode() REQUIRES(!Locks::jit_lock_);
 
@@ -392,13 +392,13 @@ class JitCodeCache {
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  void PostForkChildAction(bool is_system_server, bool is_zygote);
+  EXPORT void PostForkChildAction(bool is_system_server, bool is_zygote);
 
   // Clear the entrypoints of JIT compiled methods that belong in the zygote space.
   // This is used for removing non-debuggable JIT code at the point we realize the runtime
   // is debuggable. Also clear the Precompiled flag from all methods so the non-debuggable code
   // doesn't come back.
-  void TransitionToDebuggable() REQUIRES(!Locks::jit_lock_) REQUIRES(Locks::mutator_lock_);
+  EXPORT void TransitionToDebuggable() REQUIRES(!Locks::jit_lock_) REQUIRES(Locks::mutator_lock_);
 
   JitMemoryRegion* GetCurrentRegion();
   bool IsSharedRegion(const JitMemoryRegion& region) const { return &region == &shared_region_; }

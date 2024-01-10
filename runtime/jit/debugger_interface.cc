@@ -93,7 +93,7 @@
 //     attempting to run TSAN on this code.
 //
 
-namespace art {
+namespace art HIDDEN {
 
 static Mutex g_jit_debug_lock("JIT native debug entries", kNativeDebugInterfaceLock);
 static Mutex g_dex_debug_lock("DEX native debug entries", kNativeDebugInterfaceLock);
@@ -108,8 +108,11 @@ constexpr uint32_t kJitRepackGroupSize = 64 * KB;
 // Automatically call the repack method every 'n' new entries.
 constexpr uint32_t kJitRepackFrequency = 64;
 
+}  // namespace art
+
 // Public binary interface between ART and native tools (gdb, libunwind, etc).
 // The fields below need to be exported and have special names as per the gdb api.
+namespace art EXPORT {
 extern "C" {
   enum JITAction {
     JIT_NOACTION = 0,
@@ -198,6 +201,9 @@ extern "C" {
   void (*__dex_debug_register_code_ptr)() = __dex_debug_register_code;
   JITDescriptor __dex_debug_descriptor GUARDED_BY(g_dex_debug_lock) {};
 }
+}  // namespace art
+
+namespace art HIDDEN {
 
 // The fields below are internal, but we keep them here anyway for consistency.
 // Their state is related to the static state above and it must be kept in sync.

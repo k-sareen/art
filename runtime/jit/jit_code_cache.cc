@@ -60,7 +60,7 @@
 #include "thread-inl.h"
 #include "thread_list.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace jit {
 
 static constexpr size_t kCodeSizeLogThreshold = 50 * KB;
