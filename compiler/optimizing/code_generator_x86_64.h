@@ -695,7 +695,7 @@ class CodeGeneratorX86_64 : public CodeGenerator {
   void GenerateExplicitNullCheck(HNullCheck* instruction) override;
   void MaybeGenerateInlineCacheCheck(HInstruction* instruction, CpuRegister cls);
 
-  void MaybeIncrementHotness(HSuspendCheck* suspend_check, bool is_frame_entry);
+  void MaybeIncrementHotness(bool is_frame_entry);
 
   static void BlockNonVolatileXmmRegisters(LocationSummary* locations);
 
