@@ -1348,11 +1348,7 @@ void CodeGeneratorX86::MaybeIncrementHotness(bool is_frame_entry) {
     }
   }
 
-  if (GetGraph()->IsCompilingBaseline() &&
-      is_frame_entry &&
-      !Runtime::Current()->IsAotCompiler()) {
-    // Note the slow path doesn't save SIMD registers, so if we were to
-    // call it on loop back edge, we would need to fix this.
+  if (GetGraph()->IsCompilingBaseline() && !Runtime::Current()->IsAotCompiler()) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
     uint32_t address = reinterpret_cast32<uint32_t>(info) +
@@ -2852,8 +2848,7 @@ void CodeGeneratorX86::MaybeGenerateInlineCacheCheck(HInstruction* instruction, 
   if (ProfilingInfoBuilder::IsInlineCacheUseful(instruction->AsInvoke(), this)) {
     ProfilingInfo* info = GetGraph()->GetProfilingInfo();
     DCHECK(info != nullptr);
-    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(
-        info, GetCompilerOptions(), instruction->AsInvoke());
+    InlineCache* cache = ProfilingInfoBuilder::GetInlineCache(info, instruction->AsInvoke());
     if (cache != nullptr) {
       uint32_t address = reinterpret_cast32<uint32_t>(cache);
       if (kIsDebugBuild) {
