@@ -27,7 +27,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jclass Proxy_generateProxy(JNIEnv* env, jclass, jstring name, jobjectArray interfaces,
                                   jobject loader, jobjectArray methods, jobjectArray throws) {

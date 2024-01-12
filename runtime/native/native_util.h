@@ -23,7 +23,7 @@
 #include "base/macros.h"
 #include "nativehelper/scoped_local_ref.h"
 
-namespace art {
+namespace art HIDDEN {
 
 ALWAYS_INLINE inline void RegisterNativeMethodsInternal(JNIEnv* env,
                                                         const char* jni_class_name,

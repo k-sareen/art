@@ -19,7 +19,9 @@
 
 #include <jni.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 void register_java_lang_ref_Reference(JNIEnv* env);
 

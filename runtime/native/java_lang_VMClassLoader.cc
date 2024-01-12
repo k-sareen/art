@@ -38,7 +38,7 @@
 #include "thread-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // A class so we can be friends with ClassLinker and access internal methods.
 class VMClassLoader {

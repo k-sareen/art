@@ -24,7 +24,7 @@
 #include "native_util.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jobject Object_internalClone(JNIEnv* env, jobject java_this) {
   ScopedFastNativeObjectAccess soa(env);

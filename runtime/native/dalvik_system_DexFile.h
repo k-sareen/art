@@ -20,7 +20,9 @@
 #include <jni.h>
 #include <unistd.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 constexpr size_t kOatFileIndex = 0;
 constexpr size_t kDexFileIndexStart = 1;

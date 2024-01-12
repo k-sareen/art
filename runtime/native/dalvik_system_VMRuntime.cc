@@ -66,6 +66,8 @@ extern "C" void android_set_application_target_sdk_version(uint32_t version);
 #include "thread-inl.h"
 #include "thread_list.h"
 
+// TODO(260881207): should be HIDDEN, but some apps fail to launch
+// (e.g. b/319255249)
 namespace art {
 
 using android::base::StringPrintf;

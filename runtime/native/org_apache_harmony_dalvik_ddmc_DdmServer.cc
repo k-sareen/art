@@ -26,7 +26,7 @@
 #include "nativehelper/scoped_primitive_array.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static void DdmServer_nativeSendChunk(JNIEnv* env, jclass, jint type,
                                       jbyteArray javaData, jint offset, jint length) {

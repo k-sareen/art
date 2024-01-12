@@ -19,7 +19,9 @@
 
 #include <jni.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 void register_java_lang_reflect_Constructor(JNIEnv* env);
 

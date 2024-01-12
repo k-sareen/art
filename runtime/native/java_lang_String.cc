@@ -31,7 +31,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jchar String_charAt(JNIEnv* env, jobject java_this, jint index) {
   ScopedFastNativeObjectAccess soa(env);

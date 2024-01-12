@@ -35,7 +35,7 @@
 #include "scoped_fast_native_object_access-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

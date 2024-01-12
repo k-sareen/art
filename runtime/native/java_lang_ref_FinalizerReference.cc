@@ -26,7 +26,7 @@
 #include "native_util.h"
 #include "scoped_fast_native_object_access-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static jboolean FinalizerReference_makeCircularListIfUnenqueued(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
