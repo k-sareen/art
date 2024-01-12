@@ -666,7 +666,7 @@ void OptimizingCompiler::RunOptimizations(HGraph* graph,
       OptDef(OptimizationPass::kGlobalValueNumbering),
       // Simplification (TODO: only if GVN occurred).
       OptDef(OptimizationPass::kSelectGenerator),
-      OptDef(OptimizationPass::kAggressiveConstantFolding,
+      OptDef(OptimizationPass::kConstantFolding,
              "constant_folding$after_gvn"),
       OptDef(OptimizationPass::kInstructionSimplifier,
              "instruction_simplifier$after_gvn"),

@@ -80,7 +80,6 @@ const char* OptimizationPassName(OptimizationPass pass) {
       return BoundsCheckElimination::kBoundsCheckEliminationPassName;
     case OptimizationPass::kLoadStoreElimination:
       return LoadStoreElimination::kLoadStoreEliminationPassName;
-    case OptimizationPass::kAggressiveConstantFolding:
     case OptimizationPass::kConstantFolding:
       return HConstantFolding::kConstantFoldingPassName;
     case OptimizationPass::kDeadCodeElimination:
@@ -237,10 +236,6 @@ ArenaVector<HOptimization*> ConstructOptimizations(
       //
       case OptimizationPass::kConstantFolding:
         opt = new (allocator) HConstantFolding(graph, stats, pass_name);
-        break;
-      case OptimizationPass::kAggressiveConstantFolding:
-        opt = new (allocator)
-            HConstantFolding(graph, stats, pass_name, /* use_all_optimizations_ = */ true);
         break;
       case OptimizationPass::kDeadCodeElimination:
         opt = new (allocator) HDeadCodeElimination(graph, stats, pass_name);
