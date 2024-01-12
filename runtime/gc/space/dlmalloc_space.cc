@@ -16,6 +16,8 @@
 
 #include "dlmalloc_space-inl.h"
 
+#include <sys/mman.h>
+
 #include "base/logging.h"  // For VLOG.
 #include "base/time_utils.h"
 #include "base/utils.h"
@@ -37,6 +39,54 @@ namespace gc {
 namespace space {
 
 static constexpr bool kPrefetchDuringDlMallocFreeList = true;
+
+// Callback for mspace_inspect_all that will madvise(2) unused pages back to
+// the kernel.
+void DlmallocMadviseCallback(void* start, void* end, size_t used_bytes, void* arg) {
+  // Is this chunk in use?
+  if (used_bytes != 0) {
+    return;
+  }
+  // Do we have any whole pages to give back?
+  start = reinterpret_cast<void*>(art::RoundUp(reinterpret_cast<uintptr_t>(start), art::gPageSize));
+  end = reinterpret_cast<void*>(art::RoundDown(reinterpret_cast<uintptr_t>(end), art::gPageSize));
+  if (end > start) {
+    size_t length = reinterpret_cast<uint8_t*>(end) - reinterpret_cast<uint8_t*>(start);
+    int rc = madvise(start, length, MADV_DONTNEED);
+    if (UNLIKELY(rc != 0)) {
+      errno = rc;
+      PLOG(FATAL) << "madvise failed during heap trimming";
+    }
+    size_t* reclaimed = reinterpret_cast<size_t*>(arg);
+    *reclaimed += length;
+  }
+}
+
+// Callback for mspace_inspect_all that will count the number of bytes
+// allocated.
+void DlmallocBytesAllocatedCallback([[maybe_unused]] void* start,
+                                    [[maybe_unused]] void* end,
+                                    size_t used_bytes,
+                                    void* arg) {
+  if (used_bytes == 0) {
+    return;
+  }
+  size_t* bytes_allocated = reinterpret_cast<size_t*>(arg);
+  *bytes_allocated += used_bytes + sizeof(size_t);
+}
+
+// Callback for mspace_inspect_all that will count the number of objects
+// allocated.
+void DlmallocObjectsAllocatedCallback([[maybe_unused]] void* start,
+                                      [[maybe_unused]] void* end,
+                                      size_t used_bytes,
+                                      void* arg) {
+  if (used_bytes == 0) {
+    return;
+  }
+  size_t* objects_allocated = reinterpret_cast<size_t*>(arg);
+  ++(*objects_allocated);
+}
 
 DlMallocSpace::DlMallocSpace(MemMap&& mem_map,
                              size_t initial_size,
