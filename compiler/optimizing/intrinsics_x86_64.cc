@@ -111,6 +111,7 @@ class ReadBarrierSystemArrayCopySlowPathX86_64 : public SlowPathCode {
     CpuRegister src_stop_addr = locations->GetTemp(2).AsRegister<CpuRegister>();
 
     __ Bind(GetEntryLabel());
+    // The `src_curr_addr` and `dst_curr_addr` were initialized before entering the slow-path.
     GenArrayAddress(assembler, src_stop_addr, src_curr_addr, length, type, /*data_offset=*/ 0u);
 
     NearLabel loop;
