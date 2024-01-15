@@ -739,11 +739,11 @@ std::optional<std::string> ThreadList::WaitForSuspendBarrier(AtomicInteger* barr
   std::string sampled_state = t == 0 ? "" : GetThreadState(t);
   while (i < kSuspendBarrierIters) {
     if (WaitOnceForSuspendBarrier(barrier, cur_val, thread_suspend_timeout_ns_)) {
+      ++i;
 #if ART_USE_FUTEXES
       CHECK_GE(NanoTime() - start_time,
                i * thread_suspend_timeout_ns_ / kSuspendBarrierIters - 1'000'000);
 #endif
-      ++i;
     }
     cur_val = barrier->load(std::memory_order_acquire);
     if (cur_val <= 0) {
