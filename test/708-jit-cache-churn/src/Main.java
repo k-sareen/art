@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import java.lang.reflect.Method;
+
 public class Main {
 
   public static void main(String[] args) throws Exception {
@@ -28,4 +30,5 @@ public class Main {
   static native boolean hasJit();
 
   static native void ensureJitCompiled(Class<?> klass, String methodName);
+  static native void removeJitCompiledMethod(Method method, boolean releaseMemory);
 }

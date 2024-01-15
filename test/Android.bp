@@ -905,7 +905,6 @@ cc_defaults {
         "667-jit-jni-stub/jit_jni_stub_test.cc",
         "674-hiddenapi/hiddenapi.cc",
         "692-vdex-inmem-loader/vdex_inmem_loader.cc",
-        "708-jit-cache-churn/jit.cc",
         "720-thread-priority/thread_priority.cc",
         "800-smali/jni.cc",
         "817-hiddenapi/test_native.cc",

@@ -244,7 +244,7 @@ public class JitCacheChurnTest {
       System.err.println(e);
       System.exit(-1);
     }
-    removeJitCompiledMethod(method, false);
+    Main.removeJitCompiledMethod(method, false);
   }
 
   private void removeJittedMethods(int mask) {
@@ -274,6 +274,4 @@ public class JitCacheChurnTest {
       concurrentExecution.shutdown();
     }
   }
-
-  private static native void removeJitCompiledMethod(Method method, boolean releaseMemory);
 }

@@ -566,4 +566,36 @@ extern "C" JNIEXPORT jboolean JNICALL Java_Main_hasInlineCacheInProfile(
   return JNI_FALSE;
 }
 
+extern "C" JNIEXPORT jint JNICALL Java_Main_getCurrentGcNum(JNIEnv* env, jclass) {
+  // Prevent any new GC before getting the current GC num.
+  ScopedObjectAccess soa(env);
+  gc::Heap* heap = Runtime::Current()->GetHeap();
+  heap->WaitForGcToComplete(gc::kGcCauseJitCodeCache, Thread::Current());
+  return heap->GetCurrentGcNum();
+}
+
+extern "C" JNIEXPORT jboolean Java_Main_removeJitCompiledMethod(JNIEnv* env,
+                                                                jclass,
+                                                                jobject java_method,
+                                                                jboolean release_memory) {
+  if (!Runtime::Current()->UseJitCompilation()) {
+    return JNI_FALSE;
+  }
+
+  jit::Jit* jit = Runtime::Current()->GetJit();
+  jit->WaitForCompilationToFinish(Thread::Current());
+
+  ScopedObjectAccess soa(env);
+  ArtMethod* method = ArtMethod::FromReflectedMethod(soa, java_method);
+
+  jit::JitCodeCache* code_cache = jit->GetCodeCache();
+
+  // Drop the shared mutator lock.
+  ScopedThreadSuspension self_suspension(Thread::Current(), art::ThreadState::kNative);
+  // Get exclusive mutator lock with suspend all.
+  ScopedSuspendAll suspend("Removing JIT compiled method", /*long_suspend=*/true);
+  bool removed = code_cache->RemoveMethod(method, static_cast<bool>(release_memory));
+  return removed ? JNI_TRUE : JNI_FALSE;
+}
+
 }  // namespace art
