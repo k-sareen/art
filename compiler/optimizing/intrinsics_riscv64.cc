@@ -929,6 +929,76 @@ void IntrinsicCodeGeneratorRISCV64::VisitStringIndexOfAfter(HInvoke* invoke) {
   GenerateVisitStringIndexOf(invoke, GetAssembler(), codegen_, /* start_at_zero= */ false);
 }
 
+void IntrinsicLocationsBuilderRISCV64::VisitStringNewStringFromBytes(HInvoke* invoke) {
+  LocationSummary* locations = new (allocator_) LocationSummary(
+      invoke, LocationSummary::kCallOnMainAndSlowPath, kIntrinsified);
+  InvokeRuntimeCallingConvention calling_convention;
+  locations->SetInAt(0, Location::RegisterLocation(calling_convention.GetRegisterAt(0)));
+  locations->SetInAt(1, Location::RegisterLocation(calling_convention.GetRegisterAt(1)));
+  locations->SetInAt(2, Location::RegisterLocation(calling_convention.GetRegisterAt(2)));
+  locations->SetInAt(3, Location::RegisterLocation(calling_convention.GetRegisterAt(3)));
+  locations->SetOut(calling_convention.GetReturnLocation(DataType::Type::kReference));
+}
+
+void IntrinsicCodeGeneratorRISCV64::VisitStringNewStringFromBytes(HInvoke* invoke) {
+  Riscv64Assembler* assembler = GetAssembler();
+  LocationSummary* locations = invoke->GetLocations();
+  XRegister byte_array = locations->InAt(0).AsRegister<XRegister>();
+
+  SlowPathCodeRISCV64* slow_path =
+      new (codegen_->GetScopedAllocator()) IntrinsicSlowPathRISCV64(invoke);
+  codegen_->AddSlowPath(slow_path);
+  __ Beqz(byte_array, slow_path->GetEntryLabel());
+
+  codegen_->InvokeRuntime(kQuickAllocStringFromBytes, invoke, invoke->GetDexPc(), slow_path);
+  CheckEntrypointTypes<kQuickAllocStringFromBytes, void*, void*, int32_t, int32_t, int32_t>();
+  __ Bind(slow_path->GetExitLabel());
+}
+
+void IntrinsicLocationsBuilderRISCV64::VisitStringNewStringFromChars(HInvoke* invoke) {
+  LocationSummary* locations =
+      new (allocator_) LocationSummary(invoke, LocationSummary::kCallOnMainOnly, kIntrinsified);
+  InvokeRuntimeCallingConvention calling_convention;
+  locations->SetInAt(0, Location::RegisterLocation(calling_convention.GetRegisterAt(0)));
+  locations->SetInAt(1, Location::RegisterLocation(calling_convention.GetRegisterAt(1)));
+  locations->SetInAt(2, Location::RegisterLocation(calling_convention.GetRegisterAt(2)));
+  locations->SetOut(calling_convention.GetReturnLocation(DataType::Type::kReference));
+}
+
+void IntrinsicCodeGeneratorRISCV64::VisitStringNewStringFromChars(HInvoke* invoke) {
+  // No need to emit code checking whether `locations->InAt(2)` is a null
+  // pointer, as callers of the native method
+  //
+  //   java.lang.StringFactory.newStringFromChars(int offset, int charCount, char[] data)
+  //
+  // all include a null check on `data` before calling that method.
+  codegen_->InvokeRuntime(kQuickAllocStringFromChars, invoke, invoke->GetDexPc());
+  CheckEntrypointTypes<kQuickAllocStringFromChars, void*, int32_t, int32_t, void*>();
+}
+
+void IntrinsicLocationsBuilderRISCV64::VisitStringNewStringFromString(HInvoke* invoke) {
+  LocationSummary* locations = new (allocator_) LocationSummary(
+      invoke, LocationSummary::kCallOnMainAndSlowPath, kIntrinsified);
+  InvokeRuntimeCallingConvention calling_convention;
+  locations->SetInAt(0, Location::RegisterLocation(calling_convention.GetRegisterAt(0)));
+  locations->SetOut(calling_convention.GetReturnLocation(DataType::Type::kReference));
+}
+
+void IntrinsicCodeGeneratorRISCV64::VisitStringNewStringFromString(HInvoke* invoke) {
+  Riscv64Assembler* assembler = GetAssembler();
+  LocationSummary* locations = invoke->GetLocations();
+  XRegister string_to_copy = locations->InAt(0).AsRegister<XRegister>();
+
+  SlowPathCodeRISCV64* slow_path =
+      new (codegen_->GetScopedAllocator()) IntrinsicSlowPathRISCV64(invoke);
+  codegen_->AddSlowPath(slow_path);
+  __ Beqz(string_to_copy, slow_path->GetEntryLabel());
+
+  codegen_->InvokeRuntime(kQuickAllocStringFromString, invoke, invoke->GetDexPc(), slow_path);
+  CheckEntrypointTypes<kQuickAllocStringFromString, void*, void*>();
+  __ Bind(slow_path->GetExitLabel());
+}
+
 static void GenerateSet(CodeGeneratorRISCV64* codegen,
                         std::memory_order order,
                         Location value,
