@@ -24,8 +24,10 @@ import android.annotation.Nullable;
 import android.app.role.RoleManager;
 import android.apphibernation.AppHibernationManager;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Build;
 import android.os.DeadObjectException;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.os.SystemClock;
@@ -459,6 +461,11 @@ public final class Utils {
             // Not expected. Log wtf to surface it.
             Slog.wtf(TAG, message, e);
         }
+    }
+
+    public static boolean isSystemOrRootOrShell() {
+        int uid = Binder.getCallingUid();
+        return uid == Process.SYSTEM_UID || uid == Process.ROOT_UID || uid == Process.SHELL_UID;
     }
 
     @AutoValue

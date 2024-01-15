@@ -23,9 +23,11 @@ import static com.android.server.art.Utils.Abi;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Build;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
+import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.Log;
 import android.util.Pair;
@@ -92,6 +94,10 @@ public class ArtFileManager {
                             pkgState.getPackageName(), true /* excludeObsoleteDexesAndLoaders */)
                     : mInjector.getDexUseManager().getSecondaryDexInfo(pkgState.getPackageName());
             for (SecondaryDexInfo dexInfo : dexInfos) {
+                if (!mInjector.isSystemOrRootOrShell()
+                        && !mInjector.getCallingUserHandle().equals(dexInfo.userHandle())) {
+                    continue;
+                }
                 for (Abi abi : Utils.getAllAbisForNames(dexInfo.abiNames(), pkgState)) {
                     dexAndAbis.add(Pair.create(dexInfo, abi));
                 }
@@ -192,8 +198,11 @@ public class ArtFileManager {
 
         for (PrimaryDexInfo dexInfo : PrimaryDexUtils.getDexInfo(pkg)) {
             refProfiles.add(PrimaryDexUtils.buildRefProfilePath(pkgState, dexInfo));
-            curProfiles.addAll(
-                    PrimaryDexUtils.getCurProfiles(mInjector.getUserManager(), pkgState, dexInfo));
+            curProfiles.addAll(mInjector.isSystemOrRootOrShell()
+                            ? PrimaryDexUtils.getCurProfiles(
+                                    mInjector.getUserManager(), pkgState, dexInfo)
+                            : PrimaryDexUtils.getCurProfiles(
+                                    List.of(mInjector.getCallingUserHandle()), pkgState, dexInfo));
         }
         if (alsoForSecondaryDex) {
             List<? extends SecondaryDexInfo> dexInfos = excludeForObsoleteDexesAndLoaders
@@ -201,6 +210,10 @@ public class ArtFileManager {
                             pkgState.getPackageName(), true /* excludeForObsoleteDexesAndLoaders */)
                     : mInjector.getDexUseManager().getSecondaryDexInfo(pkgState.getPackageName());
             for (SecondaryDexInfo dexInfo : dexInfos) {
+                if (!mInjector.isSystemOrRootOrShell()
+                        && !mInjector.getCallingUserHandle().equals(dexInfo.userHandle())) {
+                    continue;
+                }
                 refProfiles.add(AidlUtils.buildProfilePathForSecondaryRef(dexInfo.dexPath()));
                 curProfiles.add(AidlUtils.buildProfilePathForSecondaryCur(dexInfo.dexPath()));
             }
@@ -311,6 +324,17 @@ public class ArtFileManager {
         public DexUseManagerLocal getDexUseManager() {
             return Objects.requireNonNull(
                     LocalManagerRegistry.getManager(DexUseManagerLocal.class));
+        }
+
+        public boolean isSystemOrRootOrShell() {
+            // At the time of writing, this is only typically true unless called by an app through
+            // {@link ArtManagerLocal#getArtManagedFileStats}.
+            return Utils.isSystemOrRootOrShell();
+        }
+
+        @NonNull
+        public UserHandle getCallingUserHandle() {
+            return Binder.getCallingUserHandle();
         }
     }
 }

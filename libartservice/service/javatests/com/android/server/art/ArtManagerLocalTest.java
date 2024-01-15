@@ -168,6 +168,7 @@ public class ArtManagerLocalTest {
         lenient().when(mArtFileManagerInjector.getArtd()).thenReturn(mArtd);
         lenient().when(mArtFileManagerInjector.getUserManager()).thenReturn(mUserManager);
         lenient().when(mArtFileManagerInjector.getDexUseManager()).thenReturn(mDexUseManager);
+        lenient().when(mArtFileManagerInjector.isSystemOrRootOrShell()).thenReturn(true);
 
         Path tempDir = Files.createTempDirectory("temp");
         tempDir.toFile().deleteOnExit();
@@ -211,8 +212,9 @@ public class ArtManagerLocalTest {
 
         // All packages are by default recently used.
         lenient().when(mDexUseManager.getPackageLastUsedAtMs(any())).thenReturn(RECENT_TIME_MS);
-        mPkg1SecondaryDexInfo1 = createSecondaryDexInfo("/data/user/0/foo/1.apk");
-        mPkg1SecondaryDexInfoNotFound = createSecondaryDexInfo("/data/user/0/foo/not_found.apk");
+        mPkg1SecondaryDexInfo1 = createSecondaryDexInfo("/data/user/0/foo/1.apk", UserHandle.of(0));
+        mPkg1SecondaryDexInfoNotFound =
+                createSecondaryDexInfo("/data/user/0/foo/not_found.apk", UserHandle.of(0));
         lenient()
                 .doReturn(List.of(mPkg1SecondaryDexInfo1, mPkg1SecondaryDexInfoNotFound))
                 .when(mDexUseManager)
@@ -1118,8 +1120,32 @@ public class ArtManagerLocalTest {
     }
 
     @Test
-    public void testGetArtManagedFileStats() throws Exception {
-        // The same setup as `testCleanup`.
+    public void testGetArtManagedFileStatsSystem() throws Exception {
+        testGetArtManagedFileStats(true /* isSystemOrRootOrShell */);
+    }
+
+    @Test
+    public void testGetArtManagedFileStatsNonSystem() throws Exception {
+        testGetArtManagedFileStats(false /* isSystemOrRootOrShell */);
+    }
+
+    private void testGetArtManagedFileStats(boolean isSystemOrRootOrShell) throws Exception {
+        if (!isSystemOrRootOrShell) {
+            lenient().when(mArtFileManagerInjector.isSystemOrRootOrShell()).thenReturn(false);
+            lenient()
+                    .when(mArtFileManagerInjector.getCallingUserHandle())
+                    .thenReturn(UserHandle.of(0));
+        }
+
+        // The same setup as `testCleanup`, but add a secondary dex file for a different user. Its
+        // artifacts and profiles should only be counted if the caller is system or root or shell.
+        CheckedSecondaryDexInfo pkg1SecondaryDexInfo2 =
+                createSecondaryDexInfo("/data/user/1/foo/1.apk", UserHandle.of(1));
+        lenient()
+                .doReturn(List.of(mPkg1SecondaryDexInfo1, pkg1SecondaryDexInfo2))
+                .when(mDexUseManager)
+                .getCheckedSecondaryDexInfo(
+                        eq(PKG_NAME_1), eq(true) /* excludeObsoleteDexesAndLoaders */);
 
         // It should count all artifacts, but not runtime images.
         doReturn(createGetDexoptStatusResult(
@@ -1165,6 +1191,11 @@ public class ArtManagerLocalTest {
         doReturn(1l << 5).when(mArtd).getRuntimeArtifactsSize(
                 deepEq(AidlUtils.buildRuntimeArtifactsPath(
                         PKG_NAME_1, "/somewhere/app/foo/split_0.apk", "arm")));
+        long expectedDexoptArtifactSize =
+                (1l << 0) + (1l << 1) + (1l << 2) + (1l << 3) + (1l << 4) + (1l << 5);
+        int expectedGetArtifactsSizeCalls = 3;
+        int expectedGetVdexFileSizeCalls = 1;
+        int expectedGetRuntimeArtifactsSizeCalls = 2;
 
         // These are counted as TYPE_REF_PROFILE.
         doReturn(1l << 6).when(mArtd).getProfileSize(
@@ -1173,33 +1204,68 @@ public class ArtManagerLocalTest {
                 deepEq(AidlUtils.buildProfilePathForPrimaryRef(PKG_NAME_1, "split_0.split")));
         doReturn(1l << 8).when(mArtd).getProfileSize(
                 deepEq(AidlUtils.buildProfilePathForSecondaryRef("/data/user/0/foo/1.apk")));
+        long expectedRefProfileSize = (1l << 6) + (1l << 7) + (1l << 8);
+        int expectedGetProfileSizeCalls = 3;
 
         // These are counted as TYPE_CUR_PROFILE.
         doReturn(1l << 9).when(mArtd).getProfileSize(deepEq(
                 AidlUtils.buildProfilePathForPrimaryCur(0 /* userId */, PKG_NAME_1, "primary")));
-        doReturn(1l << 10).when(mArtd).getProfileSize(deepEq(
-                AidlUtils.buildProfilePathForPrimaryCur(1 /* userId */, PKG_NAME_1, "primary")));
-        doReturn(1l << 11).when(mArtd).getProfileSize(
+        doReturn(1l << 10).when(mArtd).getProfileSize(
                 deepEq(AidlUtils.buildProfilePathForPrimaryCur(
                         0 /* userId */, PKG_NAME_1, "split_0.split")));
-        doReturn(1l << 12).when(mArtd).getProfileSize(
-                deepEq(AidlUtils.buildProfilePathForPrimaryCur(
-                        1 /* userId */, PKG_NAME_1, "split_0.split")));
-        doReturn(1l << 13).when(mArtd).getProfileSize(
+        doReturn(1l << 11).when(mArtd).getProfileSize(
                 deepEq(AidlUtils.buildProfilePathForSecondaryCur("/data/user/0/foo/1.apk")));
+        long expectedCurProfileSize = (1l << 9) + (1l << 10) + (1l << 11);
+        expectedGetProfileSizeCalls += 3;
+
+        // These belong to a different user.
+        if (isSystemOrRootOrShell) {
+            doReturn(createGetDexoptStatusResult(
+                             "verify", "cmdline", "location", ArtifactsLocation.NEXT_TO_DEX))
+                    .when(mArtd)
+                    .getDexoptStatus(eq("/data/user/1/foo/1.apk"), eq("arm64"), any());
+
+            // These are counted as TYPE_DEXOPT_ARTIFACT.
+            // Dexopt artifacts of secondary dex files.
+            doReturn(1l << 12).when(mArtd).getArtifactsSize(deepEq(AidlUtils.buildArtifactsPath(
+                    "/data/user/1/foo/1.apk", "arm64", false /* isInDalvikCache */)));
+            expectedDexoptArtifactSize += (1l << 12);
+            expectedGetArtifactsSizeCalls += 1;
+
+            // These are counted as TYPE_REF_PROFILE.
+            // Reference profiles of secondary dex files.
+            doReturn(1l << 13).when(mArtd).getProfileSize(
+                    deepEq(AidlUtils.buildProfilePathForSecondaryRef("/data/user/1/foo/1.apk")));
+            expectedRefProfileSize += (1l << 13);
+            expectedGetProfileSizeCalls += 1;
+
+            // These are counted as TYPE_CUR_PROFILE.
+            // Current profiles of primary dex files.
+            doReturn(1l << 14).when(mArtd).getProfileSize(
+                    deepEq(AidlUtils.buildProfilePathForPrimaryCur(
+                            1 /* userId */, PKG_NAME_1, "primary")));
+            doReturn(1l << 15).when(mArtd).getProfileSize(
+                    deepEq(AidlUtils.buildProfilePathForPrimaryCur(
+                            1 /* userId */, PKG_NAME_1, "split_0.split")));
+            // Current profiles of secondary dex files.
+            doReturn(1l << 16).when(mArtd).getProfileSize(
+                    deepEq(AidlUtils.buildProfilePathForSecondaryCur("/data/user/1/foo/1.apk")));
+            expectedCurProfileSize += (1l << 14) + (1l << 15) + (1l << 16);
+            expectedGetProfileSizeCalls += 3;
+        }
 
         ArtManagedFileStats stats = mArtManagerLocal.getArtManagedFileStats(mSnapshot, PKG_NAME_1);
         assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_DEXOPT_ARTIFACT))
-                .isEqualTo((1l << 0) + (1l << 1) + (1l << 2) + (1l << 3) + (1l << 4) + (1l << 5));
+                .isEqualTo(expectedDexoptArtifactSize);
         assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_REF_PROFILE))
-                .isEqualTo((1l << 6) + (1l << 7) + (1l << 8));
+                .isEqualTo(expectedRefProfileSize);
         assertThat(stats.getTotalSizeBytesByType(ArtManagedFileStats.TYPE_CUR_PROFILE))
-                .isEqualTo((1l << 9) + (1l << 10) + (1l << 11) + (1l << 12) + (1l << 13));
+                .isEqualTo(expectedCurProfileSize);
 
-        verify(mArtd, times(3)).getArtifactsSize(any());
-        verify(mArtd, times(1)).getVdexFileSize(any());
-        verify(mArtd, times(2)).getRuntimeArtifactsSize(any());
-        verify(mArtd, times(8)).getProfileSize(any());
+        verify(mArtd, times(expectedGetArtifactsSizeCalls)).getArtifactsSize(any());
+        verify(mArtd, times(expectedGetVdexFileSizeCalls)).getVdexFileSize(any());
+        verify(mArtd, times(expectedGetRuntimeArtifactsSizeCalls)).getRuntimeArtifactsSize(any());
+        verify(mArtd, times(expectedGetProfileSizeCalls)).getProfileSize(any());
     }
 
     private AndroidPackage createPackage(boolean multiSplit) {
@@ -1289,11 +1355,13 @@ public class ArtManagerLocalTest {
         return getDexoptStatusResult;
     }
 
-    private CheckedSecondaryDexInfo createSecondaryDexInfo(String dexPath) throws Exception {
+    private CheckedSecondaryDexInfo createSecondaryDexInfo(String dexPath, UserHandle userHandle)
+            throws Exception {
         var dexInfo = mock(CheckedSecondaryDexInfo.class);
         lenient().when(dexInfo.dexPath()).thenReturn(dexPath);
         lenient().when(dexInfo.abiNames()).thenReturn(Set.of("arm64-v8a"));
         lenient().when(dexInfo.classLoaderContext()).thenReturn("CLC");
+        lenient().when(dexInfo.userHandle()).thenReturn(userHandle);
         return dexInfo;
     }
 

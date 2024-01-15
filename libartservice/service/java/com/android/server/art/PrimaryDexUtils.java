@@ -329,8 +329,15 @@ public class PrimaryDexUtils {
     @NonNull
     public static List<ProfilePath> getCurProfiles(@NonNull UserManager userManager,
             @NonNull PackageState pkgState, @NonNull PrimaryDexInfo dexInfo) {
+        return getCurProfiles(
+                userManager.getUserHandles(true /* excludeDying */), pkgState, dexInfo);
+    }
+
+    @NonNull
+    public static List<ProfilePath> getCurProfiles(@NonNull List<UserHandle> userHandles,
+            @NonNull PackageState pkgState, @NonNull PrimaryDexInfo dexInfo) {
         List<ProfilePath> profiles = new ArrayList<>();
-        for (UserHandle handle : userManager.getUserHandles(true /* excludeDying */)) {
+        for (UserHandle handle : userHandles) {
             int userId = handle.getIdentifier();
             PackageUserState userState = pkgState.getStateForUser(handle);
             if (userState.isInstalled()) {
