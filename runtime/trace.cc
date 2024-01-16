@@ -239,7 +239,7 @@ uint16_t TraceWriter::GetThreadEncoding(pid_t thread_id) {
   return idx;
 }
 
-class TraceWriterTask final : public Task {
+class TraceWriterTask final : public SelfDeletingTask {
  public:
   TraceWriterTask(TraceWriter* trace_writer, uintptr_t* buffer, size_t cur_offset, size_t thread_id)
       : trace_writer_(trace_writer),
