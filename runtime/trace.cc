@@ -745,6 +745,9 @@ static constexpr size_t kMinBufSize = 18U;  // Trace header is up to 18B.
 // should be greater than kMinBufSize.
 static constexpr size_t kPerThreadBufSize = 512 * 1024;
 static_assert(kPerThreadBufSize > kMinBufSize);
+// On average we need 12 bytes for encoding an entry. We typically use two
+// entries in per-thread buffer, the scaling factor is 6.
+static constexpr size_t kScalingFactorEncodedEntries = 6;
 
 namespace {
 
@@ -832,7 +835,9 @@ Trace::Trace(File* trace_file,
   // In streaming mode, we only need a buffer big enough to store data per each
   // thread buffer. In non-streaming mode this is specified by the user and we
   // stop tracing when the buffer is full.
-  size_t buf_size = (output_mode == TraceOutputMode::kStreaming) ? kPerThreadBufSize : buffer_size;
+  size_t buf_size = (output_mode == TraceOutputMode::kStreaming) ?
+                        kPerThreadBufSize * kScalingFactorEncodedEntries :
+                        buffer_size;
   trace_writer_.reset(new TraceWriter(
       trace_file, output_mode, clock_source_, buf_size, GetClockOverheadNanoSeconds()));
 }
