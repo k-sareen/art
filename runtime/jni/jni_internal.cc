@@ -891,7 +891,7 @@ class JNI {
     // it. b/22119403
     ScopedObjectAccess soa(env);
     auto* ext_env = down_cast<JNIEnvExt*>(env);
-    if (!ext_env->locals_.Remove(ext_env->local_ref_cookie_, obj)) {
+    if (!ext_env->locals_.Remove(obj)) {
       // Attempting to delete a local reference that is not in the
       // topmost local reference frame is a no-op.  DeleteLocalRef returns
       // void and doesn't throw any exceptions, but we should probably

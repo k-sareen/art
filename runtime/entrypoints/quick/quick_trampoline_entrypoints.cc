@@ -2045,13 +2045,12 @@ extern "C" const void* artQuickGenericJniTrampoline(Thread* self,
         << "@FastNative/@CriticalNative and synchronize is not supported";
   }
 
-  // Skip pushing IRT frame for @CriticalNative.
+  // Skip pushing LRT frame for @CriticalNative.
   if (LIKELY(!critical_native)) {
     // Push local reference frame.
     JNIEnvExt* env = self->GetJniEnv();
     DCHECK(env != nullptr);
-    uint32_t cookie = bit_cast<uint32_t>(env->GetLocalRefCookie());
-    env->SetLocalRefCookie(env->GetLocalsSegmentState());
+    uint32_t cookie = bit_cast<uint32_t>(env->PushLocalReferenceFrame());
 
     // Save the cookie on the stack.
     uint32_t* sp32 = reinterpret_cast<uint32_t*>(managed_sp);

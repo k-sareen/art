@@ -81,8 +81,7 @@ static void PopLocalReferences(uint32_t saved_local_ref_cookie, Thread* self)
   if (UNLIKELY(env->IsCheckJniEnabled())) {
     env->CheckNoHeldMonitors();
   }
-  env->SetLocalSegmentState(env->GetLocalRefCookie());
-  env->SetLocalRefCookie(bit_cast<jni::LRTSegmentState>(saved_local_ref_cookie));
+  env->PopLocalReferenceFrame(bit_cast<jni::LRTSegmentState>(saved_local_ref_cookie));
 }
 
 // TODO: annotalysis disabled as monitor semantics are maintained in Java code.

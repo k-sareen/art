@@ -2576,41 +2576,76 @@ TEST_F(JniInternalTest, DetachThreadUnlockJNIMonitors) {
 
 // Test the offset computation of IndirectReferenceTable offsets. b/26071368.
 TEST_F(JniInternalTest, IndirectReferenceTableOffsets) {
+  ScopedObjectAccess soa(Thread::Current());
   // The segment_state_ field is private, and we want to avoid friend declaration. So we'll check
-  // by modifying memory.
+  // by modifying LRT state and checking the memory contents directly.
   // The parameters don't really matter here.
   std::string error_msg;
   jni::LocalReferenceTable lrt(/*check_jni=*/ true);
   bool success = lrt.Initialize(/*max_count=*/ 5, &error_msg);
   ASSERT_TRUE(success) << error_msg;
-  jni::LRTSegmentState old_state = lrt.GetSegmentState();
 
-  // Write some new state directly. We invert parts of old_state to ensure a new value.
-  jni::LRTSegmentState new_state;
-  new_state.top_index = old_state.top_index ^ 0x07705005;
-  ASSERT_NE(old_state.top_index, new_state.top_index);
+  // Check initial state.
+  jni::LRTSegmentState* previous_state = reinterpret_cast<jni::LRTSegmentState*>(
+      reinterpret_cast<uint8_t*>(&lrt) +
+      jni::LocalReferenceTable::PreviousStateOffset().SizeValue());
+  jni::LRTSegmentState* segment_state = reinterpret_cast<jni::LRTSegmentState*>(
+      reinterpret_cast<uint8_t*>(&lrt) +
+      jni::LocalReferenceTable::SegmentStateOffset().SizeValue());
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, previous_state->top_index);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, segment_state->top_index);
 
-  uint8_t* base = reinterpret_cast<uint8_t*>(&lrt);
-  int32_t segment_state_offset =
-      jni::LocalReferenceTable::SegmentStateOffset(sizeof(void*)).Int32Value();
-  *reinterpret_cast<jni::LRTSegmentState*>(base + segment_state_offset) = new_state;
+  // Push an empty LRT frame at the bottom.
+  jni::LRTSegmentState cookie0 = lrt.PushFrame();
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, cookie0.top_index);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, previous_state->top_index);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, segment_state->top_index);
 
-  // Read and compare.
-  EXPECT_EQ(new_state.top_index, lrt.GetSegmentState().top_index);
+  // Add a bogus reference.
+  IndirectRef ref = lrt.Add(reinterpret_cast32<mirror::Object*>(0xdeadbee0u), &error_msg);
+  ASSERT_TRUE(ref != nullptr) << error_msg;
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, previous_state->top_index);
+  ASSERT_NE(jni::kLRTFirstSegment.top_index, segment_state->top_index);
+  jni::LRTSegmentState expected_cookie2 = *segment_state;
+
+  // Push the non-empty LRT frame.
+  jni::LRTSegmentState cookie1 = lrt.PushFrame();
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, cookie1.top_index);
+  ASSERT_EQ(expected_cookie2.top_index, previous_state->top_index);
+  ASSERT_EQ(expected_cookie2.top_index, segment_state->top_index);
+
+  // Push another empty LRT frame.
+  jni::LRTSegmentState cookie2 = lrt.PushFrame();
+  ASSERT_EQ(expected_cookie2.top_index, cookie2.top_index);
+  ASSERT_EQ(expected_cookie2.top_index, previous_state->top_index);
+  ASSERT_EQ(expected_cookie2.top_index, segment_state->top_index);
+
+  // Pop the LRT frames and check state transitions.
+  lrt.PopFrame(cookie2);
+  ASSERT_EQ(expected_cookie2.top_index, previous_state->top_index);
+  ASSERT_EQ(expected_cookie2.top_index, segment_state->top_index);
+  lrt.PopFrame(cookie1);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, previous_state->top_index);
+  ASSERT_EQ(expected_cookie2.top_index, segment_state->top_index);
+  lrt.PopFrame(cookie0);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, previous_state->top_index);
+  ASSERT_EQ(jni::kLRTFirstSegment.top_index, segment_state->top_index);
 }
 
 // Test the offset computation of JNIEnvExt offsets. b/26071368.
 TEST_F(JniInternalTest, JNIEnvExtOffsets) {
-  EXPECT_EQ(OFFSETOF_MEMBER(JNIEnvExt, local_ref_cookie_),
-            JNIEnvExt::LocalRefCookieOffset(sizeof(void*)).Uint32Value());
-
   EXPECT_EQ(OFFSETOF_MEMBER(JNIEnvExt, self_), JNIEnvExt::SelfOffset(sizeof(void*)).Uint32Value());
 
-  // segment_state_ is private in the IndirectReferenceTable. So this test isn't as good as we'd
-  // hope it to be.
+  // `previous_state_` amd `segment_state_` are private in the IndirectReferenceTable.
+  // So this test isn't as good as we'd hope it to be.
+  uint32_t previous_state_now =
+      OFFSETOF_MEMBER(JNIEnvExt, locals_) +
+      jni::LocalReferenceTable::PreviousStateOffset().Uint32Value();
+  uint32_t previous_state_computed = JNIEnvExt::LocalRefCookieOffset(sizeof(void*)).Uint32Value();
+  EXPECT_EQ(previous_state_now, previous_state_computed);
   uint32_t segment_state_now =
       OFFSETOF_MEMBER(JNIEnvExt, locals_) +
-      jni::LocalReferenceTable::SegmentStateOffset(sizeof(void*)).Uint32Value();
+      jni::LocalReferenceTable::SegmentStateOffset().Uint32Value();
   uint32_t segment_state_computed = JNIEnvExt::SegmentStateOffset(sizeof(void*)).Uint32Value();
   EXPECT_EQ(segment_state_now, segment_state_computed);
 }

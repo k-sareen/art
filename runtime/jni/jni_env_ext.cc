@@ -70,7 +70,6 @@ JNIEnvExt* JNIEnvExt::Create(Thread* self_in, JavaVMExt* vm_in, std::string* err
 JNIEnvExt::JNIEnvExt(Thread* self_in, JavaVMExt* vm_in)
     : self_(self_in),
       vm_(vm_in),
-      local_ref_cookie_(jni::kLRTFirstSegment),
       locals_(vm_in->IsCheckJniEnabled()),
       monitors_("monitors", kMonitorsInitial, kMonitorsMax),
       critical_(0),
@@ -98,9 +97,9 @@ jobject JNIEnvExt::NewLocalRef(mirror::Object* obj) {
     return nullptr;
   }
   std::string error_msg;
-  jobject ref = reinterpret_cast<jobject>(locals_.Add(local_ref_cookie_, obj, &error_msg));
+  jobject ref = reinterpret_cast<jobject>(locals_.Add(obj, &error_msg));
   if (UNLIKELY(ref == nullptr)) {
-    // This is really unexpected if we allow resizing local IRTs...
+    // This is really unexpected if we allow resizing LRTs...
     LOG(FATAL) << error_msg;
     UNREACHABLE();
   }
@@ -109,7 +108,7 @@ jobject JNIEnvExt::NewLocalRef(mirror::Object* obj) {
 
 void JNIEnvExt::DeleteLocalRef(jobject obj) {
   if (obj != nullptr) {
-    locals_.Remove(local_ref_cookie_, reinterpret_cast<IndirectRef>(obj));
+    locals_.Remove(reinterpret_cast<IndirectRef>(obj));
   }
 }
 
@@ -131,13 +130,11 @@ void JNIEnvExt::DumpReferenceTables(std::ostream& os) {
 
 void JNIEnvExt::PushFrame(int capacity) {
   DCHECK_GE(locals_.FreeCapacity(), static_cast<size_t>(capacity));
-  stacked_local_ref_cookies_.push_back(local_ref_cookie_);
-  local_ref_cookie_ = locals_.GetSegmentState();
+  stacked_local_ref_cookies_.push_back(PushLocalReferenceFrame());
 }
 
 void JNIEnvExt::PopFrame() {
-  locals_.SetSegmentState(local_ref_cookie_);
-  local_ref_cookie_ = stacked_local_ref_cookies_.back();
+  PopLocalReferenceFrame(stacked_local_ref_cookies_.back());
   stacked_local_ref_cookies_.pop_back();
 }
 
@@ -150,19 +147,19 @@ static size_t JNIEnvSize(size_t pointer_size) {
   return pointer_size;
 }
 
+inline MemberOffset JNIEnvExt::LocalReferenceTableOffset(size_t pointer_size) {
+  return MemberOffset(JNIEnvSize(pointer_size) +
+                      2 * pointer_size);          // Thread* self + JavaVMExt* vm
+}
+
 MemberOffset JNIEnvExt::SegmentStateOffset(size_t pointer_size) {
-  size_t locals_offset = JNIEnvSize(pointer_size) +
-                         2 * pointer_size +          // Thread* self + JavaVMExt* vm.
-                         4 +                         // local_ref_cookie.
-                         (pointer_size - 4);         // Padding.
-  size_t irt_segment_state_offset =
-      jni::LocalReferenceTable::SegmentStateOffset(pointer_size).Int32Value();
-  return MemberOffset(locals_offset + irt_segment_state_offset);
+  return MemberOffset(LocalReferenceTableOffset(pointer_size).SizeValue() +
+                      jni::LocalReferenceTable::SegmentStateOffset().SizeValue());
 }
 
 MemberOffset JNIEnvExt::LocalRefCookieOffset(size_t pointer_size) {
-  return MemberOffset(JNIEnvSize(pointer_size) +
-                      2 * pointer_size);          // Thread* self + JavaVMExt* vm
+  return MemberOffset(LocalReferenceTableOffset(pointer_size).SizeValue() +
+                      jni::LocalReferenceTable::PreviousStateOffset().SizeValue());
 }
 
 MemberOffset JNIEnvExt::SelfOffset(size_t pointer_size) {
