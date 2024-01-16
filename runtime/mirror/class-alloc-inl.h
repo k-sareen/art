@@ -24,7 +24,7 @@
 #include "object-inl.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 inline void Class::CheckObjectAlloc() {

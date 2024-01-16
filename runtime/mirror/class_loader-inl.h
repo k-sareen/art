@@ -22,7 +22,7 @@
 #include "class_table-inl.h"
 #include "object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 inline ObjPtr<ClassLoader> ClassLoader::GetParent() {

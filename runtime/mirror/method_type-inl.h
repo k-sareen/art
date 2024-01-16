@@ -23,7 +23,7 @@
 #include "handle_scope-inl.h"
 #include "mirror/object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 inline RawMethodType::RawMethodType(VariableSizedHandleScope* hs)

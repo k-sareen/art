@@ -18,11 +18,12 @@
 #define ART_RUNTIME_MIRROR_STRING_H_
 
 #include "base/bit_utils.h"
+#include "base/macros.h"
 #include "class.h"
 #include "object.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace gc {
 enum AllocatorType : char;
@@ -123,7 +124,7 @@ class MANAGED String final : public Object {
   static ObjPtr<String> DoReplace(Thread* self, Handle<String> src, uint16_t old_c, uint16_t new_c)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  ObjPtr<String> Intern() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT ObjPtr<String> Intern() REQUIRES_SHARED(Locks::mutator_lock_);
 
   template <bool kIsInstrumented = true, typename PreFenceVisitor>
   ALWAYS_INLINE static ObjPtr<String> Alloc(Thread* self,
@@ -181,7 +182,7 @@ class MANAGED String final : public Object {
                                        const uint16_t* utf16_data_in)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
-  static ObjPtr<String> AllocFromModifiedUtf8(Thread* self, const char* utf)
+  EXPORT static ObjPtr<String> AllocFromModifiedUtf8(Thread* self, const char* utf)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
   static ObjPtr<String> AllocFromModifiedUtf8(Thread* self,
@@ -204,10 +205,10 @@ class MANAGED String final : public Object {
   // A version that takes a mirror::String pointer instead of ObjPtr as it's being
   // called by the runtime app image code which can encode mirror::String at 64bit
   // addresses (ObjPtr only works with 32bit pointers).
-  bool Equals(mirror::String* that) REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT bool Equals(mirror::String* that) REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Create a modified UTF-8 encoded std::string from a java/lang/String object.
-  std::string ToModifiedUtf8() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT std::string ToModifiedUtf8() REQUIRES_SHARED(Locks::mutator_lock_);
 
   int32_t FastIndexOf(int32_t ch, int32_t start) REQUIRES_SHARED(Locks::mutator_lock_);
 
@@ -289,7 +290,7 @@ class MANAGED String final : public Object {
   static bool AllASCIIExcept(const uint16_t* chars, int32_t length, uint16_t non_ascii);
 
   // Computes, stores, and returns the hash code.
-  int32_t ComputeAndSetHashCode() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT int32_t ComputeAndSetHashCode() REQUIRES_SHARED(Locks::mutator_lock_);
 
   void SetHashCode(int32_t new_hash_code) REQUIRES_SHARED(Locks::mutator_lock_) {
     if (kIsDebugBuild) {

@@ -18,9 +18,10 @@
 #define ART_RUNTIME_MIRROR_IFTABLE_H_
 
 #include "base/casts.h"
+#include "base/macros.h"
 #include "object_array.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 class MANAGED IfTable final : public ObjectArray<Object> {

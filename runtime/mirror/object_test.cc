@@ -45,7 +45,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "string-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 class ObjectTest : public CommonRuntimeTest {

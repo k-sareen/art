@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_MIRROR_METHOD_TYPE_H_
 #define ART_RUNTIME_MIRROR_METHOD_TYPE_H_
 
+#include "base/macros.h"
 #include "object_array.h"
 #include "object.h"
 #include "string.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct MethodTypeOffsets;
 class VariableSizedHandleScope;
@@ -54,9 +55,9 @@ class MANAGED MethodType : public Object {
  public:
   MIRROR_CLASS("Ljava/lang/invoke/MethodType;");
 
-  static ObjPtr<MethodType> Create(Thread* self,
-                                   Handle<Class> return_type,
-                                   Handle<ObjectArray<Class>> param_types)
+  EXPORT static ObjPtr<MethodType> Create(Thread* self,
+                                          Handle<Class> return_type,
+                                          Handle<ObjectArray<Class>> param_types)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
   // Create a `MethodType` from a `RawMethodType`.

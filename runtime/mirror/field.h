@@ -19,13 +19,14 @@
 
 #include "accessible_object.h"
 #include "base/enums.h"
+#include "base/macros.h"
 #include "dex/modifiers.h"
 #include "dex/primitive.h"
 #include "obj_ptr.h"
 #include "object.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 struct FieldOffsets;

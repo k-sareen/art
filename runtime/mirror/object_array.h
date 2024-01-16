@@ -20,9 +20,10 @@
 #include <iterator>
 #include "array.h"
 #include "base/iteration_range.h"
+#include "base/macros.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template<typename T, typename Container> class ArrayIter;

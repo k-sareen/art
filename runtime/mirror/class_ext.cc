@@ -33,7 +33,7 @@
 #include "stack_trace_element.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 uint32_t ClassExt::ClassSize(PointerSize pointer_size) {

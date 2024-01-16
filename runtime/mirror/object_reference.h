@@ -23,11 +23,12 @@
 #include "base/atomic.h"
 #include "base/casts.h"
 #include "base/locks.h"  // For Locks::mutator_lock_.
+#include "base/macros.h"
 #include "heap_poisoning.h"
 #include "obj_ptr.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 class Object;

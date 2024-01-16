@@ -33,7 +33,7 @@
 #include "thread-current-inl.h"
 #include "write_barrier-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template<class T> template<VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>

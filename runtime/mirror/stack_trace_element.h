@@ -17,9 +17,10 @@
 #ifndef ART_RUNTIME_MIRROR_STACK_TRACE_ELEMENT_H_
 #define ART_RUNTIME_MIRROR_STACK_TRACE_ELEMENT_H_
 
+#include "base/macros.h"
 #include "object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<class T> class Handle;
 struct StackTraceElementOffsets;

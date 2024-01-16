@@ -18,10 +18,11 @@
 #define ART_RUNTIME_MIRROR_EXECUTABLE_H_
 
 #include "accessible_object.h"
+#include "base/macros.h"
 #include "object.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct ExecutableOffsets;
 class ArtMethod;

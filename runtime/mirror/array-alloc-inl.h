@@ -30,7 +30,7 @@
 #include "obj_ptr-inl.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 static inline size_t ComputeArraySize(int32_t component_count, size_t component_size_shift) {

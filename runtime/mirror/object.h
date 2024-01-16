@@ -20,6 +20,7 @@
 #include "base/atomic.h"
 #include "base/casts.h"
 #include "base/enums.h"
+#include "base/macros.h"
 #include "dex/primitive.h"
 #include "obj_ptr.h"
 #include "object_reference.h"
@@ -29,7 +30,7 @@
 #include "runtime_globals.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 class ArtMethod;
@@ -74,7 +75,7 @@ static constexpr bool kCheckFieldAssignments = false;
 static constexpr uint32_t kObjectHeaderSize = 8;
 
 // C++ mirror of java.lang.Object
-class MANAGED LOCKABLE Object {
+class EXPORT MANAGED LOCKABLE Object {
  public:
   MIRROR_CLASS("Ljava/lang/Object;");
 

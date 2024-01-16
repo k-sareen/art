@@ -22,7 +22,7 @@
 #include "obj_ptr-inl.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 inline uint32_t Reference::ClassSize(PointerSize pointer_size) {

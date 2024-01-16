@@ -24,7 +24,7 @@
 #include "object.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace gc {
 

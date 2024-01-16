@@ -22,7 +22,7 @@
 #include "mirror/object-inl.h"
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template <PointerSize kPointerSize>

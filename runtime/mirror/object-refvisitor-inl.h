@@ -23,7 +23,7 @@
 #include "class_loader-inl.h"
 #include "dex_cache-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template <VerifyObjectFlags kVerifyFlags,

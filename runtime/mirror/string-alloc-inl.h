@@ -32,7 +32,7 @@
 #include "runtime_globals.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 // Sets string count in the allocation code path to ensure it is guarded by a CAS.

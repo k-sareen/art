@@ -32,7 +32,7 @@
 #include "object-inl.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template <VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>

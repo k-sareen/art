@@ -18,12 +18,13 @@
 #define ART_RUNTIME_MIRROR_EMULATED_STACK_FRAME_H_
 
 #include "base/utils.h"
+#include "base/macros.h"
 #include "dex/dex_instruction.h"
 #include "handle.h"
 #include "object.h"
 #include "stack.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct EmulatedStackFrameOffsets;
 

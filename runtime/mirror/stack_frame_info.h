@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_MIRROR_STACK_FRAME_INFO_H_
 #define ART_RUNTIME_MIRROR_STACK_FRAME_INFO_H_
 
+#include "base/macros.h"
 #include "method_type.h"
 #include "object.h"
 #include "stack_trace_element.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<class T> class Handle;
 struct StackFrameInfoOffsets;

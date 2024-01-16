@@ -24,7 +24,7 @@
 #include "class_root-inl.h"
 #include "object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 

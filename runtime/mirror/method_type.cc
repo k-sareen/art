@@ -25,7 +25,7 @@
 #include "object_array-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 namespace {

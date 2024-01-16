@@ -17,9 +17,10 @@
 #ifndef ART_RUNTIME_MIRROR_METHOD_H_
 #define ART_RUNTIME_MIRROR_METHOD_H_
 
+#include "base/macros.h"
 #include "executable.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<class MirrorType> class ObjPtr;
 

@@ -32,7 +32,7 @@
 #include "string-inl.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 int32_t String::FastIndexOf(int32_t ch, int32_t start) {

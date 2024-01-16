@@ -29,7 +29,7 @@
 #include "object_array-inl.h"
 #include "reflection-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 // Calculates the size of a stack frame based on the size of its argument

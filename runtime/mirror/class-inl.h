@@ -42,7 +42,7 @@
 #include "subtype_check.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template<VerifyObjectFlags kVerifyFlags>

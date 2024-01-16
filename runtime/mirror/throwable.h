@@ -19,7 +19,7 @@
 
 #include "object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class RootVisitor;
 struct ThrowableOffsets;
@@ -37,7 +37,7 @@ class MANAGED Throwable : public Object {
 
   ObjPtr<String> GetDetailMessage() REQUIRES_SHARED(Locks::mutator_lock_);
 
-  std::string Dump() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT std::string Dump() REQUIRES_SHARED(Locks::mutator_lock_);
 
   // This is a runtime version of initCause, you shouldn't use it if initCause may have been
   // overridden. Also it asserts rather than throwing exceptions. Currently this is only used

@@ -21,7 +21,7 @@
 
 #include "object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 inline ObjPtr<MethodHandle> CallSite::GetTarget() {

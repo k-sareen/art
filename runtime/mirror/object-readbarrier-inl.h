@@ -26,7 +26,7 @@
 #include "read_barrier.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template<VerifyObjectFlags kVerifyFlags>

@@ -31,7 +31,7 @@
 #include "obj_ptr-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 static constexpr bool kTransactionActive = true;

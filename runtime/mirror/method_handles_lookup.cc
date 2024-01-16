@@ -25,7 +25,7 @@
 #include "object-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 ObjPtr<MethodHandlesLookup> MethodHandlesLookup::Create(Thread* const self,

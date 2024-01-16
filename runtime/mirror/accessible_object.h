@@ -17,10 +17,11 @@
 #ifndef ART_RUNTIME_MIRROR_ACCESSIBLE_OBJECT_H_
 #define ART_RUNTIME_MIRROR_ACCESSIBLE_OBJECT_H_
 
+#include "base/macros.h"
 #include "object.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 

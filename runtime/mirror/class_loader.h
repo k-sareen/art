@@ -18,12 +18,13 @@
 #define ART_RUNTIME_MIRROR_CLASS_LOADER_H_
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "obj_ptr.h"
 #include "object.h"
 #include "object_reference.h"
 #include "string.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct ClassLoaderOffsets;
 class ClassTable;

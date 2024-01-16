@@ -17,10 +17,11 @@
 #ifndef ART_RUNTIME_MIRROR_CALL_SITE_H_
 #define ART_RUNTIME_MIRROR_CALL_SITE_H_
 
+#include "base/macros.h"
 #include "mirror/method_handle_impl.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct CallSiteOffsets;
 

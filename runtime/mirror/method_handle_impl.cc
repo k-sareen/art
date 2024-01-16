@@ -19,7 +19,7 @@
 #include "class-alloc-inl.h"
 #include "class_root-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 const char* MethodHandle::GetReturnTypeDescriptor(const char* invoke_method_name) {

@@ -27,7 +27,7 @@
 #include "mirror/dex_cache-inl.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 class DexCacheTest : public CommonRuntimeTest {

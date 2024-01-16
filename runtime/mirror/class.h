@@ -30,7 +30,7 @@
 #include "object_array.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace dex {
 struct ClassDef;
@@ -82,7 +82,7 @@ using StringDexCachePair = DexCachePair<String>;
 using StringDexCacheType = std::atomic<StringDexCachePair>;
 
 // C++ mirror of java.lang.Class
-class MANAGED Class final : public Object {
+class EXPORT MANAGED Class final : public Object {
  public:
   MIRROR_CLASS("Ljava/lang/Class;");
 

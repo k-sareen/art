@@ -22,7 +22,7 @@
 #include "jvalue.h"
 #include "object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<class T> class Handle;
 class InstructionOperands;

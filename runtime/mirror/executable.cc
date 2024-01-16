@@ -19,7 +19,7 @@
 #include "art_method-inl.h"
 #include "object-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 
 template <PointerSize kPointerSize>
