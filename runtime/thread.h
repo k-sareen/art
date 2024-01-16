@@ -1350,14 +1350,6 @@ class EXPORT Thread {
     return tlsPtr_.method_trace_buffer = buffer;
   }
 
-  void ResetMethodTraceBuffer() {
-    if (tlsPtr_.method_trace_buffer != nullptr) {
-      delete[] tlsPtr_.method_trace_buffer;
-    }
-    tlsPtr_.method_trace_buffer = nullptr;
-    tlsPtr_.method_trace_buffer_index = 0;
-  }
-
   uint64_t GetTraceClockBase() const {
     return tls64_.trace_clock_base;
   }

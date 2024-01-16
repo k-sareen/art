@@ -2607,7 +2607,6 @@ void Thread::Destroy(bool should_run_callbacks) {
 
     if (UNLIKELY(self->GetMethodTraceBuffer() != nullptr)) {
       Trace::FlushThreadBuffer(self);
-      self->ResetMethodTraceBuffer();
     }
 
     // this.nativePeer = 0;

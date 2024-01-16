@@ -238,13 +238,13 @@ class ThreadPool : public AbstractThreadPool {
     return started_ && !tasks_.empty();
   }
 
- private:
   ThreadPool(const char* name,
              size_t num_threads,
              bool create_peers,
              size_t worker_stack_size)
       : AbstractThreadPool(name, num_threads, create_peers, worker_stack_size) {}
 
+ private:
   std::deque<Task*> tasks_ GUARDED_BY(task_queue_lock_);
 
   DISALLOW_COPY_AND_ASSIGN(ThreadPool);

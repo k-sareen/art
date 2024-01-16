@@ -121,12 +121,31 @@ static constexpr int32_t kHighTimestampOffsetInBytes =
 
 static constexpr uintptr_t kMaskTraceAction = ~0b11;
 
+class TraceWriterThreadPool : public ThreadPool {
+ public:
+  static TraceWriterThreadPool* Create(const char* name) {
+    TraceWriterThreadPool* pool = new TraceWriterThreadPool(name);
+    pool->CreateThreads();
+    return pool;
+  }
+
+  uintptr_t* FinishTaskAndClaimBuffer(size_t tid);
+
+ private:
+  explicit TraceWriterThreadPool(const char* name)
+      : ThreadPool(name,
+                   /* num_threads= */ 1,
+                   /* create_peers= */ false,
+                   /* worker_stack_size= */ ThreadPoolWorker::kDefaultStackSize) {}
+};
+
 class TraceWriter {
  public:
   TraceWriter(File* trace_file,
               TraceOutputMode output_mode,
               TraceClockSource clock_source,
               size_t buffer_size,
+              int num_trace_buffers,
               uint32_t clock_overhead_ns);
 
   // This encodes all the events in the per-thread trace buffer and writes it to the trace file /
@@ -134,8 +153,8 @@ class TraceWriter {
   // required to serialize these since each method is encoded with a unique id which is assigned
   // when the method is seen for the first time in the recoreded events. So we need to serialize
   // these flushes across threads.
-  void FlushBuffer(Thread* thread, bool is_sync) REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!tracing_lock_);
+  void FlushBuffer(Thread* thread, bool is_sync, bool free_buffer)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!tracing_lock_);
 
   // This is called when the per-thread buffer is full and a new entry needs to be recorded. This
   // returns a pointer to the new buffer where the entries should be recorded.
@@ -173,6 +192,22 @@ class TraceWriter {
   bool HasOverflow() { return overflow_; }
   TraceOutputMode GetOutputMode() { return trace_output_mode_; }
   size_t GetBufferSize() { return buffer_size_; }
+
+  // Performs the initialization for the buffer pool. It marks all buffers as free by storing 0
+  // as the owner tid. This also allocates the buffer pool.
+  void InitializeTraceBuffers();
+
+  // Releases the trace buffer and transfers the ownership to the specified tid. If the tid is 0,
+  // then it means it is free and other threads can claim it.
+  void FetchTraceBufferForThread(int index, size_t tid);
+
+  // Tries to find a free buffer (which has owner of 0) from the pool. If there are no free buffers
+  // it fetches a task, flushes the contents of the buffer and returns that buffer.
+  uintptr_t* AcquireTraceBuffer(size_t tid);
+
+  // Returns the index corresponding to the start of the current_buffer. We allocate one large
+  // buffer and assign parts of it for each thread.
+  int GetMethodTraceIndex(uintptr_t* current_buffer);
 
  private:
   // Get a 32-bit id for the method and specify if the method hasn't been seen before. If this is
@@ -269,12 +304,15 @@ class TraceWriter {
   // Clock overhead.
   const uint32_t clock_overhead_ns_;
 
+  std::vector<std::atomic<size_t>> owner_tids_;
+  std::unique_ptr<uintptr_t> trace_buffer_;
+
   // Lock to protect common data structures accessed from multiple threads like
   // art_method_id_map_, thread_id_map_.
   Mutex tracing_lock_;
 
   // Thread pool to flush the trace entries to file.
-  std::unique_ptr<ThreadPool> thread_pool_;
+  std::unique_ptr<TraceWriterThreadPool> thread_pool_;
 };
 
 // Class for recording event traces. Trace data is either collected
