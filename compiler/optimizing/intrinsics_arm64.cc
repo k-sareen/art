@@ -3046,7 +3046,7 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopyChar(HInvoke* invoke) {
   __ Bind(slow_path->GetExitLabel());
 }
 
-// We can choose to use the native implementation there for longer copy lengths.
+// We choose to use the native implementation for longer copy lengths.
 static constexpr int32_t kSystemArrayCopyThreshold = 128;
 
 void IntrinsicLocationsBuilderARM64::VisitSystemArrayCopy(HInvoke* invoke) {
@@ -3194,7 +3194,7 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopy(HInvoke* invoke) {
     __ Cbz(temp, intrinsic_slow_path->GetEntryLabel());
     // Check that the component type is not a primitive.
     // /* uint16_t */ temp = static_cast<uint16>(klass->primitive_type_);
-    __ Ldr(temp, HeapOperand(temp, primitive_offset));
+    __ Ldrh(temp, HeapOperand(temp, primitive_offset));
     static_assert(Primitive::kPrimNot == 0, "Expected 0 for kPrimNot");
     __ Cbnz(temp, intrinsic_slow_path->GetEntryLabel());
   };
