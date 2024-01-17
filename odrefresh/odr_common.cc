@@ -88,8 +88,10 @@ void SystemPropertyForeach(std::function<void(const char* name, const char* valu
       &action);
 }
 
-bool CheckBuildUserfaultFdGc(bool build_enable_uffd_gc, bool kernel_supports_uffd) {
-  bool runtime_uses_uffd_gc = kernel_supports_uffd;
+bool CheckBuildUserfaultFdGc(bool build_enable_uffd_gc,
+                             bool is_at_most_u,
+                             bool kernel_supports_uffd) {
+  bool runtime_uses_uffd_gc = (build_enable_uffd_gc || is_at_most_u) && kernel_supports_uffd;
   return build_enable_uffd_gc == runtime_uses_uffd_gc;
 }
 
