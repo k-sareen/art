@@ -18,13 +18,14 @@
 #define ART_RUNTIME_DEBUG_PRINT_H_
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "mirror/object.h"
 
 // Helper functions for printing extra information for certain hard to diagnose bugs.
 
-namespace art {
+namespace art HIDDEN {
 
-std::string DescribeSpace(ObjPtr<mirror::Class> klass)
+EXPORT std::string DescribeSpace(ObjPtr<mirror::Class> klass)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 std::string DescribeLoaders(ObjPtr<mirror::ClassLoader> loader, const char* class_descriptor)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;

@@ -31,7 +31,7 @@
 #include "thread-current-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 std::string DescribeSpace(ObjPtr<mirror::Class> klass) {
   std::ostringstream oss;

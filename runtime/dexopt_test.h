@@ -20,9 +20,10 @@
 #include <string>
 #include <vector>
 
+#include "base/macros.h"
 #include "dex2oat_environment_test.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class DexoptTest : public Dex2oatEnvironmentTest {
  public:

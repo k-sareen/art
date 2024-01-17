@@ -21,9 +21,10 @@
 #include <cstdint>
 
 #include "base/dchecked_vector.h"
+#include "base/macros.h"
 #include "base/memory_region.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Dex register location container used by DexRegisterMap and StackMapStream.
 class DexRegisterLocation {
@@ -85,7 +86,7 @@ class DexRegisterLocation {
   friend class DexRegisterMap;  // Allow creation of uninitialized array of locations.
 };
 
-std::ostream& operator<<(std::ostream& stream, DexRegisterLocation::Kind kind);
+EXPORT std::ostream& operator<<(std::ostream& stream, DexRegisterLocation::Kind kind);
 std::ostream& operator<<(std::ostream& stream, const DexRegisterLocation& reg);
 
 }  // namespace art

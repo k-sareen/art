@@ -27,18 +27,19 @@
 #include "base/array_ref.h"
 #include "base/locks.h"
 #include "base/logging.h"
+#include "base/macros.h"
 #include "jni.h"
 #include "runtime.h"
 #include "runtime_callbacks.h"
 #include "thread.h"
 #include "thread_state.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Dbg {
  public:
-  static void SetJdwpAllowed(bool allowed);
-  static bool IsJdwpAllowed();
+  EXPORT static void SetJdwpAllowed(bool allowed);
+  EXPORT static bool IsJdwpAllowed();
 
   // Invoked by the GC in case we need to keep DDMS informed.
   static void GcDidFinish() REQUIRES(!Locks::mutator_lock_);
@@ -82,15 +83,14 @@ class Dbg {
       REQUIRES_SHARED(Locks::mutator_lock_);
   static void DdmSetThreadNotification(bool enable)
       REQUIRES(!Locks::thread_list_lock_);
-  static bool DdmHandleChunk(
-      JNIEnv* env,
-      uint32_t type,
-      const ArrayRef<const jbyte>& data,
-      /*out*/uint32_t* out_type,
-      /*out*/std::vector<uint8_t>* out_data);
+  EXPORT static bool DdmHandleChunk(JNIEnv* env,
+                                    uint32_t type,
+                                    const ArrayRef<const jbyte>& data,
+                                    /*out*/ uint32_t* out_type,
+                                    /*out*/ std::vector<uint8_t>* out_data);
 
-  static void DdmConnected() REQUIRES_SHARED(Locks::mutator_lock_);
-  static void DdmDisconnected() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT static void DdmConnected() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT static void DdmDisconnected() REQUIRES_SHARED(Locks::mutator_lock_);
 
   /*
    * Allocation tracking support.

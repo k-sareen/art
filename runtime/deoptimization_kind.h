@@ -18,8 +18,9 @@
 #define ART_RUNTIME_DEOPTIMIZATION_KIND_H_
 
 #include "base/logging.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 enum class DeoptimizationKind {
   kAotInlineCache = 0,
