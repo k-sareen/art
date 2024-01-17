@@ -19,7 +19,7 @@
 #include "base/common_art_test.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class CHATest : public CommonArtTest {};
 

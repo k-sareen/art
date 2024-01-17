@@ -28,6 +28,7 @@
 #include "arch/instruction_set.h"
 #include "base/common_art_test.h"
 #include "base/locks.h"
+#include "base/macros.h"
 #include "base/os.h"
 #include "base/unix_file/fd_file.h"
 #include "dex/art_dex_file_loader.h"
@@ -37,7 +38,7 @@
 #include "runtime_globals.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MethodReference;
 class TypeReference;

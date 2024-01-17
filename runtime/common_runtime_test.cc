@@ -65,7 +65,7 @@
 #include "thread.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

@@ -26,7 +26,7 @@
 #include "oat/oat_file.h"
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline ClassTable::TableSlot::TableSlot(ObjPtr<mirror::Class> klass)
     : TableSlot(klass, klass->DescriptorHash()) {}

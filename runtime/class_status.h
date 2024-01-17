@@ -20,7 +20,9 @@
 #include <iosfwd>
 #include <stdint.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 // Class Status
 //
@@ -99,7 +101,7 @@ enum class ClassStatus : uint8_t {
   kLast = kVisiblyInitialized
 };
 
-std::ostream& operator<<(std::ostream& os, ClassStatus rhs);
+EXPORT std::ostream& operator<<(std::ostream& os, ClassStatus rhs);
 
 }  // namespace art
 

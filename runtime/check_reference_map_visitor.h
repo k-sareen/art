@@ -18,6 +18,7 @@
 #define ART_RUNTIME_CHECK_REFERENCE_MAP_VISITOR_H_
 
 #include "art_method-inl.h"
+#include "base/macros.h"
 #include "dex/code_item_accessors-inl.h"
 #include "dex/dex_file_types.h"
 #include "oat/oat_quick_method_header.h"
@@ -25,7 +26,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "stack.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Helper class for tests checking that the compiler keeps track of dex registers
 // holding references.

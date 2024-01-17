@@ -42,7 +42,7 @@
 #include "stack.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace interpreter {
   void ArtInterpreterToInterpreterBridge(Thread* self,

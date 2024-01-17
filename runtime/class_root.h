@@ -20,9 +20,10 @@
 #include <stdint.h>
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ClassLinker;
 template<class MirrorType> class ObjPtr;

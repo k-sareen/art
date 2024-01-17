@@ -20,9 +20,10 @@
 #include <string_view>
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace mirror {
 class Class;
 class Object;
@@ -83,13 +84,13 @@ void ThrowClassCastException(const char* msg)
 
 // ClassFormatError
 
-void ThrowClassFormatError(ObjPtr<mirror::Class> referrer, const char* fmt, ...)
-    __attribute__((__format__(__printf__, 2, 3)))
-    REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
+EXPORT void ThrowClassFormatError(ObjPtr<mirror::Class> referrer, const char* fmt, ...)
+    __attribute__((__format__(__printf__, 2, 3))) REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 // IllegalAccessError
 
-void ThrowIllegalAccessErrorClass(ObjPtr<mirror::Class> referrer, ObjPtr<mirror::Class> accessed)
+EXPORT void ThrowIllegalAccessErrorClass(ObjPtr<mirror::Class> referrer,
+                                         ObjPtr<mirror::Class> accessed)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 void ThrowIllegalAccessErrorClassForMethodDispatch(ObjPtr<mirror::Class> referrer,
@@ -101,10 +102,10 @@ void ThrowIllegalAccessErrorClassForMethodDispatch(ObjPtr<mirror::Class> referre
 void ThrowIllegalAccessErrorMethod(ObjPtr<mirror::Class> referrer, ArtMethod* accessed)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
-void ThrowIllegalAccessErrorField(ObjPtr<mirror::Class> referrer, ArtField* accessed)
+EXPORT void ThrowIllegalAccessErrorField(ObjPtr<mirror::Class> referrer, ArtField* accessed)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
-void ThrowIllegalAccessErrorFinalField(ArtMethod* referrer, ArtField* accessed)
+EXPORT void ThrowIllegalAccessErrorFinalField(ArtMethod* referrer, ArtField* accessed)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 void ThrowIllegalAccessError(ObjPtr<mirror::Class> referrer, const char* fmt, ...)
@@ -128,7 +129,7 @@ void ThrowIllegalArgumentException(const char* msg)
 
 // IllegalAccessException
 
-void ThrowIllegalStateException(const char* msg)
+EXPORT void ThrowIllegalStateException(const char* msg)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 // IncompatibleClassChangeError
@@ -144,9 +145,9 @@ void ThrowIncompatibleClassChangeErrorClassForInterfaceDispatch(ArtMethod* inter
                                                                 ArtMethod* referrer)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
-void ThrowIncompatibleClassChangeErrorField(ArtField* resolved_field,
-                                            bool is_static,
-                                            ArtMethod* referrer)
+EXPORT void ThrowIncompatibleClassChangeErrorField(ArtField* resolved_field,
+                                                   bool is_static,
+                                                   ArtMethod* referrer)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 void ThrowIncompatibleClassChangeError(ObjPtr<mirror::Class> referrer, const char* fmt, ...)
@@ -196,10 +197,10 @@ void ThrowNegativeArraySizeException(const char* msg)
 
 // NoSuchFieldError
 
-void ThrowNoSuchFieldError(std::string_view scope,
-                           ObjPtr<mirror::Class> c,
-                           std::string_view type,
-                           std::string_view name)
+EXPORT void ThrowNoSuchFieldError(std::string_view scope,
+                                  ObjPtr<mirror::Class> c,
+                                  std::string_view type,
+                                  std::string_view name)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 void ThrowNoSuchFieldException(ObjPtr<mirror::Class> c, std::string_view name)
@@ -229,7 +230,7 @@ void ThrowNullPointerExceptionForMethodAccess(ArtMethod* method,
 void ThrowNullPointerExceptionFromDexPC(bool check_address = false, uintptr_t addr = 0)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
-void ThrowNullPointerException(const char* msg)
+EXPORT void ThrowNullPointerException(const char* msg)
     REQUIRES_SHARED(Locks::mutator_lock_) COLD_ATTR;
 
 void ThrowNullPointerException()

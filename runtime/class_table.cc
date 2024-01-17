@@ -21,7 +21,7 @@
 #include "mirror/string-inl.h"
 #include "oat/oat_file.h"
 
-namespace art {
+namespace art HIDDEN {
 
 ClassTable::ClassTable() : lock_("Class loader classes", kClassLoaderClassesLock) {
   Runtime* const runtime = Runtime::Current();

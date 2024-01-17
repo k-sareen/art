@@ -44,7 +44,7 @@
 #include "oat/oat_file.h"
 #include "verifier/verifier_enums.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 class ArtMethod;
@@ -158,7 +158,7 @@ class AllocatorVisitor {
       REQUIRES_SHARED(Locks::classlinker_classes_lock_, Locks::mutator_lock_) = 0;
 };
 
-class ClassLinker {
+class EXPORT ClassLinker {
  public:
   static constexpr bool kAppImageMayContainStrings = true;
 

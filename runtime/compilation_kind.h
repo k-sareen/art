@@ -20,7 +20,9 @@
 #include <iosfwd>
 #include <stdint.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 enum class CompilationKind {
   kOsr,

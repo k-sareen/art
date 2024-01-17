@@ -19,6 +19,7 @@
 
 #include "art_field-inl.h"
 #include "base/locks.h"
+#include "base/macros.h"
 #include "handle_scope.h"
 #include "jni/jni_internal.h"
 #include "mirror/class_loader.h"
@@ -28,7 +29,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Returns true if the given class loader derives from BaseDexClassLoader.
 inline bool IsInstanceOfBaseDexClassLoader(Handle<mirror::ClassLoader> class_loader)

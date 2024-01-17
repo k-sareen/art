@@ -23,19 +23,20 @@
 
 #include "arch/instruction_set.h"
 #include "base/dchecked_vector.h"
+#include "base/macros.h"
 #include "dex/dex_file.h"
 #include "handle_scope.h"
 #include "mirror/class_loader.h"
 #include "oat/oat_file.h"
 #include "scoped_thread_state_change.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class DexFile;
 class OatFile;
 
 // Utility class which holds the class loader context used during compilation/verification.
-class ClassLoaderContext {
+class EXPORT ClassLoaderContext {
  public:
   enum class VerificationResult {
     kVerifies,

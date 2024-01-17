@@ -22,7 +22,7 @@
 #include "android-base/logging.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Compat change states as strings.
 static constexpr char kUnknownChangeState[] = "UNKNOWN";

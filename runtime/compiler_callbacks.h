@@ -18,11 +18,12 @@
 #define ART_RUNTIME_COMPILER_CALLBACKS_H_
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "class_status.h"
 #include "dex/class_reference.h"
 #include "dex/method_reference.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class CompilerDriver;
 
