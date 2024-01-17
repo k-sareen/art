@@ -34,7 +34,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using ::android::base::Result;
 using ::testing::_;

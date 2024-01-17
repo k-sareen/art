@@ -24,7 +24,7 @@
 #include "base/os.h"
 #include "elf/elf_utils.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class MemMap;
 

@@ -26,8 +26,9 @@
 #include <vector>
 
 #include "android-base/unique_fd.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct ProcessStat {
   // The total wall time, in milliseconds, that the process spent, or 0 if failed to get the value.
@@ -75,7 +76,7 @@ struct ExecResult {
 // These spawn child processes using the environment as it was set when the single instance
 // of the runtime (Runtime::Current()) was started.  If no instance of the runtime was started, it
 // will use the current environment settings.
-class ExecUtils {
+class EXPORT ExecUtils {
  public:
   virtual ~ExecUtils() = default;
 

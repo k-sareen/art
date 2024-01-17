@@ -22,10 +22,11 @@
 #include <type_traits>
 #include <vector>
 
+#include "base/macros.h"
 #include "base/mem_map.h"
 #include "elf/elf_utils.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template <typename ElfTypes>
 class ElfFileImpl {

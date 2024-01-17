@@ -25,7 +25,7 @@
 // that an oat version bump may be in order, and some defines should be carefully checked (or their
 // corresponding tests run).
 
-namespace art {
+namespace art HIDDEN {
 
 // OFFSETOF_MEMBER uses reinterpret_cast. This means it is not a constexpr. So we cannot use
 // compile-time assertions. Once we find another way, adjust the define accordingly.

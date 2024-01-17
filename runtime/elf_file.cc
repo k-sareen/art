@@ -32,7 +32,7 @@
 #include "elf/elf_utils.h"
 #include "elf_file_impl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 
