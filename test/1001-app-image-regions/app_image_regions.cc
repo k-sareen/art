@@ -18,10 +18,10 @@
 
 #include "gc/heap.h"
 #include "gc/space/image_space.h"
-#include "gc/space/space-inl.h"
 #include "gc/space/region_space.h"
-#include "image.h"
+#include "gc/space/space-inl.h"
 #include "mirror/class.h"
+#include "oat/image.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 

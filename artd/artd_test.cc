@@ -58,7 +58,7 @@
 #include "exec_utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "path_utils.h"
 #include "profman/profman_result.h"
 #include "testing.h"

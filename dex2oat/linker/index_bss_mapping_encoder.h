@@ -21,7 +21,7 @@
 
 #include "base/bit_utils.h"
 #include "base/bit_vector-inl.h"
-#include "index_bss_mapping.h"
+#include "oat/index_bss_mapping.h"
 
 namespace art {
 namespace linker {

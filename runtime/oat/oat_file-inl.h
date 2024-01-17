@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_OAT_FILE_INL_H_
-#define ART_RUNTIME_OAT_FILE_INL_H_
+#ifndef ART_RUNTIME_OAT_OAT_FILE_INL_H_
+#define ART_RUNTIME_OAT_OAT_FILE_INL_H_
 
 #include "oat_file.h"
 
@@ -114,4 +114,4 @@ inline const OatFile::BssMappingInfo* OatFile::FindBcpMappingInfo(const DexFile*
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_OAT_FILE_INL_H_
+#endif  // ART_RUNTIME_OAT_OAT_FILE_INL_H_

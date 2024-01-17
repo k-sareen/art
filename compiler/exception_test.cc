@@ -38,7 +38,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array-inl.h"
 #include "mirror/stack_trace_element-inl.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "obj_ptr-inl.h"
 #include "optimizing/stack_map_stream.h"
 #include "runtime-inl.h"

@@ -50,7 +50,7 @@
 #include "jni/quick/jni_compiler.h"
 #include "linker/linker_patch.h"
 #include "nodes.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "optimizing/write_barrier_elimination.h"
 #include "prepare_for_register_allocation.h"
 #include "profiling_info_builder.h"

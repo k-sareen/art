@@ -34,7 +34,7 @@
 #include "intrinsics_utils.h"
 #include "jit/jit.h"
 #include "mirror/dex_cache.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "optimizing_compiler_stats.h"
 #include "reflective_handle_scope-inl.h"
 #include "scoped_thread_state_change-inl.h"

@@ -18,8 +18,8 @@
 #include "class_loader_utils.h"
 #include "jni.h"
 #include "nativehelper/scoped_utf_chars.h"
-#include "oat_file_assistant.h"
-#include "oat_file_manager.h"
+#include "oat/oat_file_assistant.h"
+#include "oat/oat_file_manager.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread.h"
 

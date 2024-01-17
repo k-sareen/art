@@ -41,7 +41,7 @@
 #include "jni.h"
 #include "mirror/class.h"
 #include "mirror/object.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "verifier/verifier_enums.h"
 
 namespace art {

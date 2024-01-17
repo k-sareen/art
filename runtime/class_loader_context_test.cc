@@ -40,7 +40,7 @@
 #include "mirror/class_loader-inl.h"
 #include "mirror/object-inl.h"
 #include "mirror/object_array-alloc-inl.h"
-#include "oat_file_assistant.h"
+#include "oat/oat_file_assistant.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread.h"

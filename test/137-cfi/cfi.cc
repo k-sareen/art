@@ -38,7 +38,7 @@
 #include "gc/heap.h"
 #include "gc/space/image_space.h"
 #include "jit/debugger_interface.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "runtime.h"
 
 namespace art {

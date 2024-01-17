@@ -63,7 +63,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array-inl.h"
 #include "nativehelper/scoped_local_ref.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "obj_ptr.h"
 #include "runtime.h"
 #include "runtime_callbacks.h"

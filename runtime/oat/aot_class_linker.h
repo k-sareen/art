@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_AOT_CLASS_LINKER_H_
-#define ART_RUNTIME_AOT_CLASS_LINKER_H_
+#ifndef ART_RUNTIME_OAT_AOT_CLASS_LINKER_H_
+#define ART_RUNTIME_OAT_AOT_CLASS_LINKER_H_
 
 #include "base/macros.h"
 #include "sdk_checker.h"
@@ -27,6 +27,7 @@ namespace gc {
 class Heap;
 }  // namespace gc
 
+// TODO: move to dex2oat/.
 // AotClassLinker is only used for AOT compiler, which includes some logic for class initialization
 // which will only be used in pre-compilation.
 class AotClassLinker : public ClassLinker {
@@ -79,4 +80,4 @@ class AotClassLinker : public ClassLinker {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_AOT_CLASS_LINKER_H_
+#endif  // ART_RUNTIME_OAT_AOT_CLASS_LINKER_H_

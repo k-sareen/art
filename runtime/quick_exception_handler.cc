@@ -41,9 +41,9 @@
 #include "mirror/class_loader.h"
 #include "mirror/throwable.h"
 #include "nterp_helpers.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
+#include "oat/stack_map.h"
 #include "stack.h"
-#include "stack_map.h"
 
 namespace art {
 

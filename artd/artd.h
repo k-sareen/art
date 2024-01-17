@@ -39,7 +39,7 @@
 #include "android/binder_auto_utils.h"
 #include "base/os.h"
 #include "exec_utils.h"
-#include "oat_file_assistant_context.h"
+#include "oat/oat_file_assistant_context.h"
 #include "tools/cmdline_builder.h"
 #include "tools/system_properties.h"
 

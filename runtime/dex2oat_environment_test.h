@@ -35,7 +35,7 @@
 #include "gc/heap.h"
 #include "gc/space/image_space.h"
 #include "gtest/gtest.h"
-#include "oat_file_assistant.h"
+#include "oat/oat_file_assistant.h"
 #include "runtime.h"
 #include "ziparchive/zip_writer.h"
 

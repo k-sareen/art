@@ -39,7 +39,7 @@
 #include "gc/gc_cause.h"
 #include "jit/jit.h"
 #include "jit/profiling_info.h"
-#include "oat_file_manager.h"
+#include "oat/oat_file_manager.h"
 #include "profile/profile_compilation_info.h"
 #include "scoped_thread_state_change-inl.h"
 

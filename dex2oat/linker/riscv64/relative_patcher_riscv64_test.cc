@@ -16,9 +16,9 @@
 
 #include "relative_patcher_riscv64.h"
 
-#include "oat_quick_method_header.h"
 #include "linker/linker_patch.h"
 #include "linker/relative_patcher_test.h"
+#include "oat/oat_quick_method_header.h"
 
 namespace art {
 namespace linker {

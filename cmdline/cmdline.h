@@ -35,7 +35,7 @@
 #include "base/string_view_cpp20.h"
 #include "base/utils.h"
 #include "noop_compiler_callbacks.h"
-#include "oat_file_assistant_context.h"
+#include "oat/oat_file_assistant_context.h"
 #include "runtime.h"
 
 #if !defined(NDEBUG)

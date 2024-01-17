@@ -80,7 +80,6 @@
 #include "handle_scope-inl.h"
 #include "heap-inl.h"
 #include "heap-visit-objects-inl.h"
-#include "image.h"
 #include "intern_table.h"
 #include "jit/jit.h"
 #include "jit/jit_code_cache.h"
@@ -95,6 +94,7 @@
 #include "mirror/reference-inl.h"
 #include "mirror/var_handle.h"
 #include "nativehelper/scoped_local_ref.h"
+#include "oat/image.h"
 #include "obj_ptr-inl.h"
 #ifdef ART_TARGET_ANDROID
 #include "perfetto/heap_profile.h"

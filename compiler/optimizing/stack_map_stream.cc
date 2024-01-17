@@ -26,12 +26,12 @@
 #include "dex/dex_file.h"
 #include "dex/dex_file_types.h"
 #include "driver/compiler_options.h"
+#include "oat/stack_map.h"
 #include "optimizing/code_generator.h"
 #include "optimizing/nodes.h"
 #include "optimizing/optimizing_compiler.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
-#include "stack_map.h"
 
 namespace art HIDDEN {
 

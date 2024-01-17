@@ -60,7 +60,7 @@
 #include "mirror/class_ext.h"
 #include "mirror/class_loader-inl.h"
 #include "mirror/string-inl.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "scoped_thread_state_change-inl.h"
 #include "stack.h"
 #include "thread_list.h"

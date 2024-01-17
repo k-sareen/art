@@ -40,7 +40,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array-inl.h"
 #include "nterp_helpers.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "obj_ptr-inl.h"
 #include "quick/quick_method_frame_info.h"
 #include "runtime.h"

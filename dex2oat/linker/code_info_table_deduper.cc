@@ -16,7 +16,7 @@
 
 #include "code_info_table_deduper.h"
 
-#include "stack_map.h"
+#include "oat/stack_map.h"
 
 namespace art {
 namespace linker {

@@ -68,7 +68,7 @@
 #include "mirror/throwable.h"
 #include "nativehelper/scoped_local_ref.h"
 #include "nativehelper/scoped_primitive_array.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "obj_ptr-inl.h"
 #include "reflection.h"
 #include "reflective_handle.h"

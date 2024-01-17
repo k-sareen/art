@@ -26,7 +26,7 @@
 #include "dex/dex_file.h"
 #include "handle_scope.h"
 #include "mirror/class_loader.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "scoped_thread_state_change.h"
 
 namespace art {

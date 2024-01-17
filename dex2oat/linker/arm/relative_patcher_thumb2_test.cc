@@ -23,7 +23,7 @@
 #include "lock_word.h"
 #include "mirror/array-inl.h"
 #include "mirror/object.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "optimizing/code_generator_arm_vixl.h"
 #include "optimizing/optimizing_unit_test.h"
 

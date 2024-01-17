@@ -27,8 +27,8 @@
 #include "dwarf/debug_line_opcode_writer.h"
 #include "dwarf/headers.h"
 #include "elf/elf_builder.h"
-#include "oat_file.h"
-#include "stack_map.h"
+#include "oat/oat_file.h"
+#include "oat/stack_map.h"
 
 namespace art HIDDEN {
 namespace debug {

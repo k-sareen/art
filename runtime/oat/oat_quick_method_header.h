@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_OAT_QUICK_METHOD_HEADER_H_
-#define ART_RUNTIME_OAT_QUICK_METHOD_HEADER_H_
+#ifndef ART_RUNTIME_OAT_OAT_QUICK_METHOD_HEADER_H_
+#define ART_RUNTIME_OAT_OAT_QUICK_METHOD_HEADER_H_
 
 #include <optional>
 
@@ -202,4 +202,4 @@ class PACKED(4) OatQuickMethodHeader {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_OAT_QUICK_METHOD_HEADER_H_
+#endif  // ART_RUNTIME_OAT_OAT_QUICK_METHOD_HEADER_H_

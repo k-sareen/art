@@ -27,7 +27,7 @@
 #include "base/value_object.h"
 #include "dex_register_location.h"
 #include "nodes.h"
-#include "stack_map.h"
+#include "oat/stack_map.h"
 
 namespace art HIDDEN {
 

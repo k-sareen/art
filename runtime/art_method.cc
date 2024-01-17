@@ -48,7 +48,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array-inl.h"
 #include "mirror/string.h"
-#include "oat_file-inl.h"
+#include "oat/oat_file-inl.h"
 #include "runtime_callbacks.h"
 #include "scoped_thread_state_change-inl.h"
 #include "vdex_file.h"

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_OAT_H_
-#define ART_RUNTIME_OAT_H_
+#ifndef ART_RUNTIME_OAT_OAT_H_
+#define ART_RUNTIME_OAT_OAT_H_
 
 #include <array>
 #include <vector>
@@ -164,4 +164,4 @@ class PACKED(4) OatHeader {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_OAT_H_
+#endif  // ART_RUNTIME_OAT_OAT_H_

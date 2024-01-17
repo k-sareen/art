@@ -25,7 +25,7 @@
 #include "debug/method_debug_info.h"
 #include "dwarf/debug_info_entry_writer.h"
 #include "dwarf/register.h"
-#include "stack_map.h"
+#include "oat/stack_map.h"
 
 namespace art HIDDEN {
 namespace debug {

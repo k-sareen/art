@@ -35,7 +35,7 @@
 #include "elf/elf_utils.h"
 #include "elf/xz_utils.h"
 #include "jit/debugger_interface.h"
-#include "oat.h"
+#include "oat/oat.h"
 #include "stream/vector_output_stream.h"
 
 namespace art HIDDEN {

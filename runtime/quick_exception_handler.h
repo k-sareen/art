@@ -25,7 +25,7 @@
 #include "base/macros.h"
 #include "base/mutex.h"
 #include "deoptimization_kind.h"
-#include "stack_map.h"
+#include "oat/stack_map.h"
 #include "stack_reference.h"
 
 namespace art {

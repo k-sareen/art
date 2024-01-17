@@ -40,7 +40,7 @@
 #include "mirror/object.h"
 #include "mirror/object_array-alloc-inl.h"
 #include "nativehelper/scoped_local_ref.h"
-#include "oat_file_assistant.h"
+#include "oat/oat_file_assistant.h"
 #include "obj_ptr-inl.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"

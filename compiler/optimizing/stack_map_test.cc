@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "stack_map.h"
+#include "oat/stack_map.h"
 
 #include "art_method.h"
 #include "base/arena_bit_vector.h"

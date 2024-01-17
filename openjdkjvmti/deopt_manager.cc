@@ -52,7 +52,7 @@
 #include "mirror/class-inl.h"
 #include "mirror/object_array-inl.h"
 #include "nativehelper/scoped_local_ref.h"
-#include "oat_file_manager.h"
+#include "oat/oat_file_manager.h"
 #include "read_barrier_config.h"
 #include "runtime_callbacks.h"
 #include "scoped_thread_state_change-inl.h"

@@ -21,9 +21,9 @@
 #include "jit/profiling_info.h"
 #include "mirror/class.h"
 #include "nativehelper/ScopedUtfChars.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
+#include "oat/stack_map.h"
 #include "scoped_thread_state_change-inl.h"
-#include "stack_map.h"
 
 namespace art {
 

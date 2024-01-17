@@ -22,7 +22,7 @@
 #include "base/logging.h"  // For VLOG.
 #include "gc/space/space-inl.h"
 #include "mirror/object.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 
 namespace art HIDDEN {
 namespace gc {

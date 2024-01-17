@@ -41,7 +41,7 @@
 #include "base/os.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "oat_file_assistant.h"
+#include "oat/oat_file_assistant.h"
 #include "procinfo/process_map.h"
 
 namespace art {

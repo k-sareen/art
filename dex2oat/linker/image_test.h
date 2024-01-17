@@ -17,7 +17,7 @@
 #ifndef ART_DEX2OAT_LINKER_IMAGE_TEST_H_
 #define ART_DEX2OAT_LINKER_IMAGE_TEST_H_
 
-#include "image.h"
+#include "oat/image.h"
 
 #include <memory>
 #include <string>
@@ -48,7 +48,7 @@
 #include "linker/multi_oat_relative_patcher.h"
 #include "lock_word.h"
 #include "mirror/object-inl.h"
-#include "oat.h"
+#include "oat/oat.h"
 #include "oat_writer.h"
 #include "read_barrier_config.h"
 #include "scoped_thread_state_change-inl.h"

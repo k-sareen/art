@@ -29,7 +29,7 @@
 #include "dex/dex_file-inl.h"
 #include "mirror/class-inl.h"
 #include "mirror/class_loader.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "obj_ptr-inl.h"
 #include "reg_type.h"
 #include "reg_type_cache-inl.h"

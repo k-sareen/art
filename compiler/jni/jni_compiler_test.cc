@@ -42,7 +42,7 @@
 #include "mirror/stack_trace_element-inl.h"
 #include "nativehelper/ScopedLocalRef.h"
 #include "nativeloader/native_loader.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 #include "thread-inl.h"

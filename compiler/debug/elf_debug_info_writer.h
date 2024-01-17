@@ -37,7 +37,7 @@
 #include "mirror/array.h"
 #include "mirror/class-inl.h"
 #include "mirror/class.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "obj_ptr-inl.h"
 
 namespace art HIDDEN {

@@ -29,8 +29,8 @@
 #include "lock_word.h"
 #include "mirror/array-inl.h"
 #include "mirror/object.h"
-#include "oat.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat.h"
+#include "oat/oat_quick_method_header.h"
 #include "read_barrier.h"
 #include "stream/output_stream.h"
 

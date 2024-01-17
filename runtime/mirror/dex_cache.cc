@@ -22,7 +22,7 @@
 #include "gc/heap.h"
 #include "jit/profile_saver.h"
 #include "linear_alloc.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 #include "object-inl.h"
 #include "object.h"
 #include "object_array-inl.h"

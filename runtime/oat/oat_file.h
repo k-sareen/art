@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_OAT_FILE_H_
-#define ART_RUNTIME_OAT_FILE_H_
+#ifndef ART_RUNTIME_OAT_OAT_FILE_H_
+#define ART_RUNTIME_OAT_OAT_FILE_H_
 
 #include <list>
 #include <memory>
@@ -662,4 +662,4 @@ class OatDexFile final {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_OAT_FILE_H_
+#endif  // ART_RUNTIME_OAT_OAT_FILE_H_

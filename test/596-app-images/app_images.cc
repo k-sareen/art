@@ -25,10 +25,10 @@
 #include "gc/heap.h"
 #include "gc/space/image_space.h"
 #include "gc/space/space-inl.h"
-#include "image.h"
 #include "mirror/class.h"
 #include "nativehelper/scoped_utf_chars.h"
-#include "oat_file.h"
+#include "oat/image.h"
+#include "oat/oat_file.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 

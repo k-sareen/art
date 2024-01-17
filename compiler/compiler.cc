@@ -22,7 +22,7 @@
 #include "base/utils.h"
 #include "dex/code_item_accessors-inl.h"
 #include "dex/dex_file.h"
-#include "oat.h"
+#include "oat/oat.h"
 #include "optimizing/optimizing_compiler.h"
 
 namespace art HIDDEN {

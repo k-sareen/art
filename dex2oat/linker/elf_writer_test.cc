@@ -22,10 +22,10 @@
 #include "base/utils.h"
 #include "common_compiler_driver_test.h"
 #include "elf/elf_builder.h"
-#include "elf_file.h"
-#include "elf_file_impl.h"
 #include "elf_writer_quick.h"
-#include "oat.h"
+#include "oat/elf_file.h"
+#include "oat/elf_file_impl.h"
+#include "oat/oat.h"
 
 namespace art {
 namespace linker {

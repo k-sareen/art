@@ -21,7 +21,7 @@
 #include "base/file_utils.h"
 #include "base/os.h"
 #include "exec_utils.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 
 namespace art {
 

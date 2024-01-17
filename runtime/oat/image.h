@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_IMAGE_H_
-#define ART_RUNTIME_IMAGE_H_
+#ifndef ART_RUNTIME_OAT_IMAGE_H_
+#define ART_RUNTIME_OAT_IMAGE_H_
 
 #include <string.h>
 
@@ -606,4 +606,4 @@ bool LZ4_decompress_safe_checked(const char* source,
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_IMAGE_H_
+#endif  // ART_RUNTIME_OAT_IMAGE_H_

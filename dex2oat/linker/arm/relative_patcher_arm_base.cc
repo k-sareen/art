@@ -21,8 +21,8 @@
 #include "dex/dex_file_types.h"
 #include "driver/compiled_method-inl.h"
 #include "linker/linker_patch.h"
-#include "oat.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat.h"
+#include "oat/oat_quick_method_header.h"
 #include "stream/output_stream.h"
 
 namespace art {

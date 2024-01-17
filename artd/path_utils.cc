@@ -29,7 +29,7 @@
 #include "base/macros.h"
 #include "file_utils.h"
 #include "fstab/fstab.h"
-#include "oat_file_assistant.h"
+#include "oat/oat_file_assistant.h"
 #include "runtime_image.h"
 #include "service.h"
 #include "tools/tools.h"

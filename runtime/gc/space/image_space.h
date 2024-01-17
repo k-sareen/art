@@ -20,7 +20,7 @@
 #include "android-base/unique_fd.h"
 #include "base/array_ref.h"
 #include "gc/accounting/space_bitmap.h"
-#include "image.h"
+#include "oat/image.h"
 #include "runtime.h"
 #include "space.h"
 

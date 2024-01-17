@@ -20,7 +20,7 @@
 #include "entrypoints/quick/callee_save_frame.h"
 #include "interpreter/mterp/nterp.h"
 #include "nterp_helpers.h"
-#include "oat_quick_method_header.h"
+#include "oat/oat_quick_method_header.h"
 #include "quick/quick_method_frame_info.h"
 
 namespace art {

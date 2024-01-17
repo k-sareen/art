@@ -17,7 +17,7 @@
 #include "elf_writer.h"
 
 #include "base/unix_file/fd_file.h"
-#include "elf_file.h"
+#include "oat/elf_file.h"
 
 namespace art {
 namespace linker {

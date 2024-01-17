@@ -19,7 +19,7 @@
 #include "base/stl_util.h"
 #include "mirror/class-inl.h"
 #include "mirror/string-inl.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 
 namespace art {
 

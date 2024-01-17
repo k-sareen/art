@@ -34,8 +34,8 @@
 #include "dex2oat_environment_test.h"
 #include "gc/space/image_space.h"
 #include "hidden_api.h"
-#include "oat.h"
-#include "oat_file_assistant.h"
+#include "oat/oat.h"
+#include "oat/oat_file_assistant.h"
 #include "profile/profile_compilation_info.h"
 
 namespace art HIDDEN {

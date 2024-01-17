@@ -22,7 +22,7 @@
 #include "base/unix_file/fd_file.h"
 #include "jit/jit.h"
 #include "jit/jit_code_cache.h"
-#include "oat_file-inl.h"
+#include "oat/oat_file-inl.h"
 
 namespace art HIDDEN {
 namespace jit {

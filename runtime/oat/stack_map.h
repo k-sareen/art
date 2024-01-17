@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_STACK_MAP_H_
-#define ART_RUNTIME_STACK_MAP_H_
+#ifndef ART_RUNTIME_OAT_STACK_MAP_H_
+#define ART_RUNTIME_OAT_STACK_MAP_H_
 
 #include <limits>
 
@@ -601,4 +601,4 @@ class CodeInfo {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_STACK_MAP_H_
+#endif  // ART_RUNTIME_OAT_STACK_MAP_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_OAT_FILE_ASSISTANT_CONTEXT_H_
-#define ART_RUNTIME_OAT_FILE_ASSISTANT_CONTEXT_H_
+#ifndef ART_RUNTIME_OAT_OAT_FILE_ASSISTANT_CONTEXT_H_
+#define ART_RUNTIME_OAT_OAT_FILE_ASSISTANT_CONTEXT_H_
 
 #include <optional>
 #include <string>
@@ -86,4 +86,4 @@ class OatFileAssistantContext {
 
 }  // namespace art
 
-#endif  // ART_RUNTIME_OAT_FILE_ASSISTANT_CONTEXT_H_
+#endif  // ART_RUNTIME_OAT_OAT_FILE_ASSISTANT_CONTEXT_H_

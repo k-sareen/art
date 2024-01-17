@@ -38,10 +38,10 @@
 #include "mirror/class_loader.h"
 #include "mirror/dex_cache.h"
 #include "nodes.h"
+#include "oat/stack_map.h"
 #include "optimizing_compiler_stats.h"
 #include "reference_type_propagation.h"
 #include "side_effects_analysis.h"
-#include "stack_map.h"
 
 /**
  * The general algorithm of load-store elimination (LSE).

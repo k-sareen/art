@@ -27,7 +27,7 @@
 #include "base/macros.h"
 #include "common_runtime_test.h"
 #include "compiler.h"
-#include "oat_file.h"
+#include "oat/oat_file.h"
 
 namespace art HIDDEN {
 namespace mirror {
