@@ -20,11 +20,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "base/macros.h"
+
 namespace unwindstack {
 class Unwinder;
 }
 
-namespace art {
+namespace art HIDDEN {
 
 // Using libunwindstack
 class BacktraceCollector {

@@ -23,7 +23,7 @@
 #include "base/time_utils.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 Barrier::Barrier(int count, bool verify_count_on_shutdown)
     : count_(count),
