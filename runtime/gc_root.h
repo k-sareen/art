@@ -22,7 +22,7 @@
 #include "mirror/object_reference.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 class ArtField;
 class ArtMethod;
 template<class MirrorType> class ObjPtr;
@@ -54,7 +54,7 @@ enum RootType {
   kRootVMInternal,
   kRootJNIMonitor,
 };
-std::ostream& operator<<(std::ostream& os, RootType root_type);
+EXPORT std::ostream& operator<<(std::ostream& os, RootType root_type);
 
 // Only used by hprof. thread_id_ and type_ are only used by hprof.
 class RootInfo {
