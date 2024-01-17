@@ -23,6 +23,7 @@
 
 #include "base/array_ref.h"
 #include "base/locks.h"
+#include "base/macros.h"
 #include "dex/dex_file_structs.h"
 #include "dex/dex_file_types.h"
 #include "handle.h"
@@ -30,7 +31,7 @@
 #include "thread.h"
 #include "verifier_enums.h"  // For MethodVerifier::FailureKind.
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 class ArtMethod;
@@ -60,18 +61,21 @@ class RegType;
 // changes in the classpath.
 class VerifierDeps {
  public:
-  explicit VerifierDeps(const std::vector<const DexFile*>& dex_files, bool output_only = true);
+  EXPORT explicit VerifierDeps(const std::vector<const DexFile*>& dex_files,
+                               bool output_only = true);
 
   // Marker to know whether a class is verified. A non-verified class will have
   // this marker as its offset entry in the encoded data.
   static uint32_t constexpr kNotVerifiedMarker = std::numeric_limits<uint32_t>::max();
 
   // Fill dependencies from stored data. Returns true on success, false on failure.
-  bool ParseStoredData(const std::vector<const DexFile*>& dex_files, ArrayRef<const uint8_t> data);
+  EXPORT bool ParseStoredData(const std::vector<const DexFile*>& dex_files,
+                              ArrayRef<const uint8_t> data);
 
   // Merge `other` into this `VerifierDeps`'. `other` and `this` must be for the
   // same set of dex files.
-  void MergeWith(std::unique_ptr<VerifierDeps> other, const std::vector<const DexFile*>& dex_files);
+  EXPORT void MergeWith(std::unique_ptr<VerifierDeps> other,
+                        const std::vector<const DexFile*>& dex_files);
 
   // Record information that a class was verified.
   // Note that this function is different from MaybeRecordVerificationStatus() which
@@ -80,10 +84,10 @@ class VerifierDeps {
       REQUIRES(!Locks::verifier_deps_lock_);
 
   // Record the verification status of the class defined in `class_def`.
-  static void MaybeRecordVerificationStatus(VerifierDeps* verifier_deps,
-                                            const DexFile& dex_file,
-                                            const dex::ClassDef& class_def,
-                                            FailureKind failure_kind)
+  EXPORT static void MaybeRecordVerificationStatus(VerifierDeps* verifier_deps,
+                                                   const DexFile& dex_file,
+                                                   const dex::ClassDef& class_def,
+                                                   FailureKind failure_kind)
       REQUIRES(!Locks::verifier_deps_lock_);
 
   // Record the outcome `is_assignable` of type assignability test from `source`
@@ -110,15 +114,16 @@ class VerifierDeps {
   // Serialize the recorded dependencies and store the data into `buffer`.
   // `dex_files` provides the order of the dex files in which the dependencies
   // should be emitted.
-  void Encode(const std::vector<const DexFile*>& dex_files, std::vector<uint8_t>* buffer) const;
+  EXPORT void Encode(const std::vector<const DexFile*>& dex_files,
+                     std::vector<uint8_t>* buffer) const;
 
-  void Dump(VariableIndentationOutputStream* vios) const;
+  EXPORT void Dump(VariableIndentationOutputStream* vios) const;
 
   // Verify the encoded dependencies of this `VerifierDeps` are still valid.
-  bool ValidateDependencies(Thread* self,
-                            Handle<mirror::ClassLoader> class_loader,
-                            const std::vector<const DexFile*>& dex_files,
-                            /* out */ std::string* error_msg) const
+  EXPORT bool ValidateDependencies(Thread* self,
+                                   Handle<mirror::ClassLoader> class_loader,
+                                   const std::vector<const DexFile*>& dex_files,
+                                   /* out */ std::string* error_msg) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   const std::vector<bool>& GetVerifiedClasses(const DexFile& dex_file) const {
@@ -138,7 +143,7 @@ class VerifierDeps {
   }
 
   // Resets the data related to the given dex files.
-  void ClearData(const std::vector<const DexFile*>& dex_files);
+  EXPORT void ClearData(const std::vector<const DexFile*>& dex_files);
 
   // Parses raw VerifierDeps data to extract bitvectors of which class def indices
   // were verified or not. The given `dex_files` must match the order and count of
@@ -195,7 +200,7 @@ class VerifierDeps {
   // `dex_file` is not reported as being compiled.
   DexFileDeps* GetDexFileDeps(const DexFile& dex_file);
 
-  const DexFileDeps* GetDexFileDeps(const DexFile& dex_file) const;
+  EXPORT const DexFileDeps* GetDexFileDeps(const DexFile& dex_file) const;
 
   // Returns the index of `str`. If it is defined in `dex_file_`, this is the dex
   // string ID. If not, an ID is assigned to the string and cached in `strings_`

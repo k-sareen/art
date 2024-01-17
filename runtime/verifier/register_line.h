@@ -24,10 +24,11 @@
 #include <android-base/logging.h>
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "base/safe_map.h"
 #include "base/scoped_arena_containers.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Instruction;
 

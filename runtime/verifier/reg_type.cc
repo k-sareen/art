@@ -35,7 +35,7 @@
 #include <limits>
 #include <sstream>
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 using android::base::StringPrintf;

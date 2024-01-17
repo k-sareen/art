@@ -25,7 +25,7 @@
 #include "mirror/class.h"
 #include "verifier_deps.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 inline bool RegType::CanAccess(const RegType& other) const {

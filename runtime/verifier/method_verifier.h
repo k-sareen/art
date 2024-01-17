@@ -36,7 +36,7 @@
 #include "register_line.h"
 #include "verifier_enums.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ClassLinker;
 class DexFile;
@@ -97,25 +97,25 @@ class PcToRegisterLineTable {
 // The verifier
 class MethodVerifier {
  public:
-  static MethodVerifier* VerifyMethodAndDump(Thread* self,
-                                             VariableIndentationOutputStream* vios,
-                                             uint32_t method_idx,
-                                             const DexFile* dex_file,
-                                             Handle<mirror::DexCache> dex_cache,
-                                             Handle<mirror::ClassLoader> class_loader,
-                                             const dex::ClassDef& class_def,
-                                             const dex::CodeItem* code_item,
-                                             uint32_t method_access_flags,
-                                             uint32_t api_level)
+  EXPORT static MethodVerifier* VerifyMethodAndDump(Thread* self,
+                                                    VariableIndentationOutputStream* vios,
+                                                    uint32_t method_idx,
+                                                    const DexFile* dex_file,
+                                                    Handle<mirror::DexCache> dex_cache,
+                                                    Handle<mirror::ClassLoader> class_loader,
+                                                    const dex::ClassDef& class_def,
+                                                    const dex::CodeItem* code_item,
+                                                    uint32_t method_access_flags,
+                                                    uint32_t api_level)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Calculates the type information at the given `dex_pc`.
   // No classes will be loaded.
-  static MethodVerifier* CalculateVerificationInfo(Thread* self,
-                                                   ArtMethod* method,
-                                                   Handle<mirror::DexCache> dex_cache,
-                                                   Handle<mirror::ClassLoader> class_loader,
-                                                   uint32_t dex_pc)
+  EXPORT static MethodVerifier* CalculateVerificationInfo(Thread* self,
+                                                          ArtMethod* method,
+                                                          Handle<mirror::DexCache> dex_cache,
+                                                          Handle<mirror::ClassLoader> class_loader,
+                                                          uint32_t dex_pc)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   const DexFile& GetDexFile() const {

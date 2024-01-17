@@ -22,7 +22,7 @@
 
 #include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 class InstructionFlags final {

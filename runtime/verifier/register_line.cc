@@ -23,7 +23,7 @@
 #include "reg_type-inl.h"
 #include "register_line-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 using android::base::StringPrintf;

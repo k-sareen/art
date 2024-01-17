@@ -21,7 +21,9 @@
 
 #include <android-base/logging.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace verifier {
 
 // RAII to inject a newline after a message.

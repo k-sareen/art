@@ -30,7 +30,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "verifier_enums.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 using metrics::test::CounterValue;

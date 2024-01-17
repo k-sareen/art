@@ -35,7 +35,7 @@
 #include "reg_type_cache-inl.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 VerifierDeps::VerifierDeps(const std::vector<const DexFile*>& dex_files, bool output_only)

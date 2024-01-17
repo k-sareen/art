@@ -42,7 +42,7 @@
 #include "verifier/method_verifier.h"
 #include "verifier/reg_type_cache.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 using android::base::StringPrintf;

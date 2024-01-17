@@ -23,7 +23,7 @@
 #include "method_verifier.h"
 #include "reg_type_cache-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace verifier {
 
 // Should we dump a warning on failures to verify balanced locking? That would be an indication to
