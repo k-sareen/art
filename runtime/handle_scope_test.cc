@@ -28,7 +28,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Handles are value objects and should be trivially copyable.
 static_assert(std::is_trivially_copyable<Handle<mirror::Object>>::value,

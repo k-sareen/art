@@ -28,7 +28,7 @@
 #include "proxy_test.h"
 #include "well_known_classes-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 using hiddenapi::detail::MemberSignature;

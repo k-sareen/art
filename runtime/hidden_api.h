@@ -22,6 +22,7 @@
 #include "base/hiddenapi_domain.h"
 #include "base/hiddenapi_flags.h"
 #include "base/locks.h"
+#include "base/macros.h"
 #include "dex/class_accessor.h"
 #include "intrinsics_enum.h"
 #include "jni/jni_internal.h"
@@ -30,7 +31,7 @@
 #include "reflection.h"
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace hiddenapi {
 
 // Hidden API enforcement policy

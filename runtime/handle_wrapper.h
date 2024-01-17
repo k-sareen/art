@@ -17,10 +17,11 @@
 #ifndef ART_RUNTIME_HANDLE_WRAPPER_H_
 #define ART_RUNTIME_HANDLE_WRAPPER_H_
 
+#include "base/macros.h"
 #include "handle.h"
 #include "obj_ptr.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // A wrapper which wraps around Object** and restores the pointer in the destructor.
 // TODO: Delete

@@ -26,7 +26,7 @@
 #include "base/macros.h"
 #include "stack_reference.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<class T> class Handle;
 class HandleScope;

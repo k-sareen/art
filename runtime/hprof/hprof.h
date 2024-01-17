@@ -17,7 +17,9 @@
 #ifndef ART_RUNTIME_HPROF_HPROF_H_
 #define ART_RUNTIME_HPROF_HPROF_H_
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 namespace hprof {
 
