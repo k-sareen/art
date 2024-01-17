@@ -39,7 +39,7 @@
 #include "offsets.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class CodeItemDataAccessor;
 class CodeItemDebugInfoAccessor;
@@ -84,7 +84,7 @@ template <char Shorty> struct HandleShortyTraits;
 template <> struct HandleShortyTraits<'L'>;
 }  // namespace detail
 
-class ArtMethod final {
+class EXPORT ArtMethod final {
  public:
   // Should the class state be checked on sensitive operations?
   DECLARE_RUNTIME_DEBUG_FLAG(kCheckDeclaringClassState);

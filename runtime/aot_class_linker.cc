@@ -25,7 +25,7 @@
 #include "runtime.h"
 #include "verifier/verifier_enums.h"
 
-namespace art {
+namespace art HIDDEN {
 
 AotClassLinker::AotClassLinker(InternTable* intern_table)
     : ClassLinker(intern_table, /*fast_class_not_found_exceptions=*/ false) {}

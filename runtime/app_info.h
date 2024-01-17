@@ -19,10 +19,11 @@
 
 #include <vector>
 
+#include "base/macros.h"
 #include "base/mutex.h"
 #include <base/safe_map.h>
 
-namespace art {
+namespace art HIDDEN {
 
 // Constants used by VMRuntime.java to interface with the runtime.
 // We could get them from the well known class but it's simpler to

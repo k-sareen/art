@@ -23,7 +23,7 @@
 #include "mirror/class-alloc-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace {
 // Helper function to avoid `ASSERT_EQ` with floating point types.

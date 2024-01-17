@@ -17,6 +17,7 @@
 #ifndef ART_RUNTIME_ART_FIELD_H_
 #define ART_RUNTIME_ART_FIELD_H_
 
+#include "base/macros.h"
 #include "dex/modifiers.h"
 #include "dex/primitive.h"
 #include "gc_root.h"
@@ -25,7 +26,7 @@
 #include "read_barrier_option.h"
 #include "verify_object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class DexFile;
 template<typename T> class LengthPrefixedArray;
@@ -39,7 +40,7 @@ class Object;
 class String;
 }  // namespace mirror
 
-class ArtField final {
+class EXPORT ArtField final {
  public:
   // Visit declaring classes of all the art-fields in 'array' that reside
   // in [start_boundary, end_boundary).

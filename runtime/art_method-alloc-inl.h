@@ -23,7 +23,7 @@
 #include "handle_scope.h"
 #include "mirror/class-alloc-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace detail {
 

@@ -32,7 +32,7 @@
 #include "obj_ptr-inl.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline bool ArtField::IsProxyField() {
   // No read barrier needed, we're reading the constant declaring class only to read
