@@ -2009,6 +2009,7 @@ bool HInstructionBuilder::BuildSimpleIntrinsic(ArtMethod* method,
       break;
     default:
       // We do not have intermediate representation for other intrinsics.
+      DCHECK(!IsIntrinsicWithSpecializedHir(intrinsic));
       return false;
   }
   DCHECK(instruction != nullptr);

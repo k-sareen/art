@@ -42,7 +42,7 @@ class IntrinsicLocationsBuilderRISCV64 final : public IntrinsicVisitor {
 
 #define OPTIMIZING_INTRINSICS(Name, ...) \
   void Visit##Name(HInvoke* invoke) override;
-  ART_INTRINSICS_LIST(OPTIMIZING_INTRINSICS)
+  ART_INTRINSICS_WITH_HINVOKE_LIST(OPTIMIZING_INTRINSICS)
 #undef OPTIMIZING_INTRINSICS
 
   // Check whether an invoke is an intrinsic, and if so, create a location summary. Returns whether
@@ -65,7 +65,7 @@ class IntrinsicCodeGeneratorRISCV64 final : public IntrinsicVisitor {
 
 #define OPTIMIZING_INTRINSICS(Name, ...) \
   void Visit##Name(HInvoke* invoke);
-  ART_INTRINSICS_LIST(OPTIMIZING_INTRINSICS)
+  ART_INTRINSICS_WITH_HINVOKE_LIST(OPTIMIZING_INTRINSICS)
 #undef OPTIMIZING_INTRINSICS
 
  private:
