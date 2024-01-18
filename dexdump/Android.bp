@@ -34,7 +34,10 @@ cc_defaults {
 art_cc_binary {
     name: "dexdump",
     defaults: ["dexdump_defaults"],
-    visibility: ["//development/build"],
+    visibility: [
+        "//development/build",
+        "//vendor:__subpackages__",
+    ],
     host_supported: true,
     target: {
         android: {
