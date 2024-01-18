@@ -75,6 +75,7 @@ public class DumpHelper {
                 .stream()
                 .sorted(Comparator.comparing(PackageState::getPackageName))
                 .forEach(pkgState -> dumpPackage(pw, snapshot, pkgState));
+        pw.printf("\nCurrent GC: %s\n", ArtJni.getGarbageCollector());
     }
 
     /**

@@ -56,8 +56,17 @@ public class ArtJni {
         return validateClassLoaderContextNative(dexPath, classLoaderContext);
     }
 
+    /**
+     * Returns the name of the Garbage Collector currently in use in the Android Runtime.
+     */
+    @NonNull
+    public static String getGarbageCollector() {
+        return getGarbageCollectorNative();
+    }
+
     @Nullable private static native String validateDexPathNative(@NonNull String dexPath);
     @Nullable
     private static native String validateClassLoaderContextNative(
             @NonNull String dexPath, @NonNull String classLoaderContext);
+    @NonNull private static native String getGarbageCollectorNative();
 }

@@ -861,6 +861,8 @@ class Heap {
   bool IsMovingGc() const { return IsMovingGc(CurrentCollectorType()); }
 
   CollectorType GetForegroundCollectorType() const { return foreground_collector_type_; }
+  // EXPORT is needed to make this method visible for libartservice.
+  EXPORT std::string GetForegroundCollectorName();
 
   bool IsGcConcurrentAndMoving() const {
     if (IsGcConcurrent() && IsMovingGc(collector_type_)) {
