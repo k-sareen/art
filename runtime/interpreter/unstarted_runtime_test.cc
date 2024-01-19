@@ -1305,7 +1305,9 @@ TEST_F(UnstartedRuntimeTest, ClassGetSignatureAnnotation) {
     oss << elem->AsString()->ToModifiedUtf8();
   }
   std::string output_string = oss.str();
-  ASSERT_EQ(output_string, "<E:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/Collection<TE;>;");
+  ASSERT_EQ(output_string,
+            "<E:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/SequencedCollection<TE;>;"
+            "Ljava/util/Collection<TE;>;");
 }
 
 TEST_F(UnstartedRuntimeTest, ConstructorNewInstance0) {

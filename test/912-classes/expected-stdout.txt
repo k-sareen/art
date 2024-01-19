@@ -4,7 +4,7 @@
 11
 [Ljava/lang/Math;, null]
 11
-[Ljava/util/List;, <E:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/Collection<TE;>;]
+[Ljava/util/List;, <E:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/SequencedCollection<TE;>;Ljava/util/Collection<TE;>;]
 601
 [L$Proxy20;, null]
 11
