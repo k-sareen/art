@@ -268,7 +268,7 @@ class LocalReferenceTable {
 
   // Add a new entry. The `obj` must be a valid non-null object reference. This function
   // will return null if an error happened (with an appropriate error message set).
-  IndirectRef Add(ObjPtr<mirror::Object> obj, std::string* error_msg)
+  EXPORT IndirectRef Add(ObjPtr<mirror::Object> obj, std::string* error_msg)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Given an `IndirectRef` in the table, return the `Object` it refers to.

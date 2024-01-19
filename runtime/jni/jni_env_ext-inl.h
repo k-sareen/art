@@ -26,8 +26,13 @@ namespace art HIDDEN {
 
 template<typename T>
 inline T JNIEnvExt::AddLocalReference(ObjPtr<mirror::Object> obj) {
-  DCHECK(obj != nullptr);
-  jobject ref = NewLocalRef(obj.Ptr());
+  std::string error_msg;
+  jobject ref = reinterpret_cast<jobject>(locals_.Add(obj, &error_msg));
+  if (UNLIKELY(ref == nullptr)) {
+    // This is really unexpected if we allow resizing LRTs...
+    LOG(FATAL) << error_msg;
+    UNREACHABLE();
+  }
 
   // TODO: fix this to understand PushLocalFrame, so we can turn it on.
   if (false) {
