@@ -1351,12 +1351,12 @@ class Riscv64Assembler final : public Assembler {
   void VWmulu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm = VM::kUnmasked);
 
   // Vector vwmulsu instructions, funct6 = 0b111010
-  void VWmulsu_vv(VRegister vd, VRegister vsw, VRegister vs1, VM vm = VM::kUnmasked);
+  void VWmulsu_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm = VM::kUnmasked);
   void VWmulsu_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm = VM::kUnmasked);
 
   // Vector vwmul instructions, funct6 = 0b111011
-  void VWmul_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm = VM::kUnmasked);
-  void VWmul_vx(VRegister vd, VRegister vs1, XRegister rs2, VM vm = VM::kUnmasked);
+  void VWmul_vv(VRegister vd, VRegister vs2, VRegister vs1, VM vm = VM::kUnmasked);
+  void VWmul_vx(VRegister vd, VRegister vs2, XRegister rs1, VM vm = VM::kUnmasked);
 
   // Vector vwmaccu instructions, funct6 = 0b111100
   void VWmaccu_vv(VRegister vd, VRegister vs1, VRegister vs2, VM vm = VM::kUnmasked);
