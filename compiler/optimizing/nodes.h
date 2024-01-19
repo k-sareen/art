@@ -2903,10 +2903,6 @@ class HBackwardInstructionIterator : public ValueObject {
     next_ = Done() ? nullptr : instruction_->GetPrevious();
   }
 
-  explicit HBackwardInstructionIterator(HInstruction* instruction) : instruction_(instruction) {
-    next_ = Done() ? nullptr : instruction_->GetPrevious();
-  }
-
   bool Done() const { return instruction_ == nullptr; }
   HInstruction* Current() const { return instruction_; }
   void Advance() {
@@ -6373,13 +6369,19 @@ class HInstanceFieldGet final : public HExpression<1> {
 };
 
 enum class WriteBarrierKind {
-  // Emit the write barrier. This write barrier is not being relied on so e.g. codegen can decide to
-  // skip it if the value stored is null. This is the default behavior.
-  kEmitNotBeingReliedOn,
-  // Emit the write barrier. This write barrier is being relied on and must be emitted.
-  kEmitBeingReliedOn,
+  // Emit the write barrier, with a runtime optimization which checks if the value that it is being
+  // set is null.
+  kEmitWithNullCheck,
+  // Emit the write barrier, without the runtime null check optimization. This could be set because:
+  //  A) It is a write barrier for an ArraySet (which does the optimization with the type check, so
+  //  it never does the optimization at the write barrier stage)
+  //  B) We know that the input can't be null
+  //  C) This write barrier is actually several write barriers coalesced into one. Potentially we
+  //  could ask if every value is null for a runtime optimization at the cost of compile time / code
+  //  size. At the time of writing it was deemed not worth the effort.
+  kEmitNoNullCheck,
   // Skip emitting the write barrier. This could be set because:
-  //  A) The write barrier is not needed (i.e. it is not a reference, or the value is the null
+  //  A) The write barrier is not needed (e.g. it is not a reference, or the value is the null
   //  constant)
   //  B) This write barrier was coalesced into another one so there's no need to emit it.
   kDontEmit,
@@ -6410,7 +6412,7 @@ class HInstanceFieldSet final : public HExpression<2> {
                     declaring_class_def_index,
                     dex_file) {
     SetPackedFlag<kFlagValueCanBeNull>(true);
-    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitNotBeingReliedOn);
+    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitWithNullCheck);
     SetRawInputAt(0, object);
     SetRawInputAt(1, value);
   }
@@ -6431,11 +6433,8 @@ class HInstanceFieldSet final : public HExpression<2> {
   void ClearValueCanBeNull() { SetPackedFlag<kFlagValueCanBeNull>(false); }
   WriteBarrierKind GetWriteBarrierKind() { return GetPackedField<WriteBarrierKindField>(); }
   void SetWriteBarrierKind(WriteBarrierKind kind) {
-    DCHECK(kind != WriteBarrierKind::kEmitNotBeingReliedOn)
+    DCHECK(kind != WriteBarrierKind::kEmitWithNullCheck)
         << "We shouldn't go back to the original value.";
-    DCHECK_IMPLIES(kind == WriteBarrierKind::kDontEmit,
-                   GetWriteBarrierKind() != WriteBarrierKind::kEmitBeingReliedOn)
-        << "If a write barrier was relied on by other write barriers, we cannot skip emitting it.";
     SetPackedField<WriteBarrierKindField>(kind);
   }
 
@@ -6577,7 +6576,8 @@ class HArraySet final : public HExpression<3> {
     SetPackedFlag<kFlagNeedsTypeCheck>(value->GetType() == DataType::Type::kReference);
     SetPackedFlag<kFlagValueCanBeNull>(true);
     SetPackedFlag<kFlagStaticTypeOfArrayIsObjectArray>(false);
-    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitNotBeingReliedOn);
+    // ArraySets never do the null check optimization at the write barrier stage.
+    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitNoNullCheck);
     SetRawInputAt(0, array);
     SetRawInputAt(1, index);
     SetRawInputAt(2, value);
@@ -6653,11 +6653,10 @@ class HArraySet final : public HExpression<3> {
   WriteBarrierKind GetWriteBarrierKind() { return GetPackedField<WriteBarrierKindField>(); }
 
   void SetWriteBarrierKind(WriteBarrierKind kind) {
-    DCHECK(kind != WriteBarrierKind::kEmitNotBeingReliedOn)
+    DCHECK(kind != WriteBarrierKind::kEmitNoNullCheck)
         << "We shouldn't go back to the original value.";
-    DCHECK_IMPLIES(kind == WriteBarrierKind::kDontEmit,
-                   GetWriteBarrierKind() != WriteBarrierKind::kEmitBeingReliedOn)
-        << "If a write barrier was relied on by other write barriers, we cannot skip emitting it.";
+    DCHECK(kind != WriteBarrierKind::kEmitWithNullCheck)
+        << "We never do the null check optimization for ArraySets.";
     SetPackedField<WriteBarrierKindField>(kind);
   }
 
@@ -7517,7 +7516,7 @@ class HStaticFieldSet final : public HExpression<2> {
                     declaring_class_def_index,
                     dex_file) {
     SetPackedFlag<kFlagValueCanBeNull>(true);
-    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitNotBeingReliedOn);
+    SetPackedField<WriteBarrierKindField>(WriteBarrierKind::kEmitWithNullCheck);
     SetRawInputAt(0, cls);
     SetRawInputAt(1, value);
   }
@@ -7535,11 +7534,8 @@ class HStaticFieldSet final : public HExpression<2> {
 
   WriteBarrierKind GetWriteBarrierKind() { return GetPackedField<WriteBarrierKindField>(); }
   void SetWriteBarrierKind(WriteBarrierKind kind) {
-    DCHECK(kind != WriteBarrierKind::kEmitNotBeingReliedOn)
+    DCHECK(kind != WriteBarrierKind::kEmitWithNullCheck)
         << "We shouldn't go back to the original value.";
-    DCHECK_IMPLIES(kind == WriteBarrierKind::kDontEmit,
-                   GetWriteBarrierKind() != WriteBarrierKind::kEmitBeingReliedOn)
-        << "If a write barrier was relied on by other write barriers, we cannot skip emitting it.";
     SetPackedField<WriteBarrierKindField>(kind);
   }
 

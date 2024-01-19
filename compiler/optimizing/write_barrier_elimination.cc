@@ -21,8 +21,8 @@
 #include "base/scoped_arena_containers.h"
 #include "optimizing/nodes.h"
 
-// TODO(b/310755375, solanes): Enable WBE with the fixes.
-constexpr bool kWBEEnabled = true;
+// TODO(b/310755375, solanes): Disable WBE while we investigate crashes.
+constexpr bool kWBEEnabled = false;
 
 namespace art HIDDEN {
 
@@ -58,7 +58,7 @@ class WBEVisitor final : public HGraphVisitor {
       DCHECK(it->second->AsInstanceFieldSet()->GetWriteBarrierKind() !=
              WriteBarrierKind::kDontEmit);
       DCHECK_EQ(it->second->GetBlock(), instruction->GetBlock());
-      it->second->AsInstanceFieldSet()->SetWriteBarrierKind(WriteBarrierKind::kEmitBeingReliedOn);
+      it->second->AsInstanceFieldSet()->SetWriteBarrierKind(WriteBarrierKind::kEmitNoNullCheck);
       instruction->SetWriteBarrierKind(WriteBarrierKind::kDontEmit);
       MaybeRecordStat(stats_, MethodCompilationStat::kRemovedWriteBarrier);
     } else {
@@ -84,7 +84,7 @@ class WBEVisitor final : public HGraphVisitor {
       DCHECK(it->second->IsStaticFieldSet());
       DCHECK(it->second->AsStaticFieldSet()->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit);
       DCHECK_EQ(it->second->GetBlock(), instruction->GetBlock());
-      it->second->AsStaticFieldSet()->SetWriteBarrierKind(WriteBarrierKind::kEmitBeingReliedOn);
+      it->second->AsStaticFieldSet()->SetWriteBarrierKind(WriteBarrierKind::kEmitNoNullCheck);
       instruction->SetWriteBarrierKind(WriteBarrierKind::kDontEmit);
       MaybeRecordStat(stats_, MethodCompilationStat::kRemovedWriteBarrier);
     } else {
@@ -112,7 +112,8 @@ class WBEVisitor final : public HGraphVisitor {
       DCHECK(it->second->IsArraySet());
       DCHECK(it->second->AsArraySet()->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit);
       DCHECK_EQ(it->second->GetBlock(), instruction->GetBlock());
-      it->second->AsArraySet()->SetWriteBarrierKind(WriteBarrierKind::kEmitBeingReliedOn);
+      // We never skip the null check in ArraySets so that value is already set.
+      DCHECK(it->second->AsArraySet()->GetWriteBarrierKind() == WriteBarrierKind::kEmitNoNullCheck);
       instruction->SetWriteBarrierKind(WriteBarrierKind::kDontEmit);
       MaybeRecordStat(stats_, MethodCompilationStat::kRemovedWriteBarrier);
     } else {

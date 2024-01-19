@@ -1499,24 +1499,18 @@ void CodeGeneratorARM64::AddLocationAsTemp(Location location, LocationSummary* l
   }
 }
 
-void CodeGeneratorARM64::MaybeMarkGCCard(Register object, Register value, bool emit_null_check) {
+void CodeGeneratorARM64::MarkGCCard(Register object, Register value, bool emit_null_check) {
+  UseScratchRegisterScope temps(GetVIXLAssembler());
+  Register card = temps.AcquireX();
+  Register temp = temps.AcquireW();   // Index within the CardTable - 32bit.
   vixl::aarch64::Label done;
   if (emit_null_check) {
     __ Cbz(value, &done);
   }
-  MarkGCCard(object);
-  if (emit_null_check) {
-    __ Bind(&done);
-  }
-}
-
-void CodeGeneratorARM64::MarkGCCard(Register object) {
-  UseScratchRegisterScope temps(GetVIXLAssembler());
-  Register card = temps.AcquireX();
-  Register temp = temps.AcquireW();  // Index within the CardTable - 32bit.
   // Load the address of the card table into `card`.
   __ Ldr(card, MemOperand(tr, Thread::CardTableOffset<kArm64PointerSize>().Int32Value()));
-  // Calculate the offset (in the card table) of the card corresponding to `object`.
+  // Calculate the offset (in the card table) of the card corresponding to
+  // `object`.
   __ Lsr(temp, object, gc::accounting::CardTable::kCardShift);
   // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
   // `object`'s card.
@@ -1532,24 +1526,9 @@ void CodeGeneratorARM64::MarkGCCard(Register object) {
   // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
   // (no need to explicitly load `kCardDirty` as an immediate value).
   __ Strb(card, MemOperand(card, temp.X()));
-}
-
-void CodeGeneratorARM64::CheckGCCardIsValid(Register object) {
-  UseScratchRegisterScope temps(GetVIXLAssembler());
-  Register card = temps.AcquireX();
-  Register temp = temps.AcquireW();  // Index within the CardTable - 32bit.
-  vixl::aarch64::Label done;
-  // Load the address of the card table into `card`.
-  __ Ldr(card, MemOperand(tr, Thread::CardTableOffset<kArm64PointerSize>().Int32Value()));
-  // Calculate the offset (in the card table) of the card corresponding to `object`.
-  __ Lsr(temp, object, gc::accounting::CardTable::kCardShift);
-  // assert (!clean || !self->is_gc_marking)
-  __ Ldrb(temp, MemOperand(card, temp.X()));
-  static_assert(gc::accounting::CardTable::kCardClean == 0);
-  __ Cbnz(temp, &done);
-  __ Cbz(mr, &done);
-  __ Unreachable();
-  __ Bind(&done);
+  if (emit_null_check) {
+    __ Bind(&done);
+  }
 }
 
 void CodeGeneratorARM64::SetupBlockedRegisters() const {
@@ -2339,16 +2318,12 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
     }
   }
 
-  const bool needs_write_barrier =
-      codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
-
-  if (needs_write_barrier) {
-    codegen_->MaybeMarkGCCard(
+  if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(1)) &&
+      write_barrier_kind != WriteBarrierKind::kDontEmit) {
+    codegen_->MarkGCCard(
         obj,
         Register(value),
-        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
-  } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
-    codegen_->CheckGCCardIsValid(obj);
+        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
   }
 }
 
@@ -2902,9 +2877,8 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
   DataType::Type value_type = instruction->GetComponentType();
   LocationSummary* locations = instruction->GetLocations();
   bool needs_type_check = instruction->NeedsTypeCheck();
-  const WriteBarrierKind write_barrier_kind = instruction->GetWriteBarrierKind();
   bool needs_write_barrier =
-      codegen_->StoreNeedsWriteBarrier(value_type, instruction->GetValue(), write_barrier_kind);
+      CodeGenerator::StoreNeedsWriteBarrier(value_type, instruction->GetValue());
 
   Register array = InputRegisterAt(instruction, 0);
   CPURegister value = InputCPURegisterOrZeroRegAt(instruction, 2);
@@ -2915,10 +2889,6 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
   MacroAssembler* masm = GetVIXLAssembler();
 
   if (!needs_write_barrier) {
-    if (codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind)) {
-      codegen_->CheckGCCardIsValid(array);
-    }
-
     DCHECK(!needs_type_check);
     if (index.IsConstant()) {
       offset += Int64FromLocation(index) << DataType::SizeShift(value_type);
@@ -2952,85 +2922,78 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
   } else {
     DCHECK(!instruction->GetArray()->IsIntermediateAddress());
 
-    // We can have `value` be `Zero` here if we have a write barrier we are relying on.'
-    DCHECK_IMPLIES(Register(value).IsZero(),
-                   write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn);
-    bool can_value_be_null = true;
+    bool can_value_be_null = instruction->GetValueCanBeNull();
+    vixl::aarch64::Label do_store;
+    if (can_value_be_null) {
+      __ Cbz(Register(value), &do_store);
+    }
+
     SlowPathCodeARM64* slow_path = nullptr;
-    if (!Register(value).IsZero()) {
-      can_value_be_null = instruction->GetValueCanBeNull();
-      vixl::aarch64::Label do_store;
-      if (can_value_be_null) {
-        __ Cbz(Register(value), &do_store);
+    if (needs_type_check) {
+      slow_path = new (codegen_->GetScopedAllocator()) ArraySetSlowPathARM64(instruction);
+      codegen_->AddSlowPath(slow_path);
+
+      const uint32_t class_offset = mirror::Object::ClassOffset().Int32Value();
+      const uint32_t super_offset = mirror::Class::SuperClassOffset().Int32Value();
+      const uint32_t component_offset = mirror::Class::ComponentTypeOffset().Int32Value();
+
+      UseScratchRegisterScope temps(masm);
+      Register temp = temps.AcquireSameSizeAs(array);
+      Register temp2 = temps.AcquireSameSizeAs(array);
+
+      // Note that when Baker read barriers are enabled, the type
+      // checks are performed without read barriers.  This is fine,
+      // even in the case where a class object is in the from-space
+      // after the flip, as a comparison involving such a type would
+      // not produce a false positive; it may of course produce a
+      // false negative, in which case we would take the ArraySet
+      // slow path.
+
+      // /* HeapReference<Class> */ temp = array->klass_
+      {
+        // Ensure that between load and MaybeRecordImplicitNullCheck there are no pools emitted.
+        EmissionCheckScope guard(GetVIXLAssembler(), kMaxMacroInstructionSizeInBytes);
+        __ Ldr(temp, HeapOperand(array, class_offset));
+        codegen_->MaybeRecordImplicitNullCheck(instruction);
       }
+      GetAssembler()->MaybeUnpoisonHeapReference(temp);
 
-      if (needs_type_check) {
-        slow_path = new (codegen_->GetScopedAllocator()) ArraySetSlowPathARM64(instruction);
-        codegen_->AddSlowPath(slow_path);
+      // /* HeapReference<Class> */ temp = temp->component_type_
+      __ Ldr(temp, HeapOperand(temp, component_offset));
+      // /* HeapReference<Class> */ temp2 = value->klass_
+      __ Ldr(temp2, HeapOperand(Register(value), class_offset));
+      // If heap poisoning is enabled, no need to unpoison `temp`
+      // nor `temp2`, as we are comparing two poisoned references.
+      __ Cmp(temp, temp2);
 
-        const uint32_t class_offset = mirror::Object::ClassOffset().Int32Value();
-        const uint32_t super_offset = mirror::Class::SuperClassOffset().Int32Value();
-        const uint32_t component_offset = mirror::Class::ComponentTypeOffset().Int32Value();
-
-        UseScratchRegisterScope temps(masm);
-        Register temp = temps.AcquireSameSizeAs(array);
-        Register temp2 = temps.AcquireSameSizeAs(array);
-
-        // Note that when Baker read barriers are enabled, the type
-        // checks are performed without read barriers.  This is fine,
-        // even in the case where a class object is in the from-space
-        // after the flip, as a comparison involving such a type would
-        // not produce a false positive; it may of course produce a
-        // false negative, in which case we would take the ArraySet
-        // slow path.
-
-        // /* HeapReference<Class> */ temp = array->klass_
-        {
-          // Ensure that between load and MaybeRecordImplicitNullCheck there are no pools emitted.
-          EmissionCheckScope guard(GetVIXLAssembler(), kMaxMacroInstructionSizeInBytes);
-          __ Ldr(temp, HeapOperand(array, class_offset));
-          codegen_->MaybeRecordImplicitNullCheck(instruction);
-        }
+      if (instruction->StaticTypeOfArrayIsObjectArray()) {
+        vixl::aarch64::Label do_put;
+        __ B(eq, &do_put);
+        // If heap poisoning is enabled, the `temp` reference has
+        // not been unpoisoned yet; unpoison it now.
         GetAssembler()->MaybeUnpoisonHeapReference(temp);
 
-        // /* HeapReference<Class> */ temp = temp->component_type_
-        __ Ldr(temp, HeapOperand(temp, component_offset));
-        // /* HeapReference<Class> */ temp2 = value->klass_
-        __ Ldr(temp2, HeapOperand(Register(value), class_offset));
-        // If heap poisoning is enabled, no need to unpoison `temp`
-        // nor `temp2`, as we are comparing two poisoned references.
-        __ Cmp(temp, temp2);
-
-        if (instruction->StaticTypeOfArrayIsObjectArray()) {
-          vixl::aarch64::Label do_put;
-          __ B(eq, &do_put);
-          // If heap poisoning is enabled, the `temp` reference has
-          // not been unpoisoned yet; unpoison it now.
-          GetAssembler()->MaybeUnpoisonHeapReference(temp);
-
-          // /* HeapReference<Class> */ temp = temp->super_class_
-          __ Ldr(temp, HeapOperand(temp, super_offset));
-          // If heap poisoning is enabled, no need to unpoison
-          // `temp`, as we are comparing against null below.
-          __ Cbnz(temp, slow_path->GetEntryLabel());
-          __ Bind(&do_put);
-        } else {
-          __ B(ne, slow_path->GetEntryLabel());
-        }
-      }
-
-      if (can_value_be_null) {
-        DCHECK(do_store.IsLinked());
-        __ Bind(&do_store);
+        // /* HeapReference<Class> */ temp = temp->super_class_
+        __ Ldr(temp, HeapOperand(temp, super_offset));
+        // If heap poisoning is enabled, no need to unpoison
+        // `temp`, as we are comparing against null below.
+        __ Cbnz(temp, slow_path->GetEntryLabel());
+        __ Bind(&do_put);
+      } else {
+        __ B(ne, slow_path->GetEntryLabel());
       }
     }
 
-    DCHECK_NE(write_barrier_kind, WriteBarrierKind::kDontEmit);
-    // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip this
-    // write barrier when its value is null (without an extra cbz since we already checked if the
-    // value is null for the type check). This will be done as a follow-up since it is a runtime
-    // optimization that needs extra care.
-    codegen_->MarkGCCard(array);
+    if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
+      DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
+          << " Already null checked so we shouldn't do it again.";
+      codegen_->MarkGCCard(array, value.W(), /* emit_null_check= */ false);
+    }
+
+    if (can_value_be_null) {
+      DCHECK(do_store.IsLinked());
+      __ Bind(&do_store);
+    }
 
     UseScratchRegisterScope temps(masm);
     if (kPoisonHeapReferences) {
