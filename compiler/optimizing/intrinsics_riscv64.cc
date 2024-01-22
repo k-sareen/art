@@ -1771,7 +1771,7 @@ void IntrinsicCodeGeneratorRISCV64::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    codegen_->MarkGCCard(dest);
+    codegen_->MarkGCCard(dest, XRegister(kNoXRegister), /* emit_null_check= */ false);
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -2127,7 +2127,7 @@ static void GenUnsafePut(HInvoke* invoke,
 
   if (type == DataType::Type::kReference) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(base, value.AsRegister<XRegister>(), value_can_be_null);
+    codegen->MarkGCCard(base, value.AsRegister<XRegister>(), value_can_be_null);
   }
 }
 
@@ -2348,7 +2348,7 @@ static void GenUnsafeCas(HInvoke* invoke, CodeGeneratorRISCV64* codegen, DataTyp
   if (type == DataType::Type::kReference) {
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(object, new_value, new_value_can_be_null);
+    codegen->MarkGCCard(object, new_value, new_value_can_be_null);
   }
 
   ScratchRegisterScope srs(assembler);
@@ -2547,7 +2547,7 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     // Mark card for object as a new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(base, /*value=*/arg, new_value_can_be_null);
+    codegen->MarkGCCard(base, /*value=*/ arg, new_value_can_be_null);
   }
 
   ScratchRegisterScope srs(assembler);
@@ -3332,8 +3332,7 @@ static void GenerateVarHandleSet(HInvoke* invoke,
   }
 
   if (CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(value_index))) {
-    codegen->MaybeMarkGCCard(
-        target.object, value.AsRegister<XRegister>(), /* emit_null_check= */ true);
+    codegen->MarkGCCard(target.object, value.AsRegister<XRegister>(), /* emit_null_check= */ true);
   }
 
   if (slow_path != nullptr) {
@@ -3555,8 +3554,7 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
   if (CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(new_value_index))) {
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(
-        target.object, new_value.AsRegister<XRegister>(), new_value_can_be_null);
+    codegen->MarkGCCard(target.object, new_value.AsRegister<XRegister>(), new_value_can_be_null);
   }
 
   // Scratch registers may be needed for `new_value` and `expected`.
@@ -3921,7 +3919,7 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     // Mark card for object, the new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(target.object, arg.AsRegister<XRegister>(), new_value_can_be_null);
+    codegen->MarkGCCard(target.object, arg.AsRegister<XRegister>(), new_value_can_be_null);
   }
 
   size_t data_size = DataType::Size(value_type);

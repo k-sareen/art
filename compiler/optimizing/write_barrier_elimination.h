@@ -33,7 +33,7 @@ namespace art HIDDEN {
 // We can keep the write barrier for `inner_obj` and remove the other two.
 //
 // In order to do this, we set the WriteBarrierKind of the instruction. The instruction's kind are
-// set to kEmitBeingReliedOn (if this write barrier coalesced other write barriers, we don't want to
+// set to kEmitNoNullCheck (if this write barrier coalesced other write barriers, we don't want to
 // perform the null check optimization), or to kDontEmit (if the write barrier as a whole is not
 // needed).
 class WriteBarrierElimination : public HOptimization {
