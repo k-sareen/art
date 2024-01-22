@@ -21,6 +21,7 @@
 
 #include "base/scoped_arena_allocator.h"
 #include "base/scoped_arena_containers.h"
+#include "base/bit_utils_iterator.h"
 #include "base/bit_vector-inl.h"
 #include "code_generator.h"
 #include "register_allocator_linear_scan.h"
@@ -28,12 +29,39 @@
 
 namespace art HIDDEN {
 
+template <typename IsCalleeSave>
+static uint32_t GetBlockedRegistersForCall(size_t num_registers, IsCalleeSave&& is_callee_save) {
+  DCHECK_LE(num_registers, BitSizeOf<uint32_t>());
+  uint32_t mask = 0u;
+  for (size_t reg = 0; reg != num_registers; ++reg) {
+    if (!is_callee_save(reg)) {
+      mask |= 1u << reg;
+    }
+  }
+  return mask;
+}
+
+static uint32_t GetBlockedCoreRegistersForCall(size_t num_registers, const CodeGenerator* codegen) {
+  return GetBlockedRegistersForCall(
+      num_registers, [&](size_t reg) { return codegen->IsCoreCalleeSaveRegister(reg); });
+}
+
+static uint32_t GetBlockedFpRegistersForCall(size_t num_registers, const CodeGenerator* codegen) {
+  return GetBlockedRegistersForCall(
+      num_registers, [&](size_t reg) { return codegen->IsFloatingPointCalleeSaveRegister(reg); });
+}
+
 RegisterAllocator::RegisterAllocator(ScopedArenaAllocator* allocator,
                                      CodeGenerator* codegen,
                                      const SsaLivenessAnalysis& liveness)
     : allocator_(allocator),
       codegen_(codegen),
-      liveness_(liveness) {}
+      liveness_(liveness),
+      num_core_registers_(codegen_->GetNumberOfCoreRegisters()),
+      num_fp_registers_(codegen_->GetNumberOfFloatingPointRegisters()),
+      core_registers_blocked_for_call_(
+          GetBlockedCoreRegistersForCall(num_core_registers_, codegen)),
+      fp_registers_blocked_for_call_(GetBlockedFpRegistersForCall(num_fp_registers_, codegen)) {}
 
 std::unique_ptr<RegisterAllocator> RegisterAllocator::Create(ScopedArenaAllocator* allocator,
                                                              CodeGenerator* codegen,
@@ -94,15 +122,81 @@ class AllRangesIterator : public ValueObject {
   DISALLOW_COPY_AND_ASSIGN(AllRangesIterator);
 };
 
+void RegisterAllocator::DumpRegister(std::ostream& stream,
+                                     int reg,
+                                     RegisterType register_type,
+                                     const CodeGenerator* codegen) {
+  switch (register_type) {
+    case RegisterType::kCoreRegister:
+      codegen->DumpCoreRegister(stream, reg);
+      break;
+    case RegisterType::kFpRegister:
+      codegen->DumpFloatingPointRegister(stream, reg);
+      break;
+  }
+}
+
+uint32_t RegisterAllocator::GetRegisterMask(LiveInterval* interval,
+                                            RegisterType register_type) const {
+  if (interval->HasRegister()) {
+    DCHECK_EQ(register_type == RegisterType::kFpRegister,
+              DataType::IsFloatingPointType(interval->GetType()));
+    DCHECK_LE(static_cast<size_t>(interval->GetRegister()), BitSizeOf<uint32_t>());
+    return 1u << interval->GetRegister();
+  } else if (interval->IsFixed()) {
+    DCHECK_EQ(interval->GetType(), DataType::Type::kVoid);
+    DCHECK(interval->GetFirstRange() != nullptr);
+    size_t start = interval->GetFirstRange()->GetStart();
+    bool blocked_for_call = liveness_.GetInstructionFromPosition(start / 2u) != nullptr;
+    switch (register_type) {
+      case RegisterType::kCoreRegister:
+        return blocked_for_call ? core_registers_blocked_for_call_
+                                : MaxInt<uint32_t>(num_core_registers_);
+      case RegisterType::kFpRegister:
+        return blocked_for_call ? fp_registers_blocked_for_call_
+                                : MaxInt<uint32_t>(num_fp_registers_);
+    }
+  } else {
+    return 0u;
+  }
+}
+
 bool RegisterAllocator::ValidateIntervals(ArrayRef<LiveInterval* const> intervals,
                                           size_t number_of_spill_slots,
                                           size_t number_of_out_slots,
                                           const CodeGenerator& codegen,
-                                          bool processing_core_registers,
+                                          const SsaLivenessAnalysis* liveness,
+                                          RegisterType register_type,
                                           bool log_fatal_on_failure) {
-  size_t number_of_registers = processing_core_registers
+  size_t number_of_registers = (register_type == RegisterType::kCoreRegister)
       ? codegen.GetNumberOfCoreRegisters()
       : codegen.GetNumberOfFloatingPointRegisters();
+  uint32_t registers_blocked_for_call = (register_type == RegisterType::kCoreRegister)
+      ? GetBlockedCoreRegistersForCall(number_of_registers, &codegen)
+      : GetBlockedFpRegistersForCall(number_of_registers, &codegen);
+
+  // A copy of `GetRegisterMask()` using local `number_of_registers` and
+  // `registers_blocked_for_call` instead of the cached per-type members
+  // that we cannot use in this static member function.
+  auto get_register_mask = [&](LiveInterval* interval) {
+    if (interval->HasRegister()) {
+      DCHECK_EQ(register_type == RegisterType::kFpRegister,
+                DataType::IsFloatingPointType(interval->GetType()));
+      DCHECK_LE(static_cast<size_t>(interval->GetRegister()), BitSizeOf<uint32_t>());
+      return 1u << interval->GetRegister();
+    } else if (interval->IsFixed()) {
+      DCHECK_EQ(interval->GetType(), DataType::Type::kVoid);
+      DCHECK(interval->GetFirstRange() != nullptr);
+      size_t start = interval->GetFirstRange()->GetStart();
+      CHECK(liveness != nullptr);
+      bool blocked_for_call = liveness->GetInstructionFromPosition(start / 2u) != nullptr;
+      return blocked_for_call ? registers_blocked_for_call
+                              : MaxInt<uint32_t>(number_of_registers);
+    } else {
+      return 0u;
+    }
+  };
+
   ScopedArenaAllocator allocator(codegen.GetGraph()->GetArenaStack());
   ScopedArenaVector<ArenaBitVector*> liveness_of_values(
       allocator.Adapter(kArenaAllocRegisterAllocatorValidate));
@@ -149,13 +243,13 @@ bool RegisterAllocator::ValidateIntervals(ArrayRef<LiveInterval* const> interval
         }
       }
 
-      if (current->HasRegister()) {
+      for (uint32_t reg : LowToHighBits(get_register_mask(current))) {
         if (kIsDebugBuild && log_fatal_on_failure && !current->IsFixed()) {
           // Only check when an error is fatal. Only tests code ask for non-fatal failures
           // and test code may not properly fill the right information to the code generator.
-          CHECK(codegen.HasAllocatedRegister(processing_core_registers, current->GetRegister()));
+          CHECK(codegen.HasAllocatedRegister(register_type == RegisterType::kCoreRegister, reg));
         }
-        BitVector* liveness_of_register = liveness_of_values[current->GetRegister()];
+        BitVector* liveness_of_register = liveness_of_values[reg];
         for (size_t j = it.CurrentRange()->GetStart(); j < it.CurrentRange()->GetEnd(); ++j) {
           if (liveness_of_register->IsBitSet(j)) {
             if (current->IsUsingInputRegister() && current->CanUseInputRegister()) {
@@ -168,15 +262,9 @@ bool RegisterAllocator::ValidateIntervals(ArrayRef<LiveInterval* const> interval
                 message << "(" << defined_by->DebugName() << ")";
               }
               message << "for ";
-              if (processing_core_registers) {
-                codegen.DumpCoreRegister(message, current->GetRegister());
-              } else {
-                codegen.DumpFloatingPointRegister(message, current->GetRegister());
-              }
+              DumpRegister(message, reg, register_type, &codegen);
               for (LiveInterval* interval : intervals) {
-                if (interval->HasRegister()
-                    && interval->GetRegister() == current->GetRegister()
-                    && interval->CoversSlow(j)) {
+                if ((get_register_mask(interval) & (1u << reg)) != 0u && interval->CoversSlow(j)) {
                   message << std::endl;
                   if (interval->GetDefinedBy() != nullptr) {
                     message << interval->GetDefinedBy()->GetKind() << " ";

@@ -72,7 +72,8 @@ class RegisterAllocatorTest : public CommonCompilerTest, public OptimizingUnitTe
                                                 /* number_of_spill_slots= */ 0u,
                                                 /* number_of_out_slots= */ 0u,
                                                 codegen,
-                                                /* processing_core_registers= */ true,
+                                                /*liveness=*/ nullptr,
+                                                RegisterAllocator::RegisterType::kCoreRegister,
                                                 /* log_fatal_on_failure= */ false);
   }
 
@@ -475,7 +476,7 @@ TEST_F(RegisterAllocatorTest, FreeUntil) {
 
   register_allocator.number_of_registers_ = 1;
   register_allocator.registers_array_ = GetAllocator()->AllocArray<size_t>(1);
-  register_allocator.processing_core_registers_ = true;
+  register_allocator.current_register_type_ = RegisterAllocator::RegisterType::kCoreRegister;
   register_allocator.unhandled_ = &register_allocator.unhandled_core_intervals_;
 
   ASSERT_TRUE(register_allocator.TryAllocateFreeReg(unhandled));
@@ -930,7 +931,7 @@ TEST_F(RegisterAllocatorTest, SpillInactive) {
   // Set just one register available to make all intervals compete for the same.
   register_allocator.number_of_registers_ = 1;
   register_allocator.registers_array_ = GetAllocator()->AllocArray<size_t>(1);
-  register_allocator.processing_core_registers_ = true;
+  register_allocator.current_register_type_ = RegisterAllocator::RegisterType::kCoreRegister;
   register_allocator.unhandled_ = &register_allocator.unhandled_core_intervals_;
   register_allocator.LinearScan();
 
