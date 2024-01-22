@@ -60,7 +60,7 @@
 #include "verifier/verifier_deps.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

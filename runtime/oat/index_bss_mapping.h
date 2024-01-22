@@ -20,8 +20,9 @@
 #include <android-base/logging.h>
 
 #include "base/bit_utils.h"
+#include "base/macros.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<typename T> class LengthPrefixedArray;
 

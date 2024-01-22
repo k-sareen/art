@@ -26,7 +26,7 @@
 #include "obj_ptr-inl.h"
 #include "read_barrier-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template <ReadBarrierOption kReadBarrierOption>
 inline ObjPtr<mirror::Object> ImageHeader::GetImageRoot(ImageRoot image_root) const {

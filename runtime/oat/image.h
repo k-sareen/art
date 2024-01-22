@@ -21,12 +21,13 @@
 
 #include "base/enums.h"
 #include "base/iteration_range.h"
+#include "base/macros.h"
 #include "base/os.h"
 #include "base/unix_file/fd_file.h"
 #include "mirror/object.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtField;
 class ArtMethod;
@@ -128,25 +129,25 @@ class PACKED(8) ImageHeader {
   };
 
   ImageHeader() {}
-  ImageHeader(uint32_t image_reservation_size,
-              uint32_t component_count,
-              uint32_t image_begin,
-              uint32_t image_size,
-              ImageSection* sections,
-              uint32_t image_roots,
-              uint32_t oat_checksum,
-              uint32_t oat_file_begin,
-              uint32_t oat_data_begin,
-              uint32_t oat_data_end,
-              uint32_t oat_file_end,
-              uint32_t boot_image_begin,
-              uint32_t boot_image_size,
-              uint32_t boot_image_component_count,
-              uint32_t boot_image_checksum,
-              uint32_t pointer_size);
+  EXPORT ImageHeader(uint32_t image_reservation_size,
+                     uint32_t component_count,
+                     uint32_t image_begin,
+                     uint32_t image_size,
+                     ImageSection* sections,
+                     uint32_t image_roots,
+                     uint32_t oat_checksum,
+                     uint32_t oat_file_begin,
+                     uint32_t oat_data_begin,
+                     uint32_t oat_data_end,
+                     uint32_t oat_file_end,
+                     uint32_t boot_image_begin,
+                     uint32_t boot_image_size,
+                     uint32_t boot_image_component_count,
+                     uint32_t boot_image_checksum,
+                     uint32_t pointer_size);
 
-  bool IsValid() const;
-  const char* GetMagic() const;
+  EXPORT bool IsValid() const;
+  EXPORT const char* GetMagic() const;
 
   uint32_t GetImageReservationSize() const {
     return image_reservation_size_;
@@ -198,7 +199,7 @@ class PACKED(8) ImageHeader {
     return reinterpret_cast<uint8_t*>(oat_file_end_);
   }
 
-  PointerSize GetPointerSize() const;
+  EXPORT PointerSize GetPointerSize() const;
 
   uint32_t GetPointerSizeUnchecked() const {
     return pointer_size_;
@@ -280,9 +281,9 @@ class PACKED(8) ImageHeader {
     return kImageRootsMax;
   }
 
-  ArtMethod* GetImageMethod(ImageMethod index) const;
+  EXPORT ArtMethod* GetImageMethod(ImageMethod index) const;
 
-  static const char* GetImageSectionName(ImageSections index);
+  EXPORT static const char* GetImageSectionName(ImageSections index);
 
   ImageSection& GetImageSection(ImageSections index) {
     DCHECK_LT(static_cast<size_t>(index), kSectionCount);
@@ -369,15 +370,13 @@ class PACKED(8) ImageHeader {
     return data_size_;
   }
 
-  bool IsAppImage() const;
+  EXPORT bool IsAppImage() const;
 
-  uint32_t GetImageSpaceCount() const;
+  EXPORT uint32_t GetImageSpaceCount() const;
 
   // Visit mirror::Objects in the section starting at base.
   // TODO: Delete base parameter if it is always equal to GetImageBegin.
-  void VisitObjects(ObjectVisitor* visitor,
-                    uint8_t* base,
-                    PointerSize pointer_size) const
+  EXPORT void VisitObjects(ObjectVisitor* visitor, uint8_t* base, PointerSize pointer_size) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Visit ArtMethods in the section starting at base. Includes runtime methods.
@@ -424,13 +423,13 @@ class PACKED(8) ImageHeader {
 
   // Helper for writing `data` and `bitmap_data` into `image_file`, following
   // the information stored in this header and passed as arguments.
-  bool WriteData(const ImageFileGuard& image_file,
-                 const uint8_t* data,
-                 const uint8_t* bitmap_data,
-                 ImageHeader::StorageMode image_storage_mode,
-                 uint32_t max_image_block_size,
-                 bool update_checksum,
-                 std::string* error_msg);
+  EXPORT bool WriteData(const ImageFileGuard& image_file,
+                        const uint8_t* data,
+                        const uint8_t* bitmap_data,
+                        ImageHeader::StorageMode image_storage_mode,
+                        uint32_t max_image_block_size,
+                        bool update_checksum,
+                        std::string* error_msg);
 
  private:
   static const uint8_t kImageMagic[4];
@@ -591,10 +590,10 @@ using AppImageReferenceOffsetInfo = std::pair<uint32_t, uint32_t>;
 
 std::ostream& operator<<(std::ostream& os, ImageHeader::ImageMethod method);
 std::ostream& operator<<(std::ostream& os, ImageHeader::ImageRoot root);
-std::ostream& operator<<(std::ostream& os, ImageHeader::ImageSections section);
-std::ostream& operator<<(std::ostream& os, ImageHeader::StorageMode mode);
+EXPORT std::ostream& operator<<(std::ostream& os, ImageHeader::ImageSections section);
+EXPORT std::ostream& operator<<(std::ostream& os, ImageHeader::StorageMode mode);
 
-std::ostream& operator<<(std::ostream& os, const ImageSection& section);
+EXPORT std::ostream& operator<<(std::ostream& os, const ImageSection& section);
 
 // Wrapper over LZ4_decompress_safe() that checks if return value is negative. See b/242914915.
 bool LZ4_decompress_safe_checked(const char* source,

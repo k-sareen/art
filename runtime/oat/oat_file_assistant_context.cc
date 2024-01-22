@@ -33,7 +33,7 @@
 #include "gc/heap.h"
 #include "gc/space/image_space.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using ::android::base::StringPrintf;
 using ::art::gc::space::ImageSpace;

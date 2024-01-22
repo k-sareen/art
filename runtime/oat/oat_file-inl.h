@@ -23,7 +23,7 @@
 #include "oat_quick_method_header.h"
 #include "runtime-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline const OatQuickMethodHeader* OatFile::OatMethod::GetOatQuickMethodHeader() const {
   const void* code = EntryPointToCodePointer(GetQuickCode());

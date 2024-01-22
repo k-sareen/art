@@ -45,7 +45,7 @@
 #include "scoped_thread_state_change.h"
 #include "thread.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class OatFileAssistantBaseTest : public DexoptTest {};
 

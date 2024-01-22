@@ -21,7 +21,7 @@
 #include "base/bit_utils.h"
 #include "base/length_prefixed_array.h"
 
-namespace art {
+namespace art HIDDEN {
 
 size_t IndexBssMappingEntry::GetBssOffset(size_t index_bits,
                                           uint32_t index,

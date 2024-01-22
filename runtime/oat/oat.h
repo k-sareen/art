@@ -24,7 +24,7 @@
 #include "base/macros.h"
 #include "base/safe_map.h"
 
-namespace art {
+namespace art HIDDEN {
 
 enum class InstructionSet;
 class InstructionSetFeatures;
@@ -41,7 +41,7 @@ enum class StubType {
 };
 std::ostream& operator<<(std::ostream& stream, StubType stub_type);
 
-class PACKED(4) OatHeader {
+class EXPORT PACKED(4) OatHeader {
  public:
   static constexpr std::array<uint8_t, 4> kOatMagic { { 'o', 'a', 't', '\n' } };
   // Last oat version changed reason: store resolved MethodType-s in .bss.

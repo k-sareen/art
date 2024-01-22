@@ -25,7 +25,7 @@
 #include "oat_quick_method_header.h"
 #include "scoped_thread_state_change-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // The callback is used to inform the caller about memory bounds of the bit-tables.
 template<typename DecodeCallback>

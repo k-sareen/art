@@ -24,7 +24,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "vdex_file.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class OatFileTest : public DexoptTest {};
 

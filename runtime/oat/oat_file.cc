@@ -74,7 +74,7 @@
 #include "vdex_file.h"
 #include "verifier/verifier_deps.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

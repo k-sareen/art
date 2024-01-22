@@ -25,6 +25,7 @@
 
 #include "base/array_ref.h"
 #include "base/compiler_filter.h"
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "base/os.h"
 #include "base/safe_map.h"
@@ -37,7 +38,7 @@
 #include "index_bss_mapping.h"
 #include "mirror/object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class BitVector;
 class ClassLoaderContext;
@@ -76,7 +77,7 @@ enum class OatClassType : uint8_t {
   kOatClassMax = 3,
 };
 
-std::ostream& operator<<(std::ostream& os, OatClassType rhs);
+EXPORT std::ostream& operator<<(std::ostream& os, OatClassType rhs);
 
 class PACKED(4) OatMethodOffsets {
  public:
@@ -105,23 +106,23 @@ class OatFile {
   // from oat file when opening the dex files if they are not embedded in the
   // vdex file. These may differ for cross-compilation (the dex file name is
   // the host path and dex location is the future path on target) and testing.
-  static OatFile* Open(int zip_fd,
-                       const std::string& filename,
-                       const std::string& location,
-                       bool executable,
-                       bool low_4gb,
-                       ArrayRef<const std::string> dex_filenames,
-                       ArrayRef<File> dex_files,
-                       /*inout*/ MemMap* reservation,  // Where to load if not null.
-                       /*out*/ std::string* error_msg);
+  EXPORT static OatFile* Open(int zip_fd,
+                              const std::string& filename,
+                              const std::string& location,
+                              bool executable,
+                              bool low_4gb,
+                              ArrayRef<const std::string> dex_filenames,
+                              ArrayRef<File> dex_files,
+                              /*inout*/ MemMap* reservation,  // Where to load if not null.
+                              /*out*/ std::string* error_msg);
   // Helper overload that takes a single dex filename and no reservation.
-  static OatFile* Open(int zip_fd,
-                       const std::string& filename,
-                       const std::string& location,
-                       bool executable,
-                       bool low_4gb,
-                       const std::string& dex_filename,
-                       /*out*/std::string* error_msg) {
+  EXPORT static OatFile* Open(int zip_fd,
+                              const std::string& filename,
+                              const std::string& location,
+                              bool executable,
+                              bool low_4gb,
+                              const std::string& dex_filename,
+                              /*out*/ std::string* error_msg) {
     return Open(zip_fd,
                 filename,
                 location,
@@ -191,7 +192,7 @@ class OatFile {
   // Indicates whether the oat file was compiled with full debugging capability.
   bool IsDebuggable() const;
 
-  CompilerFilter::Filter GetCompilerFilter() const;
+  EXPORT CompilerFilter::Filter GetCompilerFilter() const;
 
   std::string GetClassLoaderContext() const;
 
@@ -201,7 +202,7 @@ class OatFile {
     return location_;
   }
 
-  const OatHeader& GetOatHeader() const;
+  EXPORT const OatHeader& GetOatHeader() const;
 
   class OatMethod final {
    public:
@@ -260,17 +261,17 @@ class OatFile {
     // defintion. Direct methods come first, followed by virtual
     // methods. Note that runtime created methods such as miranda
     // methods are not included.
-    const OatMethod GetOatMethod(uint32_t method_index) const;
+    EXPORT const OatMethod GetOatMethod(uint32_t method_index) const;
 
     // Return a pointer to the OatMethodOffsets for the requested
     // method_index, or null if none is present. Note that most
     // callers should use GetOatMethod.
-    const OatMethodOffsets* GetOatMethodOffsets(uint32_t method_index) const;
+    EXPORT const OatMethodOffsets* GetOatMethodOffsets(uint32_t method_index) const;
 
     // Return the offset from the start of the OatFile to the
     // OatMethodOffsets for the requested method_index, or 0 if none
     // is present. Note that most callers should use GetOatMethod.
-    uint32_t GetOatMethodOffsetsOffset(uint32_t method_index) const;
+    EXPORT uint32_t GetOatMethodOffsetsOffset(uint32_t method_index) const;
 
     // A representation of an invalid OatClass, used when an OatClass can't be found.
     // See FindOatClass().
@@ -348,8 +349,8 @@ class OatFile {
     return DexEnd() - DexBegin();
   }
 
-  const uint8_t* Begin() const;
-  const uint8_t* End() const;
+  EXPORT const uint8_t* Begin() const;
+  EXPORT const uint8_t* End() const;
 
   const uint8_t* DataBimgRelRoBegin() const { return data_bimg_rel_ro_begin_; }
   const uint8_t* DataBimgRelRoEnd() const { return data_bimg_rel_ro_end_; }
@@ -360,19 +361,19 @@ class OatFile {
   const uint8_t* VdexBegin() const { return vdex_begin_; }
   const uint8_t* VdexEnd() const { return vdex_end_; }
 
-  const uint8_t* DexBegin() const;
-  const uint8_t* DexEnd() const;
+  EXPORT const uint8_t* DexBegin() const;
+  EXPORT const uint8_t* DexEnd() const;
 
-  ArrayRef<const uint32_t> GetBootImageRelocations() const;
-  ArrayRef<ArtMethod*> GetBssMethods() const;
-  ArrayRef<GcRoot<mirror::Object>> GetBssGcRoots() const;
+  EXPORT ArrayRef<const uint32_t> GetBootImageRelocations() const;
+  EXPORT ArrayRef<ArtMethod*> GetBssMethods() const;
+  EXPORT ArrayRef<GcRoot<mirror::Object>> GetBssGcRoots() const;
 
   // Initialize relocation sections (.data.bimg.rel.ro and .bss).
   void InitializeRelocations() const;
 
   // Finds the associated oat class for a dex_file and descriptor. Returns an invalid OatClass on
   // error and sets found to false.
-  static OatClass FindOatClass(const DexFile& dex_file, uint16_t class_def_idx, bool* found);
+  EXPORT static OatClass FindOatClass(const DexFile& dex_file, uint16_t class_def_idx, bool* found);
 
   VdexFile* GetVdexFile() const {
     return vdex_.get();
@@ -503,7 +504,7 @@ class OatFile {
 class OatDexFile final {
  public:
   // Opens the DexFile referred to by this OatDexFile from within the containing OatFile.
-  std::unique_ptr<const DexFile> OpenDexFile(std::string* error_msg) const;
+  EXPORT std::unique_ptr<const DexFile> OpenDexFile(std::string* error_msg) const;
 
   // May return null if the OatDexFile only contains a type lookup table. This case only happens
   // for the compiler to speed up compilation, or in jitzygote.
@@ -512,7 +513,7 @@ class OatDexFile final {
   }
 
   // Returns the size of the DexFile refered to by this OatDexFile.
-  size_t FileSize() const;
+  EXPORT size_t FileSize() const;
 
   // Returns original path of DexFile that was the source of this OatDexFile.
   const std::string& GetDexFileLocation() const {
@@ -542,10 +543,10 @@ class OatDexFile final {
   DexFile::Sha1 GetSha1() const { return dex_file_sha1_; }
 
   // Returns the OatClass for the class specified by the given DexFile class_def_index.
-  OatFile::OatClass GetOatClass(uint16_t class_def_index) const;
+  EXPORT OatFile::OatClass GetOatClass(uint16_t class_def_index) const;
 
   // Returns the offset to the OatClass information. Most callers should use GetOatClass.
-  uint32_t GetOatClassOffset(uint16_t class_def_index) const;
+  EXPORT uint32_t GetOatClassOffset(uint16_t class_def_index) const;
 
   const uint8_t* GetLookupTableData() const {
     return lookup_table_data_;
@@ -581,18 +582,18 @@ class OatDexFile final {
 
   // Looks up a class definition by its class descriptor. Hash must be
   // ComputeModifiedUtf8Hash(descriptor).
-  static const dex::ClassDef* FindClassDef(const DexFile& dex_file,
-                                           const char* descriptor,
-                                           size_t hash);
+  EXPORT static const dex::ClassDef* FindClassDef(const DexFile& dex_file,
+                                                  const char* descriptor,
+                                                  size_t hash);
 
   const TypeLookupTable& GetTypeLookupTable() const {
     return lookup_table_;
   }
 
-  ~OatDexFile();
+  EXPORT ~OatDexFile();
 
   // Create only with a type lookup table, used by the compiler to speed up compilation.
-  explicit OatDexFile(TypeLookupTable&& lookup_table);
+  EXPORT explicit OatDexFile(TypeLookupTable&& lookup_table);
 
   // Return the dex layout sections.
   const DexLayoutSections* GetDexLayoutSections() const {

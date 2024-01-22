@@ -31,7 +31,7 @@
 #include "mirror/object_array-inl.h"
 #include "mirror/object_array.h"
 
-namespace art {
+namespace art HIDDEN {
 
 const uint8_t ImageHeader::kImageMagic[] = { 'a', 'r', 't', '\n' };
 // Last change: Split intrinsics list - with and without HIR.
