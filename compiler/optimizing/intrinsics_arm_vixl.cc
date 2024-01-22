@@ -1592,7 +1592,7 @@ void IntrinsicCodeGeneratorARMVIXL::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    codegen_->MarkGCCard(temp1, temp2, dest, NoReg, /* emit_null_check= */ false);
+    codegen_->MarkGCCard(temp1, temp2, dest);
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -3020,7 +3020,7 @@ static void GenUnsafePut(HInvoke* invoke,
     UseScratchRegisterScope temps(assembler->GetVIXLAssembler());
     vixl32::Register card = temps.Acquire();
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MarkGCCard(temp, card, base, RegisterFrom(value), value_can_be_null);
+    codegen->MaybeMarkGCCard(temp, card, base, RegisterFrom(value), value_can_be_null);
   }
 }
 
@@ -3612,7 +3612,7 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARMV
     // Mark card for object assuming new value is stored. Worst case we will mark an unchanged
     // object and scan the receiver at the next GC for nothing.
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MarkGCCard(tmp_ptr, tmp, base, new_value, value_can_be_null);
+    codegen->MaybeMarkGCCard(tmp_ptr, tmp, base, new_value, value_can_be_null);
   }
 
   vixl32::Label exit_loop_label;
@@ -3923,7 +3923,7 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
     // Mark card for object as a new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     vixl32::Register card = tmp_ptr;  // Use the `tmp_ptr` also as the `card` temporary.
-    codegen->MarkGCCard(temp, card, base, /*value=*/ RegisterFrom(arg), new_value_can_be_null);
+    codegen->MaybeMarkGCCard(temp, card, base, /*value=*/ RegisterFrom(arg), new_value_can_be_null);
   }
 
   // Note: UnsafeGetAndUpdate operations are sequentially consistent, requiring
@@ -4779,7 +4779,7 @@ static void GenerateVarHandleSet(HInvoke* invoke,
     vixl32::Register temp = target.offset;
     vixl32::Register card = temps.Acquire();
     vixl32::Register value_reg = RegisterFrom(value);
-    codegen->MarkGCCard(temp, card, target.object, value_reg, /* emit_null_check= */ true);
+    codegen->MaybeMarkGCCard(temp, card, target.object, value_reg, /* emit_null_check= */ true);
   }
 
   if (slow_path != nullptr) {
@@ -5079,7 +5079,8 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
     vixl32::Register card = tmp_ptr;
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MarkGCCard(temp, card, target.object, RegisterFrom(new_value), new_value_can_be_null);
+    codegen->MaybeMarkGCCard(
+        temp, card, target.object, RegisterFrom(new_value), new_value_can_be_null);
   }
 
   if (slow_path != nullptr) {
@@ -5397,7 +5398,7 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
     vixl32::Register card = tmp_ptr;
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MarkGCCard(temp, card, target.object, RegisterFrom(arg), new_value_can_be_null);
+    codegen->MaybeMarkGCCard(temp, card, target.object, RegisterFrom(arg), new_value_can_be_null);
   }
 
   if (slow_path != nullptr) {

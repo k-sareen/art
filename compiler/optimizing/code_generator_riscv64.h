@@ -750,7 +750,18 @@ class CodeGeneratorRISCV64 : public CodeGenerator {
   // artReadBarrierForRootSlow.
   void GenerateReadBarrierForRootSlow(HInstruction* instruction, Location out, Location root);
 
-  void MarkGCCard(XRegister object, XRegister value, bool value_can_be_null);
+  // Emit a write barrier if:
+  // A) emit_null_check is false
+  // B) emit_null_check is true, and value is not null.
+  void MaybeMarkGCCard(XRegister object, XRegister value, bool emit_null_check);
+
+  // Emit a write barrier unconditionally.
+  void MarkGCCard(XRegister object);
+
+  // Crash if the card table is not valid. This check is only emitted for the CC GC. We assert
+  // `(!clean || !self->is_gc_marking)`, since the card table should not be set to clean when the CC
+  // GC is marking for eliminated write barriers.
+  void CheckGCCardIsValid(XRegister object);
 
   //
   // Heap poisoning.
