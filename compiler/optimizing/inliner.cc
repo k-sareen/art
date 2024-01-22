@@ -1543,7 +1543,9 @@ bool HInliner::TryBuildAndInline(HInvoke* invoke_instruction,
                                  bool is_speculative) {
   // If invoke_instruction is devirtualized to a different method, give intrinsics
   // another chance before we try to inline it.
-  if (invoke_instruction->GetResolvedMethod() != method && method->IsIntrinsic()) {
+  if (invoke_instruction->GetResolvedMethod() != method &&
+      method->IsIntrinsic() &&
+      IsValidIntrinsicAfterBuilder(static_cast<Intrinsics>(method->GetIntrinsic()))) {
     MaybeRecordStat(stats_, MethodCompilationStat::kIntrinsicRecognized);
     // For simplicity, always create a new instruction to replace the existing
     // invoke.

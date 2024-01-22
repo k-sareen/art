@@ -177,6 +177,17 @@ static inline bool IsIntrinsicWithSpecializedHir(Intrinsics intrinsic) {
   }
 }
 
+static inline bool IsValidIntrinsicAfterBuilder(Intrinsics intrinsic) {
+  return !IsIntrinsicWithSpecializedHir(intrinsic) ||
+         // FIXME: The inliner can currently create graphs with any of the intrinsics with HIR.
+         // However, we are able to compensate for `StringCharAt` and `StringLength` in the
+         // `HInstructionSimplifier`, so we're allowing these two intrinsics for now, preserving
+         // the old behavior. Besides fixing the bug, we should also clean up the simplifier
+         // and remove `SimplifyStringCharAt` and `SimplifyStringLength`. Bug: 319045458
+         intrinsic == Intrinsics::kStringCharAt ||
+         intrinsic == Intrinsics::kStringLength;
+}
+
 #define GENERIC_OPTIMIZATION(name, bit)                \
 public:                                                \
 void Set##name() { SetBit(k##name); }                  \

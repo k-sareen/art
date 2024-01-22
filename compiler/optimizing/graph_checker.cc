@@ -739,14 +739,7 @@ void GraphChecker::VisitInvoke(HInvoke* invoke) {
 
   // Check for intrinsics which should have been replaced by intermediate representation in the
   // instruction builder.
-  if (IsIntrinsicWithSpecializedHir(invoke->GetIntrinsic()) &&
-      // FIXME: The inliner can currently create graphs with any of the intrinsics with HIR.
-      // However, we are able to compensate for `StringCharAt` and `StringLength` in the
-      // `HInstructionSimplifier`, so we're allowing these two intrinsics for now, preserving
-      // the old behavior. Besides fixing the bug, we should also clean up the simplifier
-      // and remove `SimplifyStringCharAt` and `SimplifyStringLength`. Bug: 319045458
-      invoke->GetIntrinsic() != Intrinsics::kStringCharAt &&
-      invoke->GetIntrinsic() != Intrinsics::kStringLength) {
+  if (!IsValidIntrinsicAfterBuilder(invoke->GetIntrinsic())) {
     AddError(
         StringPrintf("The graph contains the instrinsic %d which should have been replaced in the "
                      "instruction builder: %s:%d in block %d.",
