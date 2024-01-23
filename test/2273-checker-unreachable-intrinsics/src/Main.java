@@ -20,11 +20,11 @@ public class Main {
         assertEquals(true, $noinline$testIsEmpty(""));
     }
 
-    // Even though `str` is of type String, we keep the CharSequence.isEmpty since String.IsEmpty is
-    // an intrinsic with specialized HIR.
+    // Even though `str` is of type String, we shouldn't have java.lang.String.isEmpty
+    // in the graph since String.IsEmpty is an intrinsic with specialized HIR.
 
     /// CHECK-START: boolean Main.$noinline$testIsEmpty(java.lang.String) inliner (after)
-    /// CHECK: InvokeInterface method_name:java.lang.CharSequence.isEmpty
+    /// CHECK-NOT: method_name:java.lang.String.isEmpty
     private static boolean $noinline$testIsEmpty(String str) {
         return $inline$IsEmpty(str);
     }
