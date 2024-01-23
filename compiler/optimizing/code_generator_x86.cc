@@ -44,6 +44,7 @@
 #include "utils/assembler.h"
 #include "utils/stack_checks.h"
 #include "utils/x86/assembler_x86.h"
+#include "utils/x86/constants_x86.h"
 #include "utils/x86/managed_register_x86.h"
 
 namespace art HIDDEN {
@@ -5872,17 +5873,23 @@ void CodeGeneratorX86::EmitLinkerPatches(ArenaVector<linker::LinkerPatch>* linke
   DCHECK_EQ(size, linker_patches->size());
 }
 
-void CodeGeneratorX86::MarkGCCard(
+void CodeGeneratorX86::MaybeMarkGCCard(
     Register temp, Register card, Register object, Register value, bool emit_null_check) {
   NearLabel is_null;
   if (emit_null_check) {
     __ testl(value, value);
     __ j(kEqual, &is_null);
   }
+  MarkGCCard(temp, card, object);
+  if (emit_null_check) {
+    __ Bind(&is_null);
+  }
+}
+
+void CodeGeneratorX86::MarkGCCard(Register temp, Register card, Register object) {
   // Load the address of the card table into `card`.
   __ fs()->movl(card, Address::Absolute(Thread::CardTableOffset<kX86PointerSize>().Int32Value()));
-  // Calculate the offset (in the card table) of the card corresponding to
-  // `object`.
+  // Calculate the offset (in the card table) of the card corresponding to `object`.
   __ movl(temp, object);
   __ shrl(temp, Immediate(gc::accounting::CardTable::kCardShift));
   // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
@@ -5900,9 +5907,23 @@ void CodeGeneratorX86::MarkGCCard(
   // (no need to explicitly load `kCardDirty` as an immediate value).
   __ movb(Address(temp, card, TIMES_1, 0),
           X86ManagedRegister::FromCpuRegister(card).AsByteRegister());
-  if (emit_null_check) {
-    __ Bind(&is_null);
-  }
+}
+
+void CodeGeneratorX86::CheckGCCardIsValid(Register temp, Register card, Register object) {
+  NearLabel done;
+  __ j(kEqual, &done);
+  // Load the address of the card table into `card`.
+  __ fs()->movl(card, Address::Absolute(Thread::CardTableOffset<kX86PointerSize>().Int32Value()));
+  // Calculate the offset (in the card table) of the card corresponding to `object`.
+  __ movl(temp, object);
+  __ shrl(temp, Immediate(gc::accounting::CardTable::kCardShift));
+  // assert (!clean || !self->is_gc_marking)
+  __ cmpb(Address(temp, card, TIMES_1, 0), Immediate(gc::accounting::CardTable::kCardClean));
+  __ j(kNotEqual, &done);
+  __ fs()->cmpl(Address::Absolute(Thread::IsGcMarkingOffset<kX86PointerSize>()), Immediate(0));
+  __ j(kEqual, &done);
+  __ int3();
+  __ Bind(&done);
 }
 
 void LocationsBuilderX86::HandleFieldGet(HInstruction* instruction, const FieldInfo& field_info) {
@@ -6028,14 +6049,17 @@ void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
   } else {
     locations->SetInAt(1, Location::RegisterOrConstant(instruction->InputAt(1)));
 
-    if (CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(1))) {
-      if (write_barrier_kind != WriteBarrierKind::kDontEmit) {
-        locations->AddTemp(Location::RequiresRegister());
-        // Ensure the card is in a byte register.
-        locations->AddTemp(Location::RegisterLocation(ECX));
-      } else if (kPoisonHeapReferences) {
-        locations->AddTemp(Location::RequiresRegister());
-      }
+    bool needs_write_barrier =
+        codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
+    bool check_gc_card =
+        codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind);
+
+    if (needs_write_barrier || check_gc_card) {
+      locations->AddTemp(Location::RequiresRegister());
+      // Ensure the card is in a byte register.
+      locations->AddTemp(Location::RegisterLocation(ECX));
+    } else if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
+      locations->AddTemp(Location::RequiresRegister());
     }
   }
 }
@@ -6051,7 +6075,7 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
   LocationSummary* locations = instruction->GetLocations();
   Location value = locations->InAt(value_index);
   bool needs_write_barrier =
-      CodeGenerator::StoreNeedsWriteBarrier(field_type, instruction->InputAt(value_index));
+      codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
 
   if (is_volatile) {
     codegen_->GenerateMemoryBarrier(MemBarrierKind::kAnyStore);
@@ -6083,15 +6107,19 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
 
     case DataType::Type::kInt32:
     case DataType::Type::kReference: {
-      if (kPoisonHeapReferences && needs_write_barrier) {
-        // Note that in the case where `value` is a null reference,
-        // we do not enter this block, as the reference does not
-        // need poisoning.
-        DCHECK_EQ(field_type, DataType::Type::kReference);
-        Register temp = locations->GetTemp(0).AsRegister<Register>();
-        __ movl(temp, value.AsRegister<Register>());
-        __ PoisonHeapReference(temp);
-        __ movl(field_addr, temp);
+      if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
+        if (value.IsConstant()) {
+          DCHECK(value.GetConstant()->IsNullConstant())
+              << "constant value " << CodeGenerator::GetInt32ValueOf(value.GetConstant())
+              << " is not null. Instruction " << *instruction;
+          // No need to poison null, just do a movl.
+          __ movl(field_addr, Immediate(0));
+        } else {
+          Register temp = locations->GetTemp(0).AsRegister<Register>();
+          __ movl(temp, value.AsRegister<Register>());
+          __ PoisonHeapReference(temp);
+          __ movl(field_addr, temp);
+        }
       } else if (value.IsConstant()) {
         int32_t v = CodeGenerator::GetInt32ValueOf(value.GetConstant());
         __ movl(field_addr, Immediate(v));
@@ -6160,15 +6188,38 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
     codegen_->MaybeRecordImplicitNullCheck(instruction);
   }
 
-  if (needs_write_barrier && write_barrier_kind != WriteBarrierKind::kDontEmit) {
+  if (needs_write_barrier) {
     Register temp = locations->GetTemp(0).AsRegister<Register>();
     Register card = locations->GetTemp(1).AsRegister<Register>();
-    codegen_->MarkGCCard(
-        temp,
-        card,
-        base,
-        value.AsRegister<Register>(),
-        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+    if (value.IsConstant()) {
+      DCHECK(value.GetConstant()->IsNullConstant())
+          << "constant value " << CodeGenerator::GetInt32ValueOf(value.GetConstant())
+          << " is not null. Instruction: " << *instruction;
+      if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+        codegen_->MarkGCCard(temp, card, base);
+      }
+    } else {
+      codegen_->MaybeMarkGCCard(
+          temp,
+          card,
+          base,
+          value.AsRegister<Register>(),
+          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
+    }
+  } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
+    if (value.IsConstant()) {
+      // If we are storing a constant for a reference, we are in the case where we are storing
+      // null but we cannot skip it as this write barrier is being relied on by coalesced write
+      // barriers.
+      DCHECK(value.GetConstant()->IsNullConstant())
+          << "constant value " << CodeGenerator::GetInt32ValueOf(value.GetConstant())
+          << " is not null. Instruction: " << *instruction;
+      // No need to check the dirty bit as this value is null.
+    } else {
+      Register temp = locations->GetTemp(0).AsRegister<Register>();
+      Register card = locations->GetTemp(1).AsRegister<Register>();
+      codegen_->CheckGCCardIsValid(temp, card, base);
+    }
   }
 
   if (is_volatile) {
@@ -6449,8 +6500,11 @@ void InstructionCodeGeneratorX86::VisitArrayGet(HArrayGet* instruction) {
 void LocationsBuilderX86::VisitArraySet(HArraySet* instruction) {
   DataType::Type value_type = instruction->GetComponentType();
 
+  WriteBarrierKind write_barrier_kind = instruction->GetWriteBarrierKind();
   bool needs_write_barrier =
-      CodeGenerator::StoreNeedsWriteBarrier(value_type, instruction->GetValue());
+      codegen_->StoreNeedsWriteBarrier(value_type, instruction->GetValue(), write_barrier_kind);
+  bool check_gc_card =
+      codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind);
   bool needs_type_check = instruction->NeedsTypeCheck();
 
   LocationSummary* locations = new (GetGraph()->GetAllocator()) LocationSummary(
@@ -6471,13 +6525,14 @@ void LocationsBuilderX86::VisitArraySet(HArraySet* instruction) {
   } else {
     locations->SetInAt(2, Location::RegisterOrConstant(instruction->InputAt(2)));
   }
-  if (needs_write_barrier) {
-    // Used by reference poisoning or emitting write barrier.
+  if (needs_write_barrier || check_gc_card) {
+    // Used by reference poisoning, type checking, emitting, or checking a write barrier.
     locations->AddTemp(Location::RequiresRegister());
-    if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
-      // Only used when emitting a write barrier. Ensure the card is in a byte register.
-      locations->AddTemp(Location::RegisterLocation(ECX));
-    }
+    // Only used when emitting or checking a write barrier. Ensure the card is in a byte register.
+    locations->AddTemp(Location::RegisterLocation(ECX));
+  } else if ((kPoisonHeapReferences && value_type == DataType::Type::kReference) ||
+             instruction->NeedsTypeCheck()) {
+    locations->AddTemp(Location::RequiresRegister());
   }
 }
 
@@ -6489,8 +6544,9 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
   Location value = locations->InAt(2);
   DataType::Type value_type = instruction->GetComponentType();
   bool needs_type_check = instruction->NeedsTypeCheck();
+  WriteBarrierKind write_barrier_kind = instruction->GetWriteBarrierKind();
   bool needs_write_barrier =
-      CodeGenerator::StoreNeedsWriteBarrier(value_type, instruction->GetValue());
+      codegen_->StoreNeedsWriteBarrier(value_type, instruction->GetValue(), write_barrier_kind);
 
   switch (value_type) {
     case DataType::Type::kBool:
@@ -6530,16 +6586,19 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         DCHECK(value.IsConstant()) << value;
         __ movl(address, Immediate(0));
         codegen_->MaybeRecordImplicitNullCheck(instruction);
-        DCHECK(!needs_write_barrier);
+        if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+          // We need to set a write barrier here even though we are writing null, since this write
+          // barrier is being relied on.
+          DCHECK(needs_write_barrier);
+          Register temp = locations->GetTemp(0).AsRegister<Register>();
+          Register card = locations->GetTemp(1).AsRegister<Register>();
+          codegen_->MarkGCCard(temp, card, array);
+        }
         DCHECK(!needs_type_check);
         break;
       }
 
-      DCHECK(needs_write_barrier);
       Register register_value = value.AsRegister<Register>();
-      Location temp_loc = locations->GetTemp(0);
-      Register temp = temp_loc.AsRegister<Register>();
-
       bool can_value_be_null = instruction->GetValueCanBeNull();
       NearLabel do_store;
       if (can_value_be_null) {
@@ -6564,6 +6623,7 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         // false negative, in which case we would take the ArraySet
         // slow path.
 
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
         // /* HeapReference<Class> */ temp = array->klass_
         __ movl(temp, Address(array, class_offset));
         codegen_->MaybeRecordImplicitNullCheck(instruction);
@@ -6594,24 +6654,29 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         }
       }
 
-      if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
-        DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
-            << " Already null checked so we shouldn't do it again.";
-        Register card = locations->GetTemp(1).AsRegister<Register>();
-        codegen_->MarkGCCard(temp,
-                             card,
-                             array,
-                             value.AsRegister<Register>(),
-                             /* emit_null_check= */ false);
-      }
-
       if (can_value_be_null) {
         DCHECK(do_store.IsLinked());
         __ Bind(&do_store);
       }
 
+      if (needs_write_barrier) {
+        // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
+        // this write barrier when its value is null (without an extra testl since we already
+        // checked if the value is null for the type check). This will be done as a follow-up since
+        // it is a runtime optimization that needs extra care.
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
+        Register card = locations->GetTemp(1).AsRegister<Register>();
+        codegen_->MarkGCCard(temp, card, array);
+      } else if (codegen_->ShouldCheckGCCard(
+                     value_type, instruction->GetValue(), write_barrier_kind)) {
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
+        Register card = locations->GetTemp(1).AsRegister<Register>();
+        codegen_->CheckGCCardIsValid(temp, card, array);
+      }
+
       Register source = register_value;
       if (kPoisonHeapReferences) {
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
         __ movl(temp, register_value);
         __ PoisonHeapReference(temp);
         source = temp;
