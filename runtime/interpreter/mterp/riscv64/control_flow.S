@@ -9,20 +9,20 @@
 // Clobbers: t0
 %def op_return(is_object=False, is_void=False, is_wide=False):
 %  if is_void:
-      // Thread fence for constructor
-      fence w, w
+     // Thread fence for constructor
+     fence w, w
 %  else:
-      srliw t0, xINST, 8  // t0 := AA
+     srliw t0, xINST, 8  // t0 := AA
 %    if is_wide:
-        GET_VREG_WIDE a0, t0  // a0 := fp[AA:AA+1]
-        // The method may return to compiled code, so also place result in fa0.
-        fmv.d.x fa0, a0
+       GET_VREG_WIDE a0, t0  // a0 := fp[AA:AA+1]
+       // The method may return to compiled code, so also place result in fa0.
+       fmv.d.x fa0, a0
 %    elif is_object:
-        GET_VREG_OBJECT a0, t0  // a0 := refs[AA]
+       GET_VREG_OBJECT a0, t0  // a0 := refs[AA]
 %    else:
-%       get_vreg("a0", "t0")    #  a0 := fp[AA]
-        // The method may return to compiled code, so also place result in fa0.
-        fmv.w.x fa0, a0
+%      get_vreg("a0", "t0")    #  a0 := fp[AA]
+       // The method may return to compiled code, so also place result in fa0.
+       fmv.w.x fa0, a0
 %#:
 
    CFI_REMEMBER_STATE

@@ -212,7 +212,7 @@
 // iput vA, vB, field@CCCC
 // Format 22c: B|A|59 CCCC
 // vB.field := vA
-%def op_iput(width=32, zext=False):
+%def op_iput(width=32):
    srliw s7, xINST, 12     // s7 := B
    srliw s8, xINST, 8
    andi s8, s8, 0xF        // s8 := A
@@ -349,7 +349,7 @@
 // iput-boolean vA, vB, field@CCCC
 // Format 22c: B|A|5c CCCC
 %def op_iput_boolean():
-%  op_iput(width=8, zext=True)
+%  op_iput(width=8)
 
 
 // iput-byte vA, vB, field@CCCC
@@ -361,7 +361,7 @@
 // iput-char vA, vB, field@CCCC
 // Format 22c: B|A|5e CCCC
 %def op_iput_char():
-%  op_iput(width=16, zext=True)
+%  op_iput(width=16)
 
 
 // iput-short vA, vB, field@CCCC
@@ -707,7 +707,7 @@
    add $z0, $z0, a0  // z0 := field addr, after possible a0 update
    // Ensure the volatile store is released.
    // \value must NOT be the destination register, the destination gets clobbered!
-   // For refs, \value's original value is used in the write barrier below.
+   // \value's original value is used in the write barrier below.
    POISON_HEAP_REF $value  // Poisoning maps null to null for the null check in write barrier.
    amoswap.w.rl zero, $value, ($z0)
 %  object_write_barrier(value=value, holder="a0", z0=z0, z1=z1, uniq=f"slow_{opcode}")

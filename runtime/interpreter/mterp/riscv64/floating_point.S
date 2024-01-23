@@ -125,7 +125,7 @@
 %  elif src == "l":
      GET_VREG_WIDE t1, t0     // t1 := fp[B]
 %  elif src == "s":
-%    get_vreg_float("ft0", "t0") #  ft0 := fp[B]
+%    get_vreg_float("ft0", "t0")  #  ft0 := fp[B]
 %  elif src == "d":
      GET_VREG_DOUBLE ft0, t0  // ft0 := fp[B]
 %  else:
@@ -148,7 +148,7 @@
 %  elif dst == "l":
      SET_VREG_WIDE t1, t2, z0=t0     // fp[A] := t1
 %  elif dst == "s":
-%    set_vreg_float("ft0", "t2", z0="t0") # fp[A] := ft0
+%    set_vreg_float("ft0", "t2", z0="t0")  # fp[A] := ft0
 %  elif dst == "d":
      SET_VREG_DOUBLE ft0, t2, z0=t0  // fp[B] := ft0
 %  else:

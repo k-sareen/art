@@ -14,17 +14,18 @@
    srliw t1, xINST, 12   // t1 := B
    srliw t2, xINST, 8    // t2 := B|A
 %  if is_object:
-     GET_VREG_OBJECT t1, t1  // t1 := refs[B]
+     // Note: leaves a useful breadcrumb if the reference is corrupted, unlike GET_VREG_OBJECT.
+%    get_vreg("t1", "t1", is_unsigned=True)  # t1 = fp[B], zext
 %  else:
-%    get_vreg("t1", "t1", is_wide=is_wide) # t1 := fp[B]
+%    get_vreg("t1", "t1", is_wide=is_wide)  # t1 := fp[B]
 %#:
    and t2, t2, 0xF       // t2 := A
    FETCH_ADVANCE_INST 1  // advance xPC, load xINST
    GET_INST_OPCODE t3    // t3 holds next opcode
 %  if is_object:
-     SET_VREG_OBJECT t1, t2, z0=t0 // refs[A] := fp[B]
+     SET_VREG_OBJECT t1, t2, z0=t0  // refs[A] := fp[B]
 %  else:
-%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide) # fp[A] := fp[B]
+%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide)  # fp[A] := fp[B]
 %#:
    GOTO_OPCODE t3       // continue to next
 
@@ -34,16 +35,17 @@
    FETCH t1, count=1     // t1 := BBBB
    srliw t2, xINST, 8    // t2 := AA
 %  if is_object:
-     GET_VREG_OBJECT t1, t1  // t1 := refs[BBBB]
+     // Note: leaves a useful breadcrumb if the reference is corrupted, unlike GET_VREG_OBJECT.
+%    get_vreg("t1", "t1", is_unsigned=True)  # t1 = fp[BBBB], zext
 %  else:
-%    get_vreg("t1", "t1", is_wide=is_wide) # t1 := fp[BBBB]
+%    get_vreg("t1", "t1", is_wide=is_wide)  # t1 := fp[BBBB]
 %#:
    FETCH_ADVANCE_INST 2  // advance xPC, load xINST
    GET_INST_OPCODE t3    // t3 := next opcode
 %  if is_object:
-     SET_VREG_OBJECT t1, t2, z0=t0 // refs[AA] := fp[BBBB]
+     SET_VREG_OBJECT t1, t2, z0=t0  // refs[AA] := fp[BBBB]
 %  else:
-%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide) # fp[AA] := fp[BBBB]
+%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide)  # fp[AA] := fp[BBBB]
 %#:
    GOTO_OPCODE t3        // continue to next
 
@@ -53,16 +55,17 @@
    FETCH t1, count=2     // t1 := BBBB
    FETCH t2, count=1     // t2 := AAAA
 %  if is_object:
-     GET_VREG_OBJECT t1, t1  // t1 := refs[BBBB]
+     // Note: leaves a useful breadcrumb if the reference is corrupted, unlike GET_VREG_OBJECT.
+%    get_vreg("t1", "t1", is_unsigned=True)  # t1 = fp[BBBB], zext
 %  else:
-%    get_vreg("t1", "t1", is_wide=is_wide) # t1 := fp[BBBB]
+%    get_vreg("t1", "t1", is_wide=is_wide)  # t1 := fp[BBBB]
 %#:
    FETCH_ADVANCE_INST 3  // advance xPC, load xINST
    GET_INST_OPCODE t3    // t3 := next opcode
 %  if is_object:
-     SET_VREG_OBJECT t1, t2, z0=t0 // refs[AAAA] := fp[BBBB]
+     SET_VREG_OBJECT t1, t2, z0=t0  // refs[AAAA] := fp[BBBB]
 %  else:
-%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide) # fp[AAAA] := fp[BBBB]
+%    set_vreg("t1", "t2", z0="t0", is_wide=is_wide)  # fp[AAAA] := fp[BBBB]
 %#:
    GOTO_OPCODE t3        // continue to next
 
@@ -106,9 +109,9 @@
    FETCH_ADVANCE_INST 1  // advance xPC, load xINST
    GET_INST_OPCODE t2    // t2 := next opcode
 %  if is_object:
-     SET_VREG_OBJECT a0, t1, z0=t0 // refs[AA] := a0
+     SET_VREG_OBJECT a0, t1, z0=t0  // refs[AA] := a0
 %  else:
-%    set_vreg("a0", "t1", z0="t0", is_wide=is_wide) # fp[AA] := a0
+%    set_vreg("a0", "t1", z0="t0", is_wide=is_wide)  # fp[AA] := a0
 %#:
    GOTO_OPCODE t2        // continue to next
 
@@ -143,7 +146,7 @@
    srliw t2, t2, 28        // t2 := A
    FETCH_ADVANCE_INST 1    // advance xPC, load xINST
    GET_INST_OPCODE t3      // t3 holds next opcode
-%  set_vreg("t1", "t2", z0="t0") # fp[A] := sssssssB
+%  set_vreg("t1", "t2", z0="t0")  # fp[A] := sssssssB
    GOTO_OPCODE t3          // continue to next
 
 // const/16 vAA, #+BBBB
@@ -181,7 +184,7 @@
    slliw t1, t1, 16        // t1 := BBBB0000
    FETCH_ADVANCE_INST 2    // advance xPC, load xINST
    GET_INST_OPCODE t3      // t3 := next opcode
-%  set_vreg("t1", "t2", z0="t0") # fp[AA] := BBBB0000
+%  set_vreg("t1", "t2", z0="t0")  # fp[AA] := BBBB0000
    GOTO_OPCODE t3          // continue to next
 
 // const-wide/16 vAA, #+BBBB

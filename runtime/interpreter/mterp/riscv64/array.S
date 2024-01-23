@@ -86,35 +86,35 @@
    beqz $array, $null_label
 
    srliw $index, $index, 8         // index := CC
-%  get_vreg(index, index, is_unsigned=True)  # index := fp[CC], zext for bounds check
+%  get_vreg(index, index)          # index := fp[CC]
    lw $length, MIRROR_ARRAY_LENGTH_OFFSET($array)  // length (signed 32b)
-   bge $index, $length, $oob_label
+   bgeu $index, $length, $oob_label  // Unsigned comparison also catches negative index.
 
 
 // aget vAA, vBB, vCC
 // Format 23x: AA|44 CC|BB
 // vAA := vBB[vCC]
 %def op_aget(width=32, zext=False):
-%  array_prelude(array="t0", index="t1", length="t2", null_label=f".L{opcode}_null", oob_label=f".L{opcode}_oob")
-       // t0 := vBB array object, t1 := vCC zext index, t2 := array length
+%  array_prelude(array="t0", index="a0", length="a1", null_label=f".L{opcode}_null", oob_label=f".L{opcode}_oob")
+       // t0 := vBB array object, a0 := vCC index, a1 := array length
 
 %  if width == 8 and zext:
-     add t0, t1, t0
+     add t0, a0, t0
      lbu t0, MIRROR_BOOLEAN_ARRAY_DATA_OFFSET(t0)
 %  elif width == 8:
-     add t0, t1, t0
+     add t0, a0, t0
      lb t0, MIRROR_BYTE_ARRAY_DATA_OFFSET(t0)
 %  elif width == 16 and zext:
-     sh1add t0, t1, t0
+     sh1add t0, a0, t0
      lhu t0, MIRROR_CHAR_ARRAY_DATA_OFFSET(t0)
 %  elif width == 16:
-     sh1add t0, t1, t0
+     sh1add t0, a0, t0
      lh t0, MIRROR_SHORT_ARRAY_DATA_OFFSET(t0)
 %  elif width == 32:
-     sh2add t0, t1, t0
+     sh2add t0, a0, t0
      lw t0, MIRROR_INT_ARRAY_DATA_OFFSET(t0)
 %  elif width == 64:
-     sh3add t0, t1, t0
+     sh3add t0, a0, t0
      ld t0, MIRROR_WIDE_ARRAY_DATA_OFFSET(t0)
 %  else:
 %    assert False, width
@@ -130,8 +130,6 @@
 .L${opcode}_null:
    tail common_errNullObject
 .L${opcode}_oob:
-   sext.w a0, t1
-   mv a1, t2
    tail common_errArrayIndex  // args a0 (index), a1 (length)
 
 
@@ -144,10 +142,10 @@
 // aget-object vAA, vBB, vCC
 // Format 23x: AA|46 CC|BB
 %def op_aget_object():
-%  array_prelude(array="t0", index="t1", length="t2", null_label=f".L{opcode}_null", oob_label=f".L{opcode}_oob")
-       // t0 := vBB array object, t1 := vCC zext index, t2 := array length
+%  array_prelude(array="t0", index="a0", length="a1", null_label=f".L{opcode}_null", oob_label=f".L{opcode}_oob")
+       // t0 := vBB array object, a0 := vCC index, a1 := array length
 
-   sh2add t0, t1, t0
+   sh2add t0, a0, t0
    lwu a0, MIRROR_OBJECT_ARRAY_DATA_OFFSET(t0)
        // a0 := *(array obj + data offset + idx * elem_size)
    UNPOISON_HEAP_REF a0
@@ -166,8 +164,6 @@
 .L${opcode}_null:
    tail common_errNullObject
 .L${opcode}_oob:
-   sext.w a0, t1
-   mv a1, t2
    tail common_errArrayIndex  // args a0 (index), a1 (length)
 
 

@@ -346,7 +346,7 @@ END \name
 // Put "%def" definitions after ".macro" definitions for proper expansion. %def is greedy.
 
 // Typed read, defaults to 32-bit read
-// Note: Incorrect for an object ref; it requires LWU, or LW;ZEXT.W.
+// Note: An object ref requires LWU, or LW;ZEXT.W.
 // Clobbers: \reg
 // Safe if \reg == \vreg.
 %def get_vreg(reg, vreg, width=32, is_wide=False, is_unsigned=False):

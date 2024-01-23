@@ -693,7 +693,7 @@
 
    srliw $z0, xINST, 12              // z0 := A
 %  if arg_start == "0":
-     beqz $z0, .L${uniq}_simple_done // A = 0: no further args.
+     beqz $z0, .L${uniq}_simple_done  // A = 0: no further args.
 %#:
    li $z1, 2
    blt $z0, $z1, .L${uniq}_simple_1  // A = 1
@@ -1495,7 +1495,7 @@
      andi $z0, $v_fedc, 0xF   // z0 := C
 %    get_vreg(z1, z0)         #  z1 := xFP[C]
      sw $z1, (0*4)($z3)       // fp[C] := z1
-     GET_VREG_OBJECT $z0, $z0 // z0 := xREFS[C]
+     GET_VREG_OBJECT $z0, $z0  // z0 := xREFS[C]
      sw $z0, (0*4)($z2)       // refs[C] := z0
 %#:
 .L${uniq}_arg_done:
