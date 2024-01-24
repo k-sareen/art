@@ -21,7 +21,9 @@
 
 #include <android-base/logging.h>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 // This function is loaded from the plugin (if present) and called during runtime initialization.
 // By the time this has been called the runtime has been fully initialized but not other native

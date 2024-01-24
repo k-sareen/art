@@ -38,7 +38,7 @@
 #include "cmdline_parser.h"
 #include "runtime_options.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using MemoryKiB = Memory<1024>;
 

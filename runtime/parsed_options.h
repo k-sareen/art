@@ -24,13 +24,14 @@
 #include <jni.h>
 
 #include "arch/instruction_set.h"
+#include "base/macros.h"
 #include "gc/collector_type.h"
 #include "gc/space/large_object_space.h"
 // #include "jit/profile_saver_options.h"
 #include "runtime_globals.h"
 #include "runtime_options.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class CompilerCallbacks;
 class DexFile;

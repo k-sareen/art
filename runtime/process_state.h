@@ -17,7 +17,9 @@
 #ifndef ART_RUNTIME_PROCESS_STATE_H_
 #define ART_RUNTIME_PROCESS_STATE_H_
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 // The process state passed in from the activity manager, used to determine when to do trimming
 // and compaction.

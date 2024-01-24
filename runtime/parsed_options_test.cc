@@ -21,7 +21,7 @@
 #include "arch/instruction_set.h"
 #include "base/common_art_test.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ParsedOptionsTest : public CommonArtTest {
  public:

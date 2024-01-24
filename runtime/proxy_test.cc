@@ -25,7 +25,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "well_known_classes.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace proxy_test {
 
 class ProxyTest : public CommonRuntimeTest {

@@ -23,7 +23,7 @@
 #include "base/mutex.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 using android::base::StringPrintf;
 

@@ -21,13 +21,14 @@
 #include <vector>
 
 #include "art_method-inl.h"
+#include "base/macros.h"
 #include "class_linker-inl.h"
 #include "class_root-inl.h"
 #include "mirror/class-inl.h"
 #include "mirror/method.h"
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 namespace proxy_test {
 
 // Generate a proxy class with the given name and interfaces. This is a simplification from what
