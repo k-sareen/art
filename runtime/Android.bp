@@ -500,7 +500,7 @@ cc_defaults {
         "jni_platform_headers",
         "libart_headers",
         "libnativehelper_header_only",
-        // "libmmtk_art_headers",
+        "libmmtk_art_headers",
     ],
     export_header_lib_headers: [
         "dlmalloc",

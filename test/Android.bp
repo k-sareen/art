@@ -251,6 +251,10 @@ art_cc_defaults {
         test_suite_tag: ["art-host-gtest"],
     },
 
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
+
     shared_libs: [
         "libartd",
         "libartd-disassembler",
@@ -356,6 +360,9 @@ art_cc_defaults {
     static_libs: [
         "libgtest_isolated",
     ],
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
     target: {
         host: {
             cflags: [
@@ -436,6 +443,9 @@ art_cc_defaults {
     shared_libs: [
         "libbase",
         "liblog",
+    ],
+    header_libs: [
+        "libmmtk_art_headers",
     ],
     target: {
         host: {

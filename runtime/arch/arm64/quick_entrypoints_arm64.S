@@ -1487,7 +1487,7 @@ ART_QUICK_ALLOC_OBJECT_ROSALLOC art_quick_alloc_object_initialized_rosalloc, \
     // See Class::SetStatus() in class.cc for more details.
     bhi    \slowPathLabel
     str    x6, [xSELF, #MMTK_THREAD_LOCAL_CURSOR_OFFSET]      // Store new mmtk_thread_local_cursor.
-#endif !ART_USE_MMTK
+#endif  // !ART_USE_MMTK
     POISON_HEAP_REF w0
     str    w0, [x4, #MIRROR_OBJECT_CLASS_OFFSET]              // Store the class pointer.
     mov    x0, x4

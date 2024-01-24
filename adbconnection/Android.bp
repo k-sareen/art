@@ -49,6 +49,7 @@ cc_defaults {
     header_libs: [
         "libnativehelper_header_only",
         "dt_fd_forward_export",
+        "libmmtk_art_headers",
     ],
     required: [
         "libjdwp",
