@@ -23,7 +23,7 @@
 #endif
 #include "runtime.h"
 
-namespace art {
+namespace art HIDDEN {
 
 size_t HeapSampler::NextGeoDistRandSample() {
   // Make sure that rng_ and geo_dist are thread safe by acquiring a lock to access.

@@ -22,7 +22,7 @@
 #include "base/mutex.h"
 #include "mirror/object.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class HeapSampler {
  public:

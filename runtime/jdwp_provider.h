@@ -19,9 +19,10 @@
 
 #include <ios>
 
+#include "base/macros.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 enum class JdwpProvider {
   kNone,

@@ -21,7 +21,7 @@
 
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline void JValue::SetL(ObjPtr<mirror::Object> new_l) {
   l = new_l.Ptr();
