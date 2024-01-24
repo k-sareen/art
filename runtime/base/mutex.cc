@@ -249,8 +249,19 @@ void BaseMutex::CheckSafeToWait(Thread* self) {
   if (!kDebugLocking) {
     return;
   }
+  // Avoid repeated reporting of the same violation in the common case.
+  // We somewhat ignore races in the duplicate elision code. The first kMaxReports and the first
+  // report for a given level_ should always appear.
+  static std::atomic<uint> last_level_reported(kLockLevelCount);
+  static constexpr int kMaxReports = 5;
+  static std::atomic<uint> num_reports(0);  // For the current level, more or less.
+
   if (self == nullptr) {
     CheckUnattachedThread(level_);
+  } else if (num_reports.load(std::memory_order_relaxed) > kMaxReports &&
+             last_level_reported.load(std::memory_order_relaxed) == level_) {
+    LOG(ERROR) << "Eliding probably redundant CheckSafeToWait() complaints";
+    return;
   } else {
     CHECK(self->GetHeldMutex(level_) == this || level_ == kMonitorLock)
         << "Waiting on unacquired mutex: " << name_;
@@ -284,6 +295,12 @@ void BaseMutex::CheckSafeToWait(Thread* self) {
             bad_mutexes_held = true;
           }
         } else if (held_mutex != nullptr) {
+          if (last_level_reported.load(std::memory_order_relaxed) == level_) {
+            num_reports.fetch_add(1, std::memory_order_relaxed);
+          } else {
+            last_level_reported.store(level_, std::memory_order_relaxed);
+            num_reports.store(0, std::memory_order_relaxed);
+          }
           std::ostringstream oss;
           oss << "Holding \"" << held_mutex->name_ << "\" "
               << "(level " << LockLevel(i) << ") while performing wait on "

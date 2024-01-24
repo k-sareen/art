@@ -1534,6 +1534,13 @@ class EXPORT Thread {
 
   bool IsSystemDaemon() const REQUIRES_SHARED(Locks::mutator_lock_);
 
+  // Cause the 'this' thread to abort the process by sending SIGABRT.  Thus we should get an
+  // asynchronous stack trace for 'this' thread, rather than waiting for it to process a
+  // checkpoint. Useful mostly to discover why a thread isn't responding to a suspend request or
+  // checkpoint. The caller should "suspend" (in the Java sense) 'thread' before invoking this, so
+  // 'thread' can't get deallocated before we access it.
+  NO_RETURN void AbortInThis(std::string message);
+
   // Returns true if StrictMode events are traced for the current thread.
   static bool IsSensitiveThread() {
     if (is_sensitive_thread_hook_ != nullptr) {

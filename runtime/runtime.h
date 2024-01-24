@@ -287,6 +287,10 @@ class Runtime {
   // For test use only.
   static void TestOnlySetCurrent(Runtime* instance) { instance_ = instance; }
 
+  // Set whichever abort message locations are appropriate to copies of the argument. Used by
+  // Abort() and Thread::AbortInThis().
+  static void SetAbortMessage(const char* msg) REQUIRES(!Locks::abort_lock_);
+
   // Aborts semi-cleanly. Used in the implementation of LOG(FATAL), which most
   // callers should prefer.
   NO_RETURN static void Abort(const char* msg) REQUIRES(!Locks::abort_lock_);

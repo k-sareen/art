@@ -655,6 +655,10 @@ void ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
   Locks::mutator_lock_->SharedUnlock(self);
 }
 
+// True only for debugging suspend timeout code. The resulting timeouts are short enough that
+// failures are expected.
+static constexpr bool kShortSuspendTimeouts = false;
+
 #if ART_USE_FUTEXES
 static constexpr int kSuspendBarrierIters = 5;
 
@@ -663,7 +667,11 @@ static bool WaitOnceForSuspendBarrier(AtomicInteger* barrier,
                                       int32_t cur_val,
                                       uint64_t timeout_ns) {
   timespec wait_timeout;
-  DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
+  if (kShortSuspendTimeouts) {
+    timeout_ns = MsToNs(kSuspendBarrierIters);
+  } else {
+    DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
+  }
   InitTimeSpec(false, CLOCK_MONOTONIC, NsToMs(timeout_ns / kSuspendBarrierIters), 0, &wait_timeout);
   if (futex(barrier->Address(), FUTEX_WAIT_PRIVATE, cur_val, &wait_timeout, nullptr, 0) != 0) {
     if (errno == ETIMEDOUT) {
@@ -681,8 +689,11 @@ static constexpr int kSuspendBarrierIters = 10;
 static bool WaitOnceForSuspendBarrier(AtomicInteger* barrier,
                                       int32_t cur_val,
                                       uint64_t timeout_ns) {
-  DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
-  for (int i = 0; i < 1'000'000; ++i) {
+  static constexpr int kIters = kShortSuspendTimeouts ? 10'000 : 1'000'000;
+  if (!kShortSuspendTimeouts) {
+    DCHECK_GE(NsToMs(timeout_ns / kSuspendBarrierIters), 100ul);
+  }
+  for (int i = 0; i < kIters; ++i) {
     sched_yield();
     if (barrier->load(std::memory_order_acquire) == 0) {
       return false;
@@ -741,8 +752,10 @@ std::optional<std::string> ThreadList::WaitForSuspendBarrier(AtomicInteger* barr
     if (WaitOnceForSuspendBarrier(barrier, cur_val, thread_suspend_timeout_ns_)) {
       ++i;
 #if ART_USE_FUTEXES
-      CHECK_GE(NanoTime() - start_time,
-               i * thread_suspend_timeout_ns_ / kSuspendBarrierIters - 1'000'000);
+      if (!kShortSuspendTimeouts) {
+        CHECK_GE(NanoTime() - start_time,
+                 i * thread_suspend_timeout_ns_ / kSuspendBarrierIters - 1'000'000);
+      }
 #endif
     }
     cur_val = barrier->load(std::memory_order_acquire);
@@ -906,13 +919,20 @@ void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason) {
     MutexLock mu(self, *Locks::thread_list_lock_);
     MutexLock mu2(self, *Locks::thread_suspend_count_lock_);
     std::ostringstream oss;
+    oss << "Unsuspended threads: ";
+    Thread* culprit = nullptr;
     for (const auto& thread : list_) {
       if (thread != self && !thread->IsSuspended()) {
-        oss << std::endl << "Thread not suspended: " << *thread;
+        culprit = thread;
+        oss << *thread << ", ";
       }
     }
-    LOG(::android::base::FATAL) << "Timed out waiting for threads to suspend, waited for "
-                                << PrettyDuration(wait_time) << oss.str();
+    oss << "waited for " << PrettyDuration(wait_time);
+    if (culprit == nullptr) {
+      LOG(FATAL) << "SuspendAll timeout. " << oss.str();
+    } else {
+      culprit->AbortInThis("SuspendAll timeout. " + oss.str());
+    }
   }
 }
 
@@ -1187,9 +1207,10 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
       MutexLock suspend_count_mu(self, *Locks::thread_suspend_count_lock_);
       first_barrier = thread->tlsPtr_.active_suspend1_barriers;
     }
-    // 'thread' should still be suspended, and hence stick around.
-    LOG(FATAL) << StringPrintf(
-        "SuspendThreadByThreadId timed out: %d (%s), state&flags: 0x%x, priority: %d,"
+    // 'thread' should still be suspended, and hence stick around. Try to abort there, since its
+    // stack trace is much more interesting than ours.
+    thread->AbortInThis(StringPrintf(
+        "Caused SuspendThreadByThreadId to time out: %d (%s), state&flags: 0x%x, priority: %d,"
         " barriers: %p, ours: %p, barrier value: %d, nsusps: %d, ncheckpts: %d, thread_info: %s",
         thread_id,
         name.c_str(),
@@ -1200,7 +1221,7 @@ Thread* ThreadList::SuspendThreadByThreadId(uint32_t thread_id, SuspendReason re
         wrapped_barrier.barrier_.load(),
         thread->suspended_count_ - suspended_count,
         thread->checkpoint_count_ - checkpoint_count,
-        failure_info.value().c_str());
+        failure_info.value().c_str()));
     UNREACHABLE();
   }
 }

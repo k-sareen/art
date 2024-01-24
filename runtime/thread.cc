@@ -113,6 +113,10 @@
 #include "verify_object.h"
 #include "well_known_classes-inl.h"
 
+#ifdef ART_TARGET_ANDROID
+#include <android/set_abort_message.h>
+#endif
+
 #if ART_USE_FUTEXES
 #include "linux/futex.h"
 #include "sys/syscall.h"
@@ -1444,7 +1448,8 @@ ObjPtr<mirror::String> Thread::GetThreadName() const {
 void Thread::GetThreadName(std::string& name) const {
   tls32_.num_name_readers.fetch_add(1, std::memory_order_seq_cst);
   // The store part of the increment has to be ordered with respect to the following load.
-  name.assign(tlsPtr_.name.load(std::memory_order_seq_cst));
+  const char* c_name = tlsPtr_.name.load(std::memory_order_seq_cst);
+  name.assign(c_name == nullptr ? "<no name>" : c_name);
   tls32_.num_name_readers.fetch_sub(1 /* at least memory_order_release */);
 }
 
@@ -1724,6 +1729,9 @@ bool Thread::RequestSynchronousCheckpoint(Closure* function, ThreadState wait_st
       }
     }
     if (!is_suspended) {
+      // This waits while holding the mutator lock. Effectively `self` becomes
+      // impossible to suspend until `this` responds to the suspend request.
+      // Arguably that's not making anything qualitatively worse.
       bool success = !Runtime::Current()
                           ->GetThreadList()
                           ->WaitForSuspendBarrier(&wrapped_barrier.barrier_)
@@ -4825,6 +4833,27 @@ int Thread::GetNativePriority() const {
   palette_status_t status = PaletteSchedGetPriority(GetTid(), &priority);
   CHECK(status == PALETTE_STATUS_OK || status == PALETTE_STATUS_CHECK_ERRNO);
   return priority;
+}
+
+void Thread::AbortInThis(std::string message) {
+  std::string thread_name;
+  Thread::Current()->GetThreadName(thread_name);
+  LOG(ERROR) << message;
+  LOG(ERROR) << "Aborting culprit thread";
+  Runtime::Current()->SetAbortMessage(("Caused " + thread_name + " failure : " + message).c_str());
+  // Unlike Runtime::Abort() we do not fflush(nullptr), since we want to send the signal with as
+  // little delay as possible.
+  int res = pthread_kill(tlsPtr_.pthread_self, SIGABRT);
+  if (res != 0) {
+    LOG(ERROR) << "pthread_kill failed with " << res << " " << strerror(res) << " target was "
+               << tls32_.tid;
+  } else {
+    // Wait for our process to be aborted.
+    sleep(10 /* seconds */);
+  }
+  // The process should have died long before we got here. Never return.
+  LOG(FATAL) << "Failed to abort in culprit thread: " << message;
+  UNREACHABLE();
 }
 
 bool Thread::IsSystemDaemon() const {

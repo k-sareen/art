@@ -658,21 +658,24 @@ struct AbortState {
   }
 };
 
-void Runtime::Abort(const char* msg) {
+void Runtime::SetAbortMessage(const char* msg) {
   auto old_value = gAborting.fetch_add(1);  // set before taking any locks
 
   // Only set the first abort message.
   if (old_value == 0) {
 #ifdef ART_TARGET_ANDROID
     android_set_abort_message(msg);
-#else
+#endif
     // Set the runtime fault message in case our unexpected-signal code will run.
     Runtime* current = Runtime::Current();
     if (current != nullptr) {
       current->SetFaultMessage(msg);
     }
-#endif
   }
+}
+
+void Runtime::Abort(const char* msg) {
+  SetAbortMessage(msg);
 
   // May be coming from an unattached thread.
   if (Thread::Current() == nullptr) {

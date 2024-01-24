@@ -213,8 +213,11 @@ class ThreadList {
 
   // Wait for suspend barrier to reach zero. Return a string possibly containing diagnostic
   // information on timeout, nothing on success.  The argument t specifies a thread to monitor for
-  // the diagnostic information. If 0 is passed, we return an empty string on timeout.
-  std::optional<std::string> WaitForSuspendBarrier(AtomicInteger* barrier, pid_t t = 0);
+  // the diagnostic information. If 0 is passed, we return an empty string on timeout.  Normally
+  // the caller does not hold the mutator lock. See the comment at the call in
+  // RequestSynchronousCheckpoint for the only exception.
+  std::optional<std::string> WaitForSuspendBarrier(AtomicInteger* barrier, pid_t t = 0)
+      REQUIRES(!Locks::thread_list_lock_, !Locks::thread_suspend_count_lock_);
 
  private:
   uint32_t AllocThreadId(Thread* self);
