@@ -58,6 +58,24 @@
    call art_quick_deliver_exception  // args a0, a1
    unimp
 
+// cmp-long vAA, vBB, vCC
+// Format 23x: AA|31 CC|BB
+%def op_cmp_long():
+   FETCH t1, count=1     // t1 := CC|BB
+   srliw t0, xINST, 8    // t0 := AA
+   srliw t2, t1, 8       // t2 := CC
+   andi t1, t1, 0xFF     // t1 := BB
+   GET_VREG_WIDE t1, t1  // t1 := fp[BB]
+   GET_VREG_WIDE t2, t2  // t2 := fp[CC]
+   // Note: Formula "(SLT r,l) - (SLT l,r)" lifted from compiler.
+   slt t3, t1, t2
+   slt t4, t2, t1
+   sub t4, t4, t3
+   FETCH_ADVANCE_INST 2
+%  set_vreg("t4", "t0", z0="t1")  # fp[AA] := t4
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
 %def bincmp(condition=""):
     unimp
 
@@ -71,9 +89,6 @@
     unimp
 
 %def op_goto_32():
-    unimp
-
-%def op_cmp_long():
     unimp
 
 %def op_if_eq():

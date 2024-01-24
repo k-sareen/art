@@ -1,17 +1,67 @@
 // Note: Floating point operations must follow IEEE 754 rules, using round-to-nearest and gradual
 // underflow, except where stated otherwise.
 
-%def op_cmpl_float():
-    unimp
+//
+// floating-point comparators vAA, vBB, vCC
+// Note: Perform the indicated floating point comparison, setting a to 0 if b == c, 1 if b > c, or
+// -1 if b < c. The "bias" listed indicates how NaN comparisons are treated: "gt bias" instructions
+// return 1 for NaN comparisons, and "lt bias" instructions return -1.
+//
 
-%def op_cmpg_float():
-    unimp
+// cmpl-float vAA, vBB, vCC
+// Format 23x: AA|2d CC|BB
+// LT bias, if NaN then vAA := -1
+%def op_cmpl_float(is_double=False):
+   FETCH t1, count=1     // t1 := CC|BB
+   srliw t0, xINST, 8    // t0 := AA
+   srliw t2, t1, 8       // t2 := CC
+   andi t1, t1, 0xFF     // t1 := BB
+%  get_vreg_float("ft1", "t1", is_double=is_double)  # ft1 := fp[BB]
+%  get_vreg_float("ft2", "t2", is_double=is_double)  # ft2 := fp[CC]
+   // Note: Formula "((FLE r,l) - 1) + (FLT r,l)" lifted from compiler.
+%  precision = "d" if is_double else "s"
+   fle.${precision} t1, ft2, ft1
+   flt.${precision} t2, ft2, ft1
+   addi t1, t1, -1
+   add t2, t2, t1
+   FETCH_ADVANCE_INST 2
+%  set_vreg("t2", "t0", z0="t1")  # fp[AA] := result
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
 
+// cmpg-float vvAA, vBB, vCC
+// Format 23x: AA|2e CC|BB
+// GT bias, if NaN then vAA := 1
+%def op_cmpg_float(is_double=False):
+   FETCH t1, count=1     // t1 := CC|BB
+   srliw t0, xINST, 8    // t0 := AA
+   srliw t2, t1, 8       // t2 := CC
+   andi t1, t1, 0xFF     // t1 := BB
+%  get_vreg_float("ft1", "t1", is_double=is_double)  # ft1 := fp[BB]
+%  get_vreg_float("ft2", "t2", is_double=is_double)  # ft2 := fp[CC]
+   // Note: Formula "((FLE l,r) ^ 1) - (FLT l,r)" lifted from compiler.
+%  precision = "d" if is_double else "s"
+   fle.${precision} t1, ft1, ft2
+   flt.${precision} t2, ft1, ft2
+   xori t1, t1, 1
+   sub t2, t1, t2
+   FETCH_ADVANCE_INST 2
+%  set_vreg("t2", "t0", z0="t1")  # fp[AA] := result
+   GET_INST_OPCODE t0
+   GOTO_OPCODE t0
+
+// cmpl-double vAA, vBB, vCC
+// Format 23x: AA|2f CC|BB
+// LT bias, if NaN then vAA := -1
 %def op_cmpl_double():
-    unimp
+%  op_cmpl_float(is_double=True)
 
+// cmpg-double vAA, vBB, vCC
+// Format 23x: AA|30 CC|BB
+// Note: Formula "((FLE l,r) ^ 1) - (FLT l,r)" lifted from compiler.
+// GT bias, if NaN then vAA := 1
 %def op_cmpg_double():
-    unimp
+%  op_cmpg_float(is_double=True)
 
 //
 // funop vA, vB
