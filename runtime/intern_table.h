@@ -20,11 +20,12 @@
 #include "base/dchecked_vector.h"
 #include "base/gc_visited_arena_pool.h"
 #include "base/hash_set.h"
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "gc/weak_root_state.h"
 #include "gc_root.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class IsMarkedVisitor;
 
@@ -116,20 +117,19 @@ class InternTable {
               StringEquals,
               GcRootArenaAllocator<GcRoot<mirror::String>, kAllocatorTagInternTable>>;
 
-  InternTable();
+  EXPORT InternTable();
 
   // Interns a potentially new string in the 'strong' table. May cause thread suspension.
-  ObjPtr<mirror::String> InternStrong(uint32_t utf16_length, const char* utf8_data)
+  EXPORT ObjPtr<mirror::String> InternStrong(uint32_t utf16_length, const char* utf8_data)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
   // Interns a potentially new string in the 'strong' table. May cause thread suspension.
-  ObjPtr<mirror::String> InternStrong(const char* utf8_data) REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!Roles::uninterruptible_);
+  EXPORT ObjPtr<mirror::String> InternStrong(const char* utf8_data)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
   // Interns a potentially new string in the 'strong' table. May cause thread suspension.
-  ObjPtr<mirror::String> InternStrong(ObjPtr<mirror::String> s)
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!Roles::uninterruptible_);
+  EXPORT ObjPtr<mirror::String> InternStrong(ObjPtr<mirror::String> s)
+      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Roles::uninterruptible_);
 
   // Interns a potentially new string in the 'weak' table. May cause thread suspension.
   ObjPtr<mirror::String> InternWeak(const char* utf8_data) REQUIRES_SHARED(Locks::mutator_lock_)
@@ -160,7 +160,7 @@ class InternTable {
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::intern_table_lock_);
 
   // Total number of interned strings.
-  size_t Size() const REQUIRES(!Locks::intern_table_lock_);
+  EXPORT size_t Size() const REQUIRES(!Locks::intern_table_lock_);
 
   // Total number of weakly live interned strings.
   size_t StrongSize() const REQUIRES(!Locks::intern_table_lock_);
@@ -168,7 +168,7 @@ class InternTable {
   // Total number of strongly live interned strings.
   size_t WeakSize() const REQUIRES(!Locks::intern_table_lock_);
 
-  void VisitRoots(RootVisitor* visitor, VisitRootFlags flags)
+  EXPORT void VisitRoots(RootVisitor* visitor, VisitRootFlags flags)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::intern_table_lock_);
 
   // Visit all of the interns in the table.
@@ -292,7 +292,7 @@ class InternTable {
       REQUIRES(!Locks::intern_table_lock_) REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Note: Transaction rollback calls these helper functions directly.
-  ObjPtr<mirror::String> InsertStrong(ObjPtr<mirror::String> s, uint32_t hash)
+  EXPORT ObjPtr<mirror::String> InsertStrong(ObjPtr<mirror::String> s, uint32_t hash)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::intern_table_lock_);
   ObjPtr<mirror::String> InsertWeak(ObjPtr<mirror::String> s, uint32_t hash)
       REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::intern_table_lock_);

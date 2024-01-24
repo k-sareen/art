@@ -17,9 +17,10 @@
 #ifndef ART_RUNTIME_INTRINSICS_ENUM_H_
 #define ART_RUNTIME_INTRINSICS_ENUM_H_
 
+#include "base/macros.h"
 #include "intrinsics_list.h"
 
-namespace art {
+namespace art HIDDEN {
 
 enum class Intrinsics {
 #define OPTIMIZING_INTRINSICS(Name, ...) \

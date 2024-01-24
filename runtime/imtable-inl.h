@@ -23,7 +23,7 @@
 #include "dex/dex_file.h"
 #include "dex/utf.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static constexpr bool kImTableHashUseName = true;
 static constexpr bool kImTableHashUseCoefficients = true;

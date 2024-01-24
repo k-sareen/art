@@ -34,7 +34,7 @@
 #include "thread.h"
 #include "thread-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 InternTable::InternTable()
     : log_new_roots_(false),

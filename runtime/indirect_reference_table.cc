@@ -34,7 +34,7 @@
 
 #include <cstdlib>
 
-namespace art {
+namespace art HIDDEN {
 
 static constexpr bool kDebugIRT = false;
 

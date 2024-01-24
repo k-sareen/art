@@ -26,7 +26,7 @@
 #include "oat/image.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 ALWAYS_INLINE
 inline uint32_t InternTable::Utf8String::Hash(uint32_t utf16_length, const char* utf8_data) {

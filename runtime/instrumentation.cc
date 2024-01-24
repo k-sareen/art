@@ -54,7 +54,7 @@
 #include "thread.h"
 #include "thread_list.h"
 
-namespace art {
+namespace art HIDDEN {
 extern "C" NO_RETURN void artDeoptimize(Thread* self, bool skip_method_exit_callbacks);
 extern "C" NO_RETURN void artDeliverPendingExceptionFromCode(Thread* self);
 

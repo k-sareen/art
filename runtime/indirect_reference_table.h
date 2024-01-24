@@ -35,7 +35,7 @@
 #include "offsets.h"
 #include "read_barrier_option.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class IsMarkedVisitor;
 class RootInfo;
@@ -72,7 +72,7 @@ enum IndirectRefKind {
   kWeakGlobal    = 3,  // <<weak global reference>>
   kLastKind      = kWeakGlobal
 };
-std::ostream& operator<<(std::ostream& os, IndirectRefKind rhs);
+EXPORT std::ostream& operator<<(std::ostream& os, IndirectRefKind rhs);
 const char* GetIndirectRefKindString(IndirectRefKind kind);
 
 // Maintain a table of indirect references.  Used for global and weak global JNI references.
@@ -251,8 +251,7 @@ class IndirectReferenceTable {
   bool IsValidReference(IndirectRef, /*out*/std::string* error_msg) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  void SweepJniWeakGlobals(IsMarkedVisitor* visitor)
-      REQUIRES_SHARED(Locks::mutator_lock_)
+  EXPORT void SweepJniWeakGlobals(IsMarkedVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jni_weak_globals_lock_);
 
  private:
