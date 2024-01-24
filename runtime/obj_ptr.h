@@ -27,7 +27,7 @@
 // Always inline ObjPtr methods even in debug builds.
 #define OBJPTR_INLINE __attribute__ ((always_inline))
 
-namespace art {
+namespace art HIDDEN {
 
 constexpr bool kObjPtrPoisoning = kIsDebugBuild;
 

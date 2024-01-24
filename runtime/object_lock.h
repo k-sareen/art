@@ -21,16 +21,16 @@
 #include "base/macros.h"
 #include "handle.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class Thread;
 
 template <typename T>
 class ObjectLock {
  public:
-  ObjectLock(Thread* self, Handle<T> object) REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT ObjectLock(Thread* self, Handle<T> object) REQUIRES_SHARED(Locks::mutator_lock_);
 
-  ~ObjectLock() REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT ~ObjectLock() REQUIRES_SHARED(Locks::mutator_lock_);
 
   void WaitIgnoringInterrupts() REQUIRES_SHARED(Locks::mutator_lock_);
 
@@ -64,7 +64,6 @@ class ObjectTryLock {
 
   DISALLOW_COPY_AND_ASSIGN(ObjectTryLock);
 };
-
 
 }  // namespace art
 

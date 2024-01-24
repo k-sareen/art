@@ -20,7 +20,7 @@
 #include "mirror/object-inl.h"
 #include "monitor.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template <typename T>
 ObjectLock<T>::ObjectLock(Thread* self, Handle<T> object) : self_(self), obj_(object) {

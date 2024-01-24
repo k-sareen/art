@@ -20,9 +20,10 @@
 #include <iosfwd>
 
 #include "base/enums.h"
+#include "base/macros.h"
 #include "runtime_globals.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // Allow the meaning of offsets to be strongly typed.
 class Offset {
