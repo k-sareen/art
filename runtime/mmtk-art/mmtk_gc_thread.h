@@ -33,7 +33,7 @@ class MmtkWorkerThread {
   MmtkWorkerThread(const std::string& name, void* context);
 
   [[noreturn]]
-  ~MmtkWorkerThread() {
+  virtual ~MmtkWorkerThread() {
     LOG(FATAL) << "MmtkWorkerThread's destructor called";
     UNREACHABLE();
   }

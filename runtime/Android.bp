@@ -141,6 +141,7 @@ cc_defaults {
         // `libart-runtime` doesn't depend on all `libart-compiler` headers, it only requires
         // `jit_create` to initialize the JIT compiler.
         "libart-compiler_jit_headers",
+        "libmmtk_art_headers",
     ],
     export_header_lib_headers: [
         "libart_headers",
