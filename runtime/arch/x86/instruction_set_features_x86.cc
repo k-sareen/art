@@ -46,7 +46,7 @@ static constexpr const char* x86_known_variants[] = {
     "silvermont",
     "goldmont",
     "goldmont-plus",
-    "goldmont-without-xsaves",
+    "goldmont-without-sha-xsaves",
     "tremont",
     "kabylake",
     "default",
@@ -58,7 +58,7 @@ static constexpr const char* x86_variants_with_ssse3[] = {
     "silvermont",
     "goldmont",
     "goldmont-plus",
-    "goldmont-without-xsaves",
+    "goldmont-without-sha-xsaves",
     "tremont",
     "kabylake",
 };
@@ -68,7 +68,7 @@ static constexpr const char* x86_variants_with_sse4_1[] = {
     "silvermont",
     "goldmont",
     "goldmont-plus",
-    "goldmont-without-xsaves",
+    "goldmont-without-sha-xsaves",
     "tremont",
     "kabylake",
 };
@@ -78,7 +78,7 @@ static constexpr const char* x86_variants_with_sse4_2[] = {
     "silvermont",
     "goldmont",
     "goldmont-plus",
-    "goldmont-without-xsaves",
+    "goldmont-without-sha-xsaves",
     "tremont",
     "kabylake",
 };
@@ -88,7 +88,7 @@ static constexpr const char* x86_variants_with_popcnt[] = {
     "silvermont",
     "goldmont",
     "goldmont-plus",
-    "goldmont-without-xsaves",
+    "goldmont-without-sha-xsaves",
     "tremont",
     "kabylake",
 };
