@@ -791,22 +791,22 @@ bool HDeadCodeElimination::RemoveEmptyIfs() {
     //   5
     // where 2, 3, and 4 are single HGoto blocks, and block 5 has Phis.
     ScopedArenaAllocator allocator(graph_->GetArenaStack());
-    ScopedArenaHashSet<HBasicBlock*> visited_blocks(allocator.Adapter(kArenaAllocDCE));
+    ArenaBitVector visited_blocks(
+        &allocator, graph_->GetBlocks().size(), /*expandable=*/ false, kArenaAllocDCE);
+    visited_blocks.ClearAllBits();
     HBasicBlock* merge_true = true_block;
-    visited_blocks.insert(merge_true);
+    visited_blocks.SetBit(merge_true->GetBlockId());
     while (merge_true->IsSingleGoto()) {
       merge_true = merge_true->GetSuccessors()[0];
-      visited_blocks.insert(merge_true);
+      visited_blocks.SetBit(merge_true->GetBlockId());
     }
 
     HBasicBlock* merge_false = false_block;
-    while (visited_blocks.find(merge_false) == visited_blocks.end() &&
-           merge_false->IsSingleGoto()) {
+    while (!visited_blocks.IsBitSet(merge_false->GetBlockId()) && merge_false->IsSingleGoto()) {
       merge_false = merge_false->GetSuccessors()[0];
     }
 
-    if (visited_blocks.find(merge_false) == visited_blocks.end() ||
-        !merge_false->GetPhis().IsEmpty()) {
+    if (!visited_blocks.IsBitSet(merge_false->GetBlockId()) || !merge_false->GetPhis().IsEmpty()) {
       // TODO(solanes): We could allow Phis iff both branches have the same value for all Phis. This
       // may not be covered by SsaRedundantPhiElimination in cases like `HPhi[A,A,B]` where the Phi
       // itself is not redundant for the general case but it is for a pair of branches.
@@ -815,8 +815,11 @@ bool HDeadCodeElimination::RemoveEmptyIfs() {
 
     // Data structures to help remove now-dead instructions.
     ScopedArenaQueue<HInstruction*> maybe_remove(allocator.Adapter(kArenaAllocDCE));
-    ScopedArenaHashSet<HInstruction*> visited(allocator.Adapter(kArenaAllocDCE));
+    ArenaBitVector visited(
+        &allocator, graph_->GetCurrentInstructionId(), /*expandable=*/ false, kArenaAllocDCE);
+    visited.ClearAllBits();
     maybe_remove.push(if_instr->InputAt(0));
+    visited.SetBit(if_instr->GetId());
 
     // Swap HIf with HGoto
     block->ReplaceAndRemoveInstructionWith(
@@ -834,12 +837,12 @@ bool HDeadCodeElimination::RemoveEmptyIfs() {
     while (!maybe_remove.empty()) {
       HInstruction* instr = maybe_remove.front();
       maybe_remove.pop();
-      if (visited.find(instr) != visited.end()) {
-        continue;
-      }
-      visited.insert(instr);
       if (instr->IsDeadAndRemovable()) {
         for (HInstruction* input : instr->GetInputs()) {
+          if (visited.IsBitSet(input->GetId())) {
+            continue;
+          }
+          visited.SetBit(input->GetId());
           maybe_remove.push(input);
         }
         instr->GetBlock()->RemoveInstructionOrPhi(instr);
