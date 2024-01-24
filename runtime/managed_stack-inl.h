@@ -21,7 +21,7 @@
 
 #include "interpreter/shadow_frame.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline ShadowFrame* ManagedStack::PushShadowFrame(ShadowFrame* new_top_frame) {
   DCHECK(!HasTopQuickFrame());

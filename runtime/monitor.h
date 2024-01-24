@@ -28,6 +28,7 @@
 
 #include "base/allocator.h"
 #include "base/atomic.h"
+#include "base/macros.h"
 #include "base/mutex.h"
 #include "gc_root.h"
 #include "lock_word.h"
@@ -36,7 +37,7 @@
 #include "runtime_callbacks.h"
 #include "thread_state.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 class IsMarkedVisitor;
@@ -72,20 +73,20 @@ class Monitor {
   static void Init(uint32_t lock_profiling_threshold, uint32_t stack_dump_lock_profiling_threshold);
 
   // Return the thread id of the lock owner or 0 when there is no owner.
-  static uint32_t GetLockOwnerThreadId(ObjPtr<mirror::Object> obj)
+  EXPORT static uint32_t GetLockOwnerThreadId(ObjPtr<mirror::Object> obj)
       NO_THREAD_SAFETY_ANALYSIS;  // TODO: Reading lock owner without holding lock is racy.
 
   // NO_THREAD_SAFETY_ANALYSIS for mon->Lock.
-  static ObjPtr<mirror::Object> MonitorEnter(Thread* thread,
-                                             ObjPtr<mirror::Object> obj,
-                                             bool trylock)
+  EXPORT static ObjPtr<mirror::Object> MonitorEnter(Thread* thread,
+                                                    ObjPtr<mirror::Object> obj,
+                                                    bool trylock)
       EXCLUSIVE_LOCK_FUNCTION(obj.Ptr())
       NO_THREAD_SAFETY_ANALYSIS
       REQUIRES(!Roles::uninterruptible_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // NO_THREAD_SAFETY_ANALYSIS for mon->Unlock.
-  static bool MonitorExit(Thread* thread, ObjPtr<mirror::Object> obj)
+  EXPORT static bool MonitorExit(Thread* thread, ObjPtr<mirror::Object> obj)
       NO_THREAD_SAFETY_ANALYSIS
       REQUIRES(!Roles::uninterruptible_)
       REQUIRES_SHARED(Locks::mutator_lock_)
@@ -102,11 +103,12 @@ class Monitor {
 
   // Object.wait().  Also called for class init.
   // NO_THREAD_SAFETY_ANALYSIS for mon->Wait.
-  static void Wait(Thread* self,
-                   ObjPtr<mirror::Object> obj,
-                   int64_t ms,
-                   int32_t ns,
-                   bool interruptShouldThrow, ThreadState why)
+  EXPORT static void Wait(Thread* self,
+                          ObjPtr<mirror::Object> obj,
+                          int64_t ms,
+                          int32_t ns,
+                          bool interruptShouldThrow,
+                          ThreadState why)
       REQUIRES_SHARED(Locks::mutator_lock_) NO_THREAD_SAFETY_ANALYSIS;
 
   static ThreadState FetchState(const Thread* thread,
@@ -116,18 +118,17 @@ class Monitor {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Used to implement JDWP's ThreadReference.CurrentContendedMonitor.
-  static ObjPtr<mirror::Object> GetContendedMonitor(Thread* thread)
+  EXPORT static ObjPtr<mirror::Object> GetContendedMonitor(Thread* thread)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Calls 'callback' once for each lock held in the single stack frame represented by
   // the current state of 'stack_visitor'.
   // The abort_on_failure flag allows to not die when the state of the runtime is unorderly. This
   // is necessary when we have already aborted but want to dump the stack as much as we can.
-  static void VisitLocks(StackVisitor* stack_visitor,
-                         void (*callback)(ObjPtr<mirror::Object>, void*),
-                         void* callback_context,
-                         bool abort_on_failure = true)
-      REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT static void VisitLocks(StackVisitor* stack_visitor,
+                                void (*callback)(ObjPtr<mirror::Object>, void*),
+                                void* callback_context,
+                                bool abort_on_failure = true) REQUIRES_SHARED(Locks::mutator_lock_);
 
   static bool IsValidLockWord(LockWord lock_word);
 
@@ -161,7 +162,7 @@ class Monitor {
   // Not exclusive because ImageWriter calls this during a Heap::VisitObjects() that
   // does not allow a thread suspension in the middle. TODO: maybe make this exclusive.
   // NO_THREAD_SAFETY_ANALYSIS for monitor->monitor_lock_.
-  static bool Deflate(Thread* self, ObjPtr<mirror::Object> obj)
+  EXPORT static bool Deflate(Thread* self, ObjPtr<mirror::Object> obj)
       REQUIRES_SHARED(Locks::mutator_lock_) NO_THREAD_SAFETY_ANALYSIS;
 
 #ifndef __LP64__
@@ -450,7 +451,7 @@ class MonitorList {
   void BroadcastForNewMonitors() REQUIRES(!monitor_list_lock_);
   // Returns how many monitors were deflated.
   size_t DeflateMonitors() REQUIRES(!monitor_list_lock_) REQUIRES(Locks::mutator_lock_);
-  size_t Size() REQUIRES(!monitor_list_lock_);
+  EXPORT size_t Size() REQUIRES(!monitor_list_lock_);
 
   using Monitors = std::list<Monitor*, TrackingAllocator<Monitor*, kAllocatorTagMonitorList>>;
 
@@ -476,7 +477,7 @@ class MonitorInfo {
   MonitorInfo() : owner_(nullptr), entry_count_(0) {}
   MonitorInfo(const MonitorInfo&) = default;
   MonitorInfo& operator=(const MonitorInfo&) = default;
-  explicit MonitorInfo(ObjPtr<mirror::Object> o) REQUIRES(Locks::mutator_lock_);
+  EXPORT explicit MonitorInfo(ObjPtr<mirror::Object> o) REQUIRES(Locks::mutator_lock_);
 
   Thread* owner_;
   size_t entry_count_;

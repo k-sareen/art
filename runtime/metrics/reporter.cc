@@ -31,7 +31,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic error "-Wconversion"
 
-namespace art {
+namespace art HIDDEN {
 namespace metrics {
 
 std::unique_ptr<MetricsReporter> MetricsReporter::Create(

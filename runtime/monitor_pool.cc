@@ -21,7 +21,7 @@
 #include "monitor.h"
 #include "thread-current-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;

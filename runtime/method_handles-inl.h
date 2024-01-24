@@ -30,7 +30,7 @@
 #include "reflection.h"
 #include "stack.h"
 
-namespace art {
+namespace art HIDDEN {
 
 // A convenience class that allows for iteration through a list of
 // input argument registers. This is used to iterate over input

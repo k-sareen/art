@@ -30,7 +30,7 @@
 
 #define EVENT_LOG_TAG_dvm_lock_sample 20003
 
-namespace art {
+namespace art HIDDEN {
 
 void Monitor::LogContentionEvent(Thread* self,
                                  uint32_t wait_ms,

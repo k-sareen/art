@@ -20,6 +20,7 @@
 #include "monitor.h"
 
 #include "base/allocator.h"
+#include "base/macros.h"
 #ifdef __LP64__
 #include <stdint.h>
 #include "base/atomic.h"
@@ -28,7 +29,7 @@
 #include "base/stl_util.h"     // STLDeleteElements
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 // Abstraction to keep monitors small enough to fit in a lock word (32bits). On 32bit systems the
 // monitor id loses the alignment bits of the Monitor*.

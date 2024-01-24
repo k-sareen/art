@@ -22,7 +22,7 @@
 #include "gc_root-inl.h"
 #include "obj_ptr-inl.h"
 
-namespace art {
+namespace art HIDDEN {
 
 template<ReadBarrierOption kReadBarrierOption>
 inline ObjPtr<mirror::Object> Monitor::GetObject() REQUIRES_SHARED(Locks::mutator_lock_) {

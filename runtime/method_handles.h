@@ -19,12 +19,13 @@
 
 #include <ostream>
 
+#include "base/macros.h"
 #include "dex/dex_instruction.h"
 #include "handle.h"
 #include "jvalue.h"
 #include "mirror/class.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ShadowFrame;
 

@@ -19,7 +19,9 @@
 
 #include <memory>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 namespace metrics {
 
 class MetricsBackend;

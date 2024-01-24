@@ -18,13 +18,14 @@
 #define ART_RUNTIME_METRICS_REPORTER_H_
 
 #include "app_info.h"
+#include "base/macros.h"
 #include "base/message_queue.h"
 #include "base/metrics/metrics.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic error "-Wconversion"
 
-namespace art {
+namespace art HIDDEN {
 namespace metrics {
 
 /**

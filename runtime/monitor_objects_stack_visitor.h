@@ -21,12 +21,13 @@
 
 #include "art_method.h"
 #include "base/locks.h"
+#include "base/macros.h"
 #include "monitor.h"
 #include "stack.h"
 #include "thread.h"
 #include "thread_state.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;

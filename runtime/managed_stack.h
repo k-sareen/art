@@ -27,7 +27,7 @@
 #include "base/macros.h"
 #include "base/bit_utils.h"
 
-namespace art {
+namespace art HIDDEN {
 
 namespace mirror {
 class Object;
