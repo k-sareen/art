@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_NTH_CALLER_VISITOR_H_
 #define ART_RUNTIME_NTH_CALLER_VISITOR_H_
 
+#include "base/macros.h"
 #include "art_method.h"
 #include "base/locks.h"
 #include "stack.h"
 
-namespace art {
+namespace art HIDDEN {
 class Thread;
 
 // Walks up the stack 'n' callers, when used with Thread::WalkStack.

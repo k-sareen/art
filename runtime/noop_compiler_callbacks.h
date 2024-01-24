@@ -17,9 +17,10 @@
 #ifndef ART_RUNTIME_NOOP_COMPILER_CALLBACKS_H_
 #define ART_RUNTIME_NOOP_COMPILER_CALLBACKS_H_
 
+#include "base/macros.h"
 #include "compiler_callbacks.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class NoopCompilerCallbacks final : public CompilerCallbacks {
  public:

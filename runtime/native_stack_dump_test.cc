@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-namespace art {
+namespace art HIDDEN {
 
 TEST(StripParametersTest, ValidInput) {
   EXPECT_EQ(StripParameters("foo(int)"), "foo");

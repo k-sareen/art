@@ -27,7 +27,7 @@ namespace unwindstack {
 class AndroidLocalUnwinder;
 }  // namespace unwindstack
 
-namespace art {
+namespace art HIDDEN {
 
 class ArtMethod;
 

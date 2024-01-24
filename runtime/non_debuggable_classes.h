@@ -20,9 +20,10 @@
 #include <vector>
 
 #include "base/locks.h"
+#include "base/macros.h"
 #include "jni.h"
 
-namespace art {
+namespace art HIDDEN {
 
 struct NonDebuggableClasses {
  public:
@@ -34,7 +35,7 @@ struct NonDebuggableClasses {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:
-  static std::vector<jclass> non_debuggable_classes;
+  EXPORT static std::vector<jclass> non_debuggable_classes;
 };
 
 }  // namespace art

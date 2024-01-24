@@ -30,7 +30,7 @@
 #include "scoped_thread_state_change-inl.h"
 #include "sigchain.h"
 
-namespace art {
+namespace art HIDDEN {
 
 static const char* GetMethodShorty(JNIEnv* env, jmethodID mid) {
   ScopedObjectAccess soa(env);

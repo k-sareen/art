@@ -21,7 +21,9 @@
 #include <stdint.h>
 #include <string>
 
-namespace art {
+#include "base/macros.h"
+
+namespace art HIDDEN {
 
 // Mirror libnativebridge interface. Done to have the ART callbacks out of line, and not require
 // the system/core header file in other files.

@@ -59,7 +59,7 @@
 
 #endif
 
-namespace art {
+namespace art HIDDEN {
 
 #if defined(__linux__)
 
