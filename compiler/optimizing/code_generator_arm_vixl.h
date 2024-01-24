@@ -615,26 +615,12 @@ class CodeGeneratorARMVIXL : public CodeGenerator {
                                            HInstruction* instruction,
                                            SlowPathCode* slow_path);
 
-  // Emit a write barrier if:
-  // A) emit_null_check is false
-  // B) emit_null_check is true, and value is not null.
-  void MaybeMarkGCCard(vixl::aarch32::Register temp,
-                       vixl::aarch32::Register card,
-                       vixl::aarch32::Register object,
-                       vixl::aarch32::Register value,
-                       bool emit_null_check);
-
-  // Emit a write barrier unconditionally.
+  // Emit a write barrier.
   void MarkGCCard(vixl::aarch32::Register temp,
                   vixl::aarch32::Register card,
-                  vixl::aarch32::Register object);
-
-  // Crash if the card table is not valid. This check is only emitted for the CC GC. We assert
-  // `(!clean || !self->is_gc_marking)`, since the card table should not be set to clean when the CC
-  // GC is marking for eliminated write barriers.
-  void CheckGCCardIsValid(vixl::aarch32::Register temp,
-                          vixl::aarch32::Register card,
-                          vixl::aarch32::Register object);
+                  vixl::aarch32::Register object,
+                  vixl::aarch32::Register value,
+                  bool emit_null_check);
 
   void GenerateMemoryBarrier(MemBarrierKind kind);
 

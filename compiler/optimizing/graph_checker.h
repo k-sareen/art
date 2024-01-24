@@ -59,8 +59,6 @@ class GraphChecker : public HGraphDelegateVisitor {
   void VisitPhi(HPhi* phi) override;
 
   void VisitArraySet(HArraySet* instruction) override;
-  void VisitInstanceFieldSet(HInstanceFieldSet* instruction) override;
-  void VisitStaticFieldSet(HStaticFieldSet* instruction) override;
   void VisitBinaryOperation(HBinaryOperation* op) override;
   void VisitBooleanNot(HBooleanNot* instruction) override;
   void VisitBoundType(HBoundType* instruction) override;
@@ -94,9 +92,6 @@ class GraphChecker : public HGraphDelegateVisitor {
   void HandleTypeCheckInstruction(HTypeCheckInstruction* instruction);
   void HandleLoop(HBasicBlock* loop_header);
   void HandleBooleanInput(HInstruction* instruction, size_t input_index);
-
-  template <typename GetWriteBarrierKind>
-  void CheckWriteBarrier(HInstruction* instruction, GetWriteBarrierKind&& get_write_barrier_kind);
 
   // Was the last visit of the graph valid?
   bool IsValid() const {
