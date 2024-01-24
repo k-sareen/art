@@ -20,7 +20,7 @@
 #include "lock_word.h"
 #include "monitor_pool.h"
 
-namespace art {
+namespace art HIDDEN {
 
 inline uint32_t LockWord::ThinLockOwner() const {
   DCHECK_EQ(GetState(), kThinLocked);

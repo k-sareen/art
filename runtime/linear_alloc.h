@@ -19,9 +19,10 @@
 
 #include "base/arena_allocator.h"
 #include "base/casts.h"
+#include "base/macros.h"
 #include "base/mutex.h"
 
-namespace art {
+namespace art HIDDEN {
 
 class ArenaPool;
 
