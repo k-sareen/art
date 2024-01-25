@@ -238,9 +238,6 @@ bool CanMethodUseNterp(ArtMethod* method, InstructionSet isa) {
     if (method->GetDexFile()->IsCompactDexFile()) {
       return false;  // Riscv64 nterp does not support compact dex yet.
     }
-    if (method->DexInstructionData().TriesSize() != 0u) {
-      return false;  // Riscv64 nterp does not support exception handling yet.
-    }
     for (DexInstructionPcPair pair : method->DexInstructions()) {
       // TODO(riscv64): Add support for more instructions.
       // Remove the check when all instructions are supported.

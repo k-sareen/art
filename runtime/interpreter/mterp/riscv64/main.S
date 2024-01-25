@@ -654,7 +654,11 @@ artNterpAsmInstructionStart = .L_op_nop
     .hidden artNterpAsmInstructionEnd
     .global artNterpAsmInstructionEnd
 artNterpAsmInstructionEnd:
-    unimp
+    // artNterpAsmInstructionEnd is used as landing pad for exception handling.
+    // xPC (S3) for the exception handler was set just prior to the long jump coming here.
+    FETCH_INST
+    GET_INST_OPCODE t0
+    GOTO_OPCODE t0
 
 %def opcode_pre():
 %   pass
