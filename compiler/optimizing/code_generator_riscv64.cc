@@ -2422,16 +2422,21 @@ void InstructionCodeGeneratorRISCV64::HandleShift(HBinaryOperation* instruction)
   }
 }
 
-void CodeGeneratorRISCV64::MarkGCCard(XRegister object,
-                                     XRegister value,
-                                     bool value_can_be_null) {
+void CodeGeneratorRISCV64::MaybeMarkGCCard(XRegister object,
+                                           XRegister value,
+                                           bool value_can_be_null) {
   Riscv64Label done;
-  ScratchRegisterScope srs(GetAssembler());
-  XRegister card = srs.AllocateXRegister();
-  XRegister temp = srs.AllocateXRegister();
   if (value_can_be_null) {
     __ Beqz(value, &done);
   }
+  MarkGCCard(object);
+  __ Bind(&done);
+}
+
+void CodeGeneratorRISCV64::MarkGCCard(XRegister object) {
+  ScratchRegisterScope srs(GetAssembler());
+  XRegister card = srs.AllocateXRegister();
+  XRegister temp = srs.AllocateXRegister();
   // Load the address of the card table into `card`.
   __ Loadd(card, TR, Thread::CardTableOffset<kRiscv64PointerSize>().Int32Value());
 
@@ -2452,9 +2457,27 @@ void CodeGeneratorRISCV64::MarkGCCard(XRegister object,
   // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
   // (no need to explicitly load `kCardDirty` as an immediate value).
   __ Sb(card, temp, 0);  // No scratch register left for `Storeb()`.
-  if (value_can_be_null) {
-    __ Bind(&done);
-  }
+}
+
+void CodeGeneratorRISCV64::CheckGCCardIsValid(XRegister object) {
+  Riscv64Label done;
+  ScratchRegisterScope srs(GetAssembler());
+  XRegister card = srs.AllocateXRegister();
+  XRegister temp = srs.AllocateXRegister();
+  // Load the address of the card table into `card`.
+  __ Loadd(card, TR, Thread::CardTableOffset<kRiscv64PointerSize>().Int32Value());
+
+  // Calculate the address of the card corresponding to `object`.
+  __ Srli(temp, object, gc::accounting::CardTable::kCardShift);
+  __ Add(temp, card, temp);
+  // assert (!clean || !self->is_gc_marking)
+  __ Lb(temp, temp, 0);
+  static_assert(gc::accounting::CardTable::kCardClean == 0);
+  __ Bnez(temp, &done);
+  __ Loadw(temp, TR, Thread::IsGcMarkingOffset<kRiscv64PointerSize>().Int32Value());
+  __ Beqz(temp, &done);
+  __ Unimp();
+  __ Bind(&done);
 }
 
 void LocationsBuilderRISCV64::HandleFieldSet(HInstruction* instruction) {
@@ -2483,12 +2506,21 @@ void InstructionCodeGeneratorRISCV64::HandleFieldSet(HInstruction* instruction,
     codegen_->MaybeRecordImplicitNullCheck(instruction);
   }
 
-  if (CodeGenerator::StoreNeedsWriteBarrier(type, instruction->InputAt(1)) &&
-      write_barrier_kind != WriteBarrierKind::kDontEmit) {
-    codegen_->MarkGCCard(
-        obj,
-        value.AsRegister<XRegister>(),
-        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+  bool needs_write_barrier =
+      codegen_->StoreNeedsWriteBarrier(type, instruction->InputAt(1), write_barrier_kind);
+  if (needs_write_barrier) {
+    if (value.IsConstant()) {
+      // TODO(solanes): If we do a `HuntForOriginalReference` call to the value in WBE, we will be
+      // able to DCHECK that the write_barrier_kind is kBeingReliedOn.
+      codegen_->MarkGCCard(obj);
+    } else {
+      codegen_->MaybeMarkGCCard(
+          obj,
+          value.AsRegister<XRegister>(),
+          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
+    }
+  } else if (codegen_->ShouldCheckGCCard(type, instruction->InputAt(1), write_barrier_kind)) {
+    codegen_->CheckGCCardIsValid(obj);
   }
 }
 
@@ -2899,77 +2931,85 @@ void InstructionCodeGeneratorRISCV64::VisitArraySet(HArraySet* instruction) {
   Location value = locations->InAt(2);
   DataType::Type value_type = instruction->GetComponentType();
   bool needs_type_check = instruction->NeedsTypeCheck();
+  const WriteBarrierKind write_barrier_kind = instruction->GetWriteBarrierKind();
   bool needs_write_barrier =
-      CodeGenerator::StoreNeedsWriteBarrier(value_type, instruction->GetValue());
+      codegen_->StoreNeedsWriteBarrier(value_type, instruction->GetValue(), write_barrier_kind);
   size_t data_offset = mirror::Array::DataOffset(DataType::Size(value_type)).Uint32Value();
   SlowPathCodeRISCV64* slow_path = nullptr;
 
   if (needs_write_barrier) {
     DCHECK_EQ(value_type, DataType::Type::kReference);
-    DCHECK(!value.IsConstant());
-    Riscv64Label do_store;
+    const bool storing_constant_zero = value.IsConstant();
+    // TODO(solanes): If we do a `HuntForOriginalReference` call to the value in WBE, we will be
+    // able to DCHECK that the write_barrier_kind is kBeingReliedOn when we have a constant.
+    if (!storing_constant_zero) {
+      Riscv64Label do_store;
 
-    bool can_value_be_null = instruction->GetValueCanBeNull();
-    if (can_value_be_null) {
-      __ Beqz(value.AsRegister<XRegister>(), &do_store);
-    }
+      bool can_value_be_null = instruction->GetValueCanBeNull();
+      if (can_value_be_null) {
+        __ Beqz(value.AsRegister<XRegister>(), &do_store);
+      }
 
-    if (needs_type_check) {
-      slow_path = new (codegen_->GetScopedAllocator()) ArraySetSlowPathRISCV64(instruction);
-      codegen_->AddSlowPath(slow_path);
+      if (needs_type_check) {
+        slow_path = new (codegen_->GetScopedAllocator()) ArraySetSlowPathRISCV64(instruction);
+        codegen_->AddSlowPath(slow_path);
 
-      uint32_t class_offset = mirror::Object::ClassOffset().Int32Value();
-      uint32_t super_offset = mirror::Class::SuperClassOffset().Int32Value();
-      uint32_t component_offset = mirror::Class::ComponentTypeOffset().Int32Value();
+        uint32_t class_offset = mirror::Object::ClassOffset().Int32Value();
+        uint32_t super_offset = mirror::Class::SuperClassOffset().Int32Value();
+        uint32_t component_offset = mirror::Class::ComponentTypeOffset().Int32Value();
 
-      ScratchRegisterScope srs(GetAssembler());
-      XRegister temp1 = srs.AllocateXRegister();
-      XRegister temp2 = srs.AllocateXRegister();
+        ScratchRegisterScope srs(GetAssembler());
+        XRegister temp1 = srs.AllocateXRegister();
+        XRegister temp2 = srs.AllocateXRegister();
 
-      // Note that when read barriers are enabled, the type checks are performed
-      // without read barriers.  This is fine, even in the case where a class object
-      // is in the from-space after the flip, as a comparison involving such a type
-      // would not produce a false positive; it may of course produce a false
-      // negative, in which case we would take the ArraySet slow path.
+        // Note that when read barriers are enabled, the type checks are performed
+        // without read barriers.  This is fine, even in the case where a class object
+        // is in the from-space after the flip, as a comparison involving such a type
+        // would not produce a false positive; it may of course produce a false
+        // negative, in which case we would take the ArraySet slow path.
 
-      // /* HeapReference<Class> */ temp1 = array->klass_
-      __ Loadwu(temp1, array, class_offset);
-      codegen_->MaybeRecordImplicitNullCheck(instruction);
-      codegen_->MaybeUnpoisonHeapReference(temp1);
+        // /* HeapReference<Class> */ temp1 = array->klass_
+        __ Loadwu(temp1, array, class_offset);
+        codegen_->MaybeRecordImplicitNullCheck(instruction);
+        codegen_->MaybeUnpoisonHeapReference(temp1);
 
-      // /* HeapReference<Class> */ temp2 = temp1->component_type_
-      __ Loadwu(temp2, temp1, component_offset);
-      // /* HeapReference<Class> */ temp1 = value->klass_
-      __ Loadwu(temp1, value.AsRegister<XRegister>(), class_offset);
-      // If heap poisoning is enabled, no need to unpoison `temp1`
-      // nor `temp2`, as we are comparing two poisoned references.
-      if (instruction->StaticTypeOfArrayIsObjectArray()) {
-        Riscv64Label do_put;
-        __ Beq(temp1, temp2, &do_put);
-        // If heap poisoning is enabled, the `temp2` reference has
-        // not been unpoisoned yet; unpoison it now.
-        codegen_->MaybeUnpoisonHeapReference(temp2);
+        // /* HeapReference<Class> */ temp2 = temp1->component_type_
+        __ Loadwu(temp2, temp1, component_offset);
+        // /* HeapReference<Class> */ temp1 = value->klass_
+        __ Loadwu(temp1, value.AsRegister<XRegister>(), class_offset);
+        // If heap poisoning is enabled, no need to unpoison `temp1`
+        // nor `temp2`, as we are comparing two poisoned references.
+        if (instruction->StaticTypeOfArrayIsObjectArray()) {
+          Riscv64Label do_put;
+          __ Beq(temp1, temp2, &do_put);
+          // If heap poisoning is enabled, the `temp2` reference has
+          // not been unpoisoned yet; unpoison it now.
+          codegen_->MaybeUnpoisonHeapReference(temp2);
 
-        // /* HeapReference<Class> */ temp1 = temp2->super_class_
-        __ Loadwu(temp1, temp2, super_offset);
-        // If heap poisoning is enabled, no need to unpoison
-        // `temp1`, as we are comparing against null below.
-        __ Bnez(temp1, slow_path->GetEntryLabel());
-        __ Bind(&do_put);
-      } else {
-        __ Bne(temp1, temp2, slow_path->GetEntryLabel());
+          // /* HeapReference<Class> */ temp1 = temp2->super_class_
+          __ Loadwu(temp1, temp2, super_offset);
+          // If heap poisoning is enabled, no need to unpoison
+          // `temp1`, as we are comparing against null below.
+          __ Bnez(temp1, slow_path->GetEntryLabel());
+          __ Bind(&do_put);
+        } else {
+          __ Bne(temp1, temp2, slow_path->GetEntryLabel());
+        }
+      }
+
+      if (can_value_be_null) {
+        __ Bind(&do_store);
       }
     }
 
-    if (instruction->GetWriteBarrierKind() != WriteBarrierKind::kDontEmit) {
-      DCHECK_EQ(instruction->GetWriteBarrierKind(), WriteBarrierKind::kEmitNoNullCheck)
-          << " Already null checked so we shouldn't do it again.";
-      codegen_->MarkGCCard(array, value.AsRegister<XRegister>(), /* value_can_be_null= */ false);
-    }
-
-    if (can_value_be_null) {
-      __ Bind(&do_store);
-    }
+    DCHECK_NE(instruction->GetWriteBarrierKind(), WriteBarrierKind::kDontEmit);
+    // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
+    // this write barrier when its value is null (without an extra Beqz since we already checked
+    // if the value is null for the type check). This will be done as a follow-up since it is a
+    // runtime optimization that needs extra care.
+    codegen_->MarkGCCard(array);
+  } else if (codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind)) {
+    codegen_->CheckGCCardIsValid(array);
   }
 
   if (index.IsConstant()) {

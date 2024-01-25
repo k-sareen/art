@@ -237,7 +237,9 @@ class LocationsBuilderX86_64 : public HGraphVisitor {
   void HandleBitwiseOperation(HBinaryOperation* operation);
   void HandleCondition(HCondition* condition);
   void HandleShift(HBinaryOperation* operation);
-  void HandleFieldSet(HInstruction* instruction, const FieldInfo& field_info);
+  void HandleFieldSet(HInstruction* instruction,
+                      const FieldInfo& field_info,
+                      WriteBarrierKind write_barrier_kind);
   void HandleFieldGet(HInstruction* instruction);
   bool CpuHasAvxFeatureFlag();
   bool CpuHasAvx2FeatureFlag();
@@ -469,12 +471,22 @@ class CodeGeneratorX86_64 : public CodeGenerator {
 
   const X86_64InstructionSetFeatures& GetInstructionSetFeatures() const;
 
-  // Emit a write barrier.
-  void MarkGCCard(CpuRegister temp,
-                  CpuRegister card,
-                  CpuRegister object,
-                  CpuRegister value,
-                  bool emit_null_check);
+  // Emit a write barrier if:
+  // A) emit_null_check is false
+  // B) emit_null_check is true, and value is not null.
+  void MaybeMarkGCCard(CpuRegister temp,
+                       CpuRegister card,
+                       CpuRegister object,
+                       CpuRegister value,
+                       bool emit_null_check);
+
+  // Emit a write barrier unconditionally.
+  void MarkGCCard(CpuRegister temp, CpuRegister card, CpuRegister object);
+
+  // Crash if the card table is not valid. This check is only emitted for the CC GC. We assert
+  // `(!clean || !self->is_gc_marking)`, since the card table should not be set to clean when the CC
+  // GC is marking for eliminated write barriers.
+  void CheckGCCardIsValid(CpuRegister temp, CpuRegister card, CpuRegister object);
 
   void GenerateMemoryBarrier(MemBarrierKind kind);
 
