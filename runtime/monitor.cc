@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include "monitor-inl.h"
+#include <android-base/properties.h>
 
 #include <vector>
 
 #include "android-base/stringprintf.h"
-
 #include "art_method-inl.h"
 #include "base/logging.h"  // For VLOG.
 #include "base/mutex.h"
@@ -32,9 +31,11 @@
 #include "dex/dex_file_types.h"
 #include "dex/dex_instruction-inl.h"
 #include "entrypoints/entrypoint_utils-inl.h"
+#include "gc/verification-inl.h"
 #include "lock_word-inl.h"
 #include "mirror/class-inl.h"
 #include "mirror/object-inl.h"
+#include "monitor-inl.h"
 #include "object_callbacks.h"
 #include "scoped_thread_state_change-inl.h"
 #include "stack.h"
@@ -42,7 +43,6 @@
 #include "thread_list.h"
 #include "verifier/method_verifier.h"
 #include "well_known_classes.h"
-#include <android-base/properties.h>
 
 static_assert(ART_USE_FUTEXES);
 
@@ -1519,18 +1519,29 @@ void Monitor::VisitLocks(StackVisitor* stack_visitor,
       // not be optimized out.
       success = stack_visitor->GetVReg(m, dex_reg, kReferenceVReg, &value);
       if (success) {
-        ObjPtr<mirror::Object> o = reinterpret_cast<mirror::Object*>(value);
-        callback(o, callback_context);
-        break;
+        mirror::Object* mp = reinterpret_cast<mirror::Object*>(value);
+        // TODO(b/299577730) Remove the extra checks here once the underlying bug is fixed.
+        const gc::Verification* v = Runtime::Current()->GetHeap()->GetVerification();
+        if (v->IsValidObject(mp)) {
+          ObjPtr<mirror::Object> o = mp;
+          callback(o, callback_context);
+          break;
+        } else {
+          LOG(ERROR) << "Encountered bad lock object: " << std::hex << value << std::dec;
+          success = false;
+        }
       }
     }
-    DCHECK(success) << "Failed to find/read reference for monitor-enter at dex pc "
-                    << dex_lock_info.dex_pc
-                    << " in method "
-                    << m->PrettyMethod();
     if (!success) {
-      LOG(WARNING) << "Had a lock reported for dex pc " << dex_lock_info.dex_pc
-                   << " but was not able to fetch a corresponding object!";
+      LOG(ERROR) << "Failed to find/read reference for monitor-enter at dex pc "
+                 << dex_lock_info.dex_pc << " in method " << m->PrettyMethod();
+      if (kIsDebugBuild) {
+        // Crash only in debug ART builds.
+        LOG(FATAL) << "Had a lock reported for a dex pc "
+                      "but was not able to fetch a corresponding object!";
+      } else {
+        LOG(ERROR) << "Held monitor information in stack trace will be incomplete!";
+      }
     }
   }
 }

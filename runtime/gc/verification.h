@@ -41,7 +41,7 @@ class Verification {
  public:
   explicit Verification(gc::Heap* heap) : heap_(heap) {}
 
-  // Dump some reveant to debugging info about an object.
+  // Dump some debugging-relevant info about an object.
   std::string DumpObjectInfo(const void* obj, const char* tag) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
