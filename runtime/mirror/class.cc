@@ -2142,26 +2142,47 @@ bool Class::CheckIsVisibleWithTargetSdk(Thread* self) {
   return true;
 }
 
+ALWAYS_INLINE
+static bool IsInterfaceMethodAccessible(ArtMethod* interface_method)
+    REQUIRES_SHARED(Locks::mutator_lock_) {
+  // If the interface method is part of the public SDK, return it.
+  if ((hiddenapi::GetRuntimeFlags(interface_method) & kAccPublicApi) != 0) {
+    hiddenapi::ApiList api_list(hiddenapi::detail::GetDexFlags(interface_method));
+    // The kAccPublicApi flag is also used as an optimization to avoid
+    // other hiddenapi checks to always go on the slow path. Therefore, we
+    // need to check here if the method is in the SDK list.
+    if (api_list.IsSdkApi()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 ArtMethod* Class::FindAccessibleInterfaceMethod(ArtMethod* implementation_method,
                                                 PointerSize pointer_size)
     REQUIRES_SHARED(Locks::mutator_lock_) {
   ObjPtr<mirror::IfTable> iftable = GetIfTable();
-  for (int32_t i = 0, iftable_count = iftable->Count(); i < iftable_count; ++i) {
-    ObjPtr<mirror::PointerArray> methods = iftable->GetMethodArrayOrNull(i);
-    if (methods == nullptr) {
-      continue;
+  if (IsInterface()) {  // Interface class doesn't resolve methods into the iftable.
+    for (int32_t i = 0, iftable_count = iftable->Count(); i < iftable_count; ++i) {
+      ObjPtr<mirror::Class> iface = iftable->GetInterface(i);
+      for (ArtMethod& interface_method : iface->GetVirtualMethodsSlice(pointer_size)) {
+        if (implementation_method->HasSameNameAndSignature(&interface_method) &&
+            IsInterfaceMethodAccessible(&interface_method)) {
+          return &interface_method;
+        }
+      }
     }
-    for (size_t j = 0, count = iftable->GetMethodArrayCount(i); j < count; ++j) {
-      if (implementation_method == methods->GetElementPtrSize<ArtMethod*>(j, pointer_size)) {
-        ObjPtr<mirror::Class> iface = iftable->GetInterface(i);
-        ArtMethod* interface_method = &iface->GetVirtualMethodsSlice(pointer_size)[j];
-        // If the interface method is part of the public SDK, return it.
-        if ((hiddenapi::GetRuntimeFlags(interface_method) & kAccPublicApi) != 0) {
-          hiddenapi::ApiList api_list(hiddenapi::detail::GetDexFlags(interface_method));
-          // The kAccPublicApi flag is also used as an optimization to avoid
-          // other hiddenapi checks to always go on the slow path. Therefore, we
-          // need to check here if the method is in the SDK list.
-          if (api_list.IsSdkApi()) {
+  } else {
+    for (int32_t i = 0, iftable_count = iftable->Count(); i < iftable_count; ++i) {
+      ObjPtr<mirror::PointerArray> methods = iftable->GetMethodArrayOrNull(i);
+      if (methods == nullptr) {
+        continue;
+      }
+      for (size_t j = 0, count = iftable->GetMethodArrayCount(i); j < count; ++j) {
+        if (implementation_method == methods->GetElementPtrSize<ArtMethod*>(j, pointer_size)) {
+          ObjPtr<mirror::Class> iface = iftable->GetInterface(i);
+          ArtMethod* interface_method = &iface->GetVirtualMethodsSlice(pointer_size)[j];
+          if (IsInterfaceMethodAccessible(interface_method)) {
             return interface_method;
           }
         }
