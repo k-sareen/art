@@ -283,9 +283,17 @@ class JitThreadPool : public AbstractThreadPool {
   Task* FetchFrom(std::deque<ArtMethod*>& methods, CompilationKind kind) REQUIRES(task_queue_lock_);
 
   std::deque<Task*> generic_queue_ GUARDED_BY(task_queue_lock_);
+
   std::deque<ArtMethod*> osr_queue_ GUARDED_BY(task_queue_lock_);
   std::deque<ArtMethod*> baseline_queue_ GUARDED_BY(task_queue_lock_);
   std::deque<ArtMethod*> optimized_queue_ GUARDED_BY(task_queue_lock_);
+
+  // We track the methods that are currently enqueued to avoid
+  // adding them to the queue multiple times, which could bloat the
+  // queues.
+  std::set<ArtMethod*> osr_enqueued_methods_ GUARDED_BY(task_queue_lock_);
+  std::set<ArtMethod*> baseline_enqueued_methods_ GUARDED_BY(task_queue_lock_);
+  std::set<ArtMethod*> optimized_enqueued_methods_ GUARDED_BY(task_queue_lock_);
 
   // A set to keep track of methods that are currently being compiled. Entries
   // will be removed when JitCompileTask->Finalize is called.

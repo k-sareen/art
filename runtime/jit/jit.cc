@@ -769,6 +769,10 @@ class JitCompileTask final : public Task {
     return method_;
   }
 
+  CompilationKind GetCompilationKind() const {
+    return compilation_kind_;
+  }
+
  private:
   ArtMethod* const method_;
   const TaskKind kind_;
@@ -1820,12 +1824,24 @@ void JitThreadPool::AddTask(Thread* self, ArtMethod* method, CompilationKind kin
   }
   switch (kind) {
     case CompilationKind::kOsr:
+      if (ContainsElement(osr_enqueued_methods_, method)) {
+        return;
+      }
+      osr_enqueued_methods_.insert(method);
       osr_queue_.push_back(method);
       break;
     case CompilationKind::kBaseline:
+      if (ContainsElement(baseline_enqueued_methods_, method)) {
+        return;
+      }
+      baseline_enqueued_methods_.insert(method);
       baseline_queue_.push_back(method);
       break;
     case CompilationKind::kOptimized:
+      if (ContainsElement(optimized_enqueued_methods_, method)) {
+        return;
+      }
+      optimized_enqueued_methods_.insert(method);
       optimized_queue_.push_back(method);
       break;
   }
@@ -1872,6 +1888,23 @@ Task* JitThreadPool::FetchFrom(std::deque<ArtMethod*>& methods, CompilationKind 
 void JitThreadPool::Remove(JitCompileTask* task) {
   MutexLock mu(Thread::Current(), task_queue_lock_);
   current_compilations_.erase(task);
+  switch (task->GetCompilationKind()) {
+    case CompilationKind::kOsr: {
+      size_t count = osr_enqueued_methods_.erase(task->GetArtMethod());
+      DCHECK_EQ(count, 1u);
+      break;
+    }
+    case CompilationKind::kBaseline: {
+      size_t count = baseline_enqueued_methods_.erase(task->GetArtMethod());
+      DCHECK_EQ(count, 1u);
+      break;
+    }
+    case CompilationKind::kOptimized: {
+      size_t count = optimized_enqueued_methods_.erase(task->GetArtMethod());
+      DCHECK_EQ(count, 1u);
+      break;
+    }
+  }
 }
 
 void Jit::VisitRoots(RootVisitor* visitor) {
