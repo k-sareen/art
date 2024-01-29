@@ -2901,12 +2901,6 @@ bool LoadStoreElimination::Run() {
     // Skip this optimization.
     return false;
   }
-  // We need to be able to determine reachability. Clear it just to be safe but
-  // this should initially be empty.
-  graph_->ClearReachabilityInformation();
-  // This is O(blocks^3) time complexity. It means we can query reachability in
-  // O(1) though.
-  graph_->ComputeReachabilityInformation();
   ScopedArenaAllocator allocator(graph_->GetArenaStack());
   LoadStoreAnalysis lsa(graph_, stats_, &allocator);
   lsa.Run();

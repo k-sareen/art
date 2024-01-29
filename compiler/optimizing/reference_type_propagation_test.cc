@@ -425,8 +425,6 @@ void NonLoopReferenceTypePropagationTestGroup::RunVisitListTest(Func mutator) {
   }
   auto vals = MakeTransformRange(succ_blocks, [&](HBasicBlock* blk) { return single_value[blk]; });
   std::vector<HInstruction*> ins(vals.begin(), vals.end());
-  graph_->ClearReachabilityInformation();
-  graph_->ComputeReachabilityInformation();
   mutator(ins);
   propagation_->Visit(ArrayRef<HInstruction* const>(ins));
   for (auto [blk, i] : single_value) {

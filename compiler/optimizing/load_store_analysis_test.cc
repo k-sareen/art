@@ -49,9 +49,6 @@ class LoadStoreAnalysisTest : public CommonCompilerTest, public OptimizingUnitTe
       const std::vector<AdjacencyListGraph::Edge>& adj) {
     return AdjacencyListGraph(graph_, GetAllocator(), entry_name, exit_name, adj);
   }
-
-  void CheckReachability(const AdjacencyListGraph& adj,
-                         const std::vector<AdjacencyListGraph::Edge>& reach);
 };
 
 TEST_F(LoadStoreAnalysisTest, ArrayHeapLocations) {
@@ -709,103 +706,6 @@ TEST_F(LoadStoreAnalysisTest, TestHuntOriginalRef) {
   ASSERT_EQ(loc1, loc2);
   ASSERT_EQ(loc1, loc3);
   ASSERT_EQ(loc1, loc4);
-}
-
-void LoadStoreAnalysisTest::CheckReachability(const AdjacencyListGraph& adj,
-                                              const std::vector<AdjacencyListGraph::Edge>& reach) {
-  uint32_t cnt = 0;
-  for (HBasicBlock* blk : graph_->GetBlocks()) {
-    if (adj.HasBlock(blk)) {
-      for (HBasicBlock* other : graph_->GetBlocks()) {
-        if (other == nullptr) {
-          continue;
-        }
-        if (adj.HasBlock(other)) {
-          bool contains_edge =
-              std::find(reach.begin(),
-                        reach.end(),
-                        AdjacencyListGraph::Edge { adj.GetName(blk), adj.GetName(other) }) !=
-              reach.end();
-          if (graph_->PathBetween(blk, other)) {
-            cnt++;
-            EXPECT_TRUE(contains_edge) << "Unexpected edge found between " << adj.GetName(blk)
-                                       << " and " << adj.GetName(other);
-          } else {
-            EXPECT_FALSE(contains_edge) << "Expected edge not found between " << adj.GetName(blk)
-                                        << " and " << adj.GetName(other);
-          }
-        } else if (graph_->PathBetween(blk, other)) {
-          ADD_FAILURE() << "block " << adj.GetName(blk)
-                        << " has path to non-adjacency-graph block id: " << other->GetBlockId();
-        }
-      }
-    } else {
-      for (HBasicBlock* other : graph_->GetBlocks()) {
-        if (other == nullptr) {
-          continue;
-        }
-        EXPECT_FALSE(graph_->PathBetween(blk, other))
-            << "Reachable blocks outside of adjacency-list";
-      }
-    }
-  }
-  EXPECT_EQ(cnt, reach.size());
-}
-
-TEST_F(LoadStoreAnalysisTest, ReachabilityTest1) {
-  CreateGraph();
-  AdjacencyListGraph blks(SetupFromAdjacencyList(
-      "entry",
-      "exit",
-      { { "entry", "left" }, { "entry", "right" }, { "left", "exit" }, { "right", "exit" } }));
-  CheckReachability(blks,
-                    {
-                        { "entry", "left" },
-                        { "entry", "right" },
-                        { "entry", "exit" },
-                        { "right", "exit" },
-                        { "left", "exit" },
-                    });
-}
-
-TEST_F(LoadStoreAnalysisTest, ReachabilityTest2) {
-  CreateGraph();
-  AdjacencyListGraph blks(SetupFromAdjacencyList(
-      "entry",
-      "exit",
-      { { "entry", "loop-header" }, { "loop-header", "loop" }, { "loop", "loop-header" } }));
-  CheckReachability(blks,
-                    {
-                        { "entry", "loop-header" },
-                        { "entry", "loop" },
-                        { "loop-header", "loop-header" },
-                        { "loop-header", "loop" },
-                        { "loop", "loop-header" },
-                        { "loop", "loop" },
-                    });
-}
-
-TEST_F(LoadStoreAnalysisTest, ReachabilityTest3) {
-  CreateGraph();
-  AdjacencyListGraph blks(SetupFromAdjacencyList("entry",
-                                                 "exit",
-                                                 { { "entry", "loop-header" },
-                                                   { "loop-header", "loop" },
-                                                   { "loop", "loop-header" },
-                                                   { "entry", "right" },
-                                                   { "right", "exit" } }));
-  CheckReachability(blks,
-                    {
-                        { "entry", "loop-header" },
-                        { "entry", "loop" },
-                        { "entry", "right" },
-                        { "entry", "exit" },
-                        { "loop-header", "loop-header" },
-                        { "loop-header", "loop" },
-                        { "loop", "loop-header" },
-                        { "loop", "loop" },
-                        { "right", "exit" },
-                    });
 }
 
 // // ENTRY
