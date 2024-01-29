@@ -305,7 +305,7 @@ class TraceWriter {
   const uint32_t clock_overhead_ns_;
 
   std::vector<std::atomic<size_t>> owner_tids_;
-  std::unique_ptr<uintptr_t> trace_buffer_;
+  std::unique_ptr<uintptr_t[]> trace_buffer_;
 
   // Lock to protect common data structures accessed from multiple threads like
   // art_method_id_map_, thread_id_map_.
