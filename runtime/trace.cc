@@ -264,7 +264,7 @@ class TraceWriterTask final : public SelfDeletingTask {
       // have fewer buffers than the number of threads.
       if (reserve_buf_for_tid_ == 0) {
         // Just free the buffer here if it wasn't reserved for any thread.
-        free(buffer_);
+        delete[] buffer_;
       }
     } else {
       trace_writer_->FetchTraceBufferForThread(index_, reserve_buf_for_tid_);
@@ -1252,8 +1252,7 @@ void TraceWriter::InitializeTraceBuffers() {
     owner_tids_[i].store(0);
   }
 
-  trace_buffer_.reset(reinterpret_cast<uintptr_t*>(
-      malloc(sizeof(uintptr_t) * kPerThreadBufSize * owner_tids_.size())));
+  trace_buffer_.reset(new uintptr_t[kPerThreadBufSize * owner_tids_.size()]);
   CHECK(trace_buffer_.get() != nullptr);
 }
 
@@ -1272,7 +1271,7 @@ uintptr_t* TraceWriter::AcquireTraceBuffer(size_t tid) {
     // We couldn't find a free buffer even after flushing all the tasks. So allocate a new buffer
     // here. This should only happen if we have more threads than the number of pool buffers.
     // TODO(mythria): Add a check for the above case here.
-    buffer = reinterpret_cast<uintptr_t*>(malloc(sizeof(uintptr_t) * kPerThreadBufSize));
+    buffer = new uintptr_t[kPerThreadBufSize];
     CHECK(buffer != nullptr);
   }
   return buffer;
