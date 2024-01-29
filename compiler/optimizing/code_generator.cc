@@ -172,7 +172,8 @@ bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
       CodeGenerator::StoreNeedsWriteBarrier(type, value);
 
   DCHECK_IMPLIES(result, write_barrier_kind == WriteBarrierKind::kDontEmit);
-  DCHECK_IMPLIES(result, !GetGraph()->IsCompilingBaseline());
+  DCHECK_IMPLIES(
+      result, !(GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches()));
 
   return result;
 }
@@ -1633,7 +1634,7 @@ bool CodeGenerator::StoreNeedsWriteBarrier(DataType::Type type,
   // Check that null value is not represented as an integer constant.
   DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
   // Branch profiling currently doesn't support running optimizations.
-  return GetGraph()->IsCompilingBaseline()
+  return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
             ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
             : write_barrier_kind != WriteBarrierKind::kDontEmit;
 }

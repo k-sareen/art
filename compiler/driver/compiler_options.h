@@ -65,6 +65,8 @@ class CompilerOptions final {
   static const bool kDefaultGenerateDebugInfo = false;
   static const bool kDefaultGenerateMiniDebugInfo = true;
   static const size_t kDefaultInlineMaxCodeUnits = 32;
+  // We set a lower inlining threshold for baseline to reduce code size and compilation time.
+  static const size_t kBaselineMaxCodeUnits = 8;
   static constexpr size_t kUnsetInlineMaxCodeUnits = -1;
 
   enum class CompilerType : uint8_t {

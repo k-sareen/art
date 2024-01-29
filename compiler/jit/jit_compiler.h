@@ -64,6 +64,8 @@ class JitCompiler : public JitCompilerInterface {
                                          bool compress,
                                          /*out*/ size_t* num_symbols) override;
 
+  uint32_t GetInlineMaxCodeUnits() const override;
+
  private:
   std::unique_ptr<CompilerOptions> compiler_options_;
   std::unique_ptr<Compiler> compiler_;

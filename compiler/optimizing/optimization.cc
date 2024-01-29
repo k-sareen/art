@@ -252,6 +252,7 @@ ArenaVector<HOptimization*> ConstructOptimizations(
                                        accessor.RegistersSize(),
                                        /* total_number_of_instructions= */ 0,
                                        /* parent= */ nullptr,
+                                       /* caller_environment= */ nullptr,
                                        /* depth= */ 0,
                                        /* try_catch_inlining_allowed= */ true,
                                        pass_name);

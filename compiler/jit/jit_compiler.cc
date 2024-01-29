@@ -226,5 +226,9 @@ bool JitCompiler::IsBaselineCompiler() const {
   return compiler_options_->IsBaseline();
 }
 
+uint32_t JitCompiler::GetInlineMaxCodeUnits() const {
+  return compiler_options_->GetInlineMaxCodeUnits();
+}
+
 }  // namespace jit
 }  // namespace art
