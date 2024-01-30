@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <functional>
+#include <optional>
 
 #include "art_method-inl.h"
 #include "base/arena_allocator.h"
@@ -1410,29 +1411,36 @@ void HInstruction::ReplaceWith(HInstruction* other) {
 void HInstruction::ReplaceUsesDominatedBy(HInstruction* dominator,
                                           HInstruction* replacement,
                                           bool strictly_dominated) {
-  // Get the dominated blocks first to faster calculation of domination afterwards.
-  HGraph* graph = GetBlock()->GetGraph();
-  ArenaBitVector visited_blocks(graph->GetAllocator(),
-                                graph->GetBlocks().size(),
-                                /* expandable= */ false,
-                                kArenaAllocMisc);
-  visited_blocks.ClearAllBits();
-  ScopedArenaAllocator allocator(graph->GetArenaStack());
-  ScopedArenaQueue<const HBasicBlock*> worklist(allocator.Adapter(kArenaAllocMisc));
   HBasicBlock* dominator_block = dominator->GetBlock();
-  worklist.push(dominator_block);
+  std::optional<ArenaBitVector> visited_blocks;
 
-  while (!worklist.empty()) {
-    const HBasicBlock* current = worklist.front();
-    worklist.pop();
-    visited_blocks.SetBit(current->GetBlockId());
-    for (HBasicBlock* dominated : current->GetDominatedBlocks()) {
-      if (visited_blocks.IsBitSet(dominated->GetBlockId())) {
-        continue;
-      }
-      worklist.push(dominated);
+  // Lazily compute the dominated blocks to faster calculation of domination afterwards.
+  auto maybe_generate_visited_blocks = [&visited_blocks, this, dominator_block]() {
+    if (visited_blocks.has_value()) {
+      return;
     }
-  }
+    HGraph* graph = GetBlock()->GetGraph();
+    visited_blocks.emplace(graph->GetAllocator(),
+                           graph->GetBlocks().size(),
+                           /* expandable= */ false,
+                           kArenaAllocMisc);
+    visited_blocks->ClearAllBits();
+    ScopedArenaAllocator allocator(graph->GetArenaStack());
+    ScopedArenaQueue<const HBasicBlock*> worklist(allocator.Adapter(kArenaAllocMisc));
+    worklist.push(dominator_block);
+
+    while (!worklist.empty()) {
+      const HBasicBlock* current = worklist.front();
+      worklist.pop();
+      visited_blocks->SetBit(current->GetBlockId());
+      for (HBasicBlock* dominated : current->GetDominatedBlocks()) {
+        if (visited_blocks->IsBitSet(dominated->GetBlockId())) {
+          continue;
+        }
+        worklist.push(dominated);
+      }
+    }
+  };
 
   const HUseList<HInstruction*>& uses = GetUses();
   for (auto it = uses.begin(), end = uses.end(); it != end; /* ++it below */) {
@@ -1448,7 +1456,8 @@ void HInstruction::ReplaceUsesDominatedBy(HInstruction* dominator,
           strictly_dominated ? dominator->StrictlyDominates(user) : dominator->Dominates(user);
     } else {
       // Block domination.
-      dominated = visited_blocks.IsBitSet(block->GetBlockId());
+      maybe_generate_visited_blocks();
+      dominated = visited_blocks->IsBitSet(block->GetBlockId());
     }
 
     if (dominated) {
@@ -1458,7 +1467,8 @@ void HInstruction::ReplaceUsesDominatedBy(HInstruction* dominator,
       // We do not perform this for catch phis as we don't have control flow support
       // for their inputs.
       HBasicBlock* predecessor = block->GetPredecessors()[index];
-      if (visited_blocks.IsBitSet(predecessor->GetBlockId())) {
+      maybe_generate_visited_blocks();
+      if (visited_blocks->IsBitSet(predecessor->GetBlockId())) {
         user->ReplaceInput(replacement, index);
       }
     }

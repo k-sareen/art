@@ -229,8 +229,10 @@ void HConstantFoldingVisitor::PropagateValue(HBasicBlock* starting_block,
     uses_before = variable->GetUses().SizeSlow();
   }
 
-  variable->ReplaceUsesDominatedBy(
-      starting_block->GetFirstInstruction(), constant, /* strictly_dominated= */ false);
+  if (!variable->GetUses().HasExactlyOneElement()) {
+    variable->ReplaceUsesDominatedBy(
+        starting_block->GetFirstInstruction(), constant, /* strictly_dominated= */ false);
+  }
 
   if (recording_stats) {
     uses_after = variable->GetUses().SizeSlow();
