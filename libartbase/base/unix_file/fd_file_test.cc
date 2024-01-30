@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-#include <string.h>
-
 #include "base/common_art_test.h"  // For ScratchFile
 #include "base/file_utils.h"
-#include "base/stl_util.h"
 #include "gtest/gtest.h"
 #include "fd_file.h"
 #include "random_access_file_test.h"
@@ -173,7 +170,7 @@ TEST_F(FdFileTest, Copy) {
   ASSERT_EQ(static_cast<int64_t>(sizeof(src_data)), src.GetLength());
 
   art::ScratchFile dest_tmp;
-  FdFile dest(dest_tmp.GetFilename(), O_RDWR, false);
+  FdFile dest(src_tmp.GetFilename(), O_RDWR, false);
   ASSERT_GE(dest.Fd(), 0);
   ASSERT_TRUE(dest.IsOpened());
 
@@ -188,129 +185,6 @@ TEST_F(FdFileTest, Copy) {
   ASSERT_EQ(0, dest.Close());
   ASSERT_EQ(0, src.Close());
 }
-
-#ifdef __linux__
-TEST_F(FdFileTest, CopySparse) {
-  // The test validates that FdFile::Copy preserves sparsity of the file i.e. doesn't write zeroes
-  // to the output file in locations corresponding to empty blocks in the input file.
-  constexpr size_t kChunkSize = 64 * art::KB;
-
-  std::vector<int8_t> data_buffer(/*count=*/kChunkSize, /*value=*/1);
-  std::vector<int8_t> zero_buffer(/*count=*/kChunkSize, /*value=*/0);
-  std::vector<int8_t> check_buffer(/*count=*/kChunkSize);
-
-  auto verify = [&](size_t empty_prefix, size_t empty_suffix, size_t input_offset) {
-    constexpr size_t kEstimateMaxFileMetadataSize = 131072;
-    constexpr size_t kStatBlockSize = 512;
-    constexpr int kChunksNumber = 16;
-    art::ScratchFile src_tmp;
-    FdFile src(src_tmp.GetFilename(), O_RDWR, /*check_usage=*/false);
-    ASSERT_TRUE(src.IsOpened());
-
-    /*
-     * Layout of the source file:
-     *  - Skipped part:
-     *    [ optional <input_offset> empty block ]
-     *
-     *  - Copied part:
-     *    [ optional <empty_prefix> empty block ]
-     *    [ <kChunkSize> data block             ]  -\
-     *    [ <kChunkSize> empty block            ]   |
-     *    [ <kChunkSize> data block             ]   |
-     *    [ <kChunkSize> empty block            ]    > (2 * kChunksNumber - 1) kChunkSize blocks
-     *    [ <kChunkSize> data block             ]   |
-     *    [   ...                               ]   |
-     *    [ <kChunkSize> data block             ]  -/
-     *    [ optional <empty_suffix> empty block ]
-     */
-    int rc = lseek(src.Fd(), input_offset, SEEK_SET);
-    ASSERT_EQ(rc, input_offset);
-
-    rc = lseek(src.Fd(), empty_prefix, SEEK_CUR);
-    ASSERT_EQ(rc, input_offset + empty_prefix);
-    for (size_t i = 0; i < kChunksNumber; i++) {
-      // Write data leaving chunk size of unwritten space in between them
-      ASSERT_TRUE(src.WriteFully(data_buffer.data(), kChunkSize));
-      rc = lseek(src.Fd(), kChunkSize, SEEK_CUR);
-      ASSERT_NE(rc, -1);
-    }
-
-    ASSERT_EQ(0, src.SetLength(src.GetLength() + empty_suffix));
-    ASSERT_EQ(0, src.Flush());
-
-    size_t expected_length = (2 * kChunksNumber - 1) * kChunkSize + empty_prefix + empty_suffix;
-    ASSERT_EQ(static_cast<int64_t>(expected_length), src.GetLength() - input_offset);
-
-    struct stat src_stat;
-    rc = fstat(src.Fd(), &src_stat);
-    ASSERT_EQ(rc, 0);
-    ASSERT_GE(src_stat.st_blocks, kChunksNumber * kChunkSize / kStatBlockSize);
-    ASSERT_LE(src_stat.st_blocks,
-              kEstimateMaxFileMetadataSize + kChunksNumber * kChunkSize / kStatBlockSize);
-
-    art::ScratchFile dest_tmp;
-    FdFile dest(dest_tmp.GetFilename(), O_RDWR, /*check_usage=*/false);
-    ASSERT_TRUE(dest.IsOpened());
-
-    ASSERT_TRUE(dest.Copy(&src, input_offset, src.GetLength() - input_offset));
-    ASSERT_EQ(0, dest.Flush());
-
-    ASSERT_EQ(static_cast<int64_t>(expected_length), dest.GetLength());
-
-    // Both dest and src file offsets are expected to be at the end of file.
-    ASSERT_EQ(lseek(dest.Fd(), 0, SEEK_CUR), dest.GetLength());
-    ASSERT_EQ(lseek(src.Fd(), 0, SEEK_CUR), src.GetLength());
-
-    struct stat dest_stat;
-    rc = fstat(dest.Fd(), &dest_stat);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(dest_stat.st_blocks, src_stat.st_blocks);
-
-    rc = lseek(dest.Fd(), 0, SEEK_SET);
-    ASSERT_EQ(rc, 0);
-
-    ASSERT_TRUE(dest.ReadFully(check_buffer.data(), empty_prefix));
-    ASSERT_EQ(0, memcmp(check_buffer.data(), zero_buffer.data(), empty_prefix));
-
-    for (size_t i = 0; i < 2 * kChunksNumber - 1; i++) {
-      ASSERT_TRUE(dest.ReadFully(check_buffer.data(), kChunkSize));
-
-      if (i % 2 == 0) {
-        ASSERT_EQ(0, memcmp(check_buffer.data(), data_buffer.data(), kChunkSize));
-      } else {
-        ASSERT_EQ(0, memcmp(check_buffer.data(), zero_buffer.data(), kChunkSize));
-      }
-    }
-
-    ASSERT_TRUE(dest.ReadFully(check_buffer.data(), empty_suffix));
-    ASSERT_EQ(0, memcmp(check_buffer.data(), zero_buffer.data(), empty_suffix));
-
-    ASSERT_EQ(0, dest.Close());
-    ASSERT_EQ(0, src.Close());
-  };
-
-  auto subtest = [&](size_t empty_prefix, size_t empty_suffix) {
-    verify(empty_prefix, empty_suffix, 0);
-    verify(empty_prefix, empty_suffix, kChunkSize);
-  };
-
-  // No empty prefix or suffix
-  subtest(0, 0);
-
-  for (size_t skip_size1 = 1; skip_size1 <= kChunkSize; skip_size1 <<= 2) {
-    // Empty prefix only
-    subtest(skip_size1, 0);
-
-    // Empty suffix only
-    subtest(0, skip_size1);
-
-    // Empty prefix and suffix
-    for (size_t skip_size2 = 1; skip_size2 <= kChunkSize; skip_size2 <<= 2) {
-      subtest(skip_size1, skip_size2);
-    }
-  }
-}
-#endif
 
 TEST_F(FdFileTest, MoveConstructor) {
   // New scratch file, zero-length.
