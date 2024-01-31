@@ -1412,7 +1412,9 @@ uint64_t Heap::GetTotalGcCpuTime() {
 void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
 
-  LOG(INFO) << "============================ Tabulate Statistics ============================\n";
+  std::ostringstream output_string;
+
+  output_string << "============================ Tabulate Statistics ============================\n";
 
   uint64_t total_paused_time = 0;
   for (auto* collector : garbage_collectors_) {
@@ -1434,7 +1436,7 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
       + "\t" + perf_counter->name_ + ".stw";
   }
 
-  LOG(INFO) << table_headers + "\n";
+  output_string << table_headers + "\n";
 
   std::string table_values = "";
   table_values += std::to_string(total_gc_count)
@@ -1448,15 +1450,17 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
       + "\t" + std::to_string(perf_counter->GetStwCount());
   }
 
-  LOG(INFO) << table_values + "\n";
-  LOG(INFO) << "-------------------------- End Tabulate Statistics --------------------------\n";
+  output_string << table_values + "\n";
+  output_string << "-------------------------- End Tabulate Statistics --------------------------\n";
 
-  LOG(INFO) << "Number of GCs for each collector:\n";
+  output_string << "Number of GCs for each collector:\n";
   for (auto* collector : garbage_collectors_) {
-    LOG(INFO) << "  " << collector->GetName()
+    output_string << "  " << collector->GetName()
       << " ran " << collector->GetCumulativeTimings().GetIterations()
       << " times\n";
   }
+
+  LOG(INFO) << output_string.str();
 }
 
 void Heap::ResetGcPerformanceInfo() {
