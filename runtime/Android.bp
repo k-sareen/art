@@ -58,10 +58,12 @@ cc_library_headers {
     //       generically. dex2oat takes care of it itself.
     header_libs: [
         "art_libartbase_headers",
+        "libjson_headers",
         "dlmalloc",
     ],
     export_header_lib_headers: [
         "art_libartbase_headers",
+        "libjson_headers",
         "dlmalloc",
     ],
 

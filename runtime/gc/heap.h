@@ -19,6 +19,8 @@
 
 #include <android-base/logging.h>
 
+#include <nlohmann/json.hpp>
+
 #include <iosfwd>
 #include <string>
 #include <unordered_set>
@@ -1401,6 +1403,10 @@ class Heap {
   // This version assumes no concurrent updaters.
   void SetDefaultConcurrentStartBytesLocked();
 
+  void ReadHeapSizesFile();
+  bool IsTargetApp(std::string package_name);
+  size_t GetHeapSizeForTargetApp(std::string package_name);
+
   // All-known continuous spaces, where objects lie within fixed bounds.
   std::vector<space::ContinuousSpace*> continuous_spaces_ GUARDED_BY(Locks::mutator_lock_);
 
@@ -1831,6 +1837,8 @@ class Heap {
   Atomic<GcPauseListener*> gc_pause_listener_;
 
   std::unique_ptr<Verification> verification_;
+
+  nlohmann::json heap_sizes_;
 
   friend class CollectorTransitionTask;
   friend class collector::GarbageCollector;

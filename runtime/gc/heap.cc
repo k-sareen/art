@@ -3032,7 +3032,7 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
                                 << static_cast<size_t>(collector_type_)
                                 << " and gc_type=" << gc_type;
     std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
-    if (package_name == "com.android.settings") {
+    if (IsTargetApp(package_name)) {
       LOG(INFO) << "Heap size before GC " << PrettySize(GetBytesAllocated());
     }
     collector->Run(gc_cause, clear_soft_references || runtime->IsZygote());
@@ -3043,7 +3043,7 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     // Grow the heap so that we know when to perform the next GC.
     GrowForUtilization(collector, bytes_allocated_before_gc);
     old_native_bytes_allocated_.store(GetNativeBytes());
-    if (package_name == "com.android.settings") {
+    if (IsTargetApp(package_name)) {
       LOG(INFO) << "Heap size after GC " << PrettySize(GetBytesAllocated());
     }
     LogGC(gc_cause, collector);
@@ -3071,8 +3071,8 @@ void Heap::LogGC(GcCause gc_cause, collector::GarbageCollector* collector) {
   // Print the GC if it is an explicit GC (e.g. Runtime.gc()) or a slow GC
   // (mutator time blocked >= long_pause_log_threshold_).
   bool log_gc = kLogAllGCs
-    || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_)
-    || Runtime::Current()->GetAppInfo()->PackageName() == "com.android.settings";
+    || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_);
+    // || IsTargetApp(Runtime::Current()->GetAppInfo()->PackageName());
   if (!log_gc && CareAboutPauseTimes()) {
     // GC for alloc pauses the allocating thread, so consider it as a pause.
     log_gc = duration > long_gc_log_threshold_ ||
@@ -4031,24 +4031,56 @@ void Heap::GrowForUtilization(collector::GarbageCollector* collector_ran,
   }
 }
 
+void Heap::ReadHeapSizesFile() {
+  std::ifstream heap_sizes_file("/data/local/heap_sizes.json");
+  if (heap_sizes_file.is_open()) {
+    heap_sizes_ = nlohmann::json::parse(heap_sizes_file);
+    heap_sizes_file.close();
+  }
+}
+
+bool Heap::IsTargetApp(std::string package_name) {
+  if (!heap_sizes_.empty()) {
+    DCHECK(heap_sizes_.is_array()) << "Heap sizes should be an array";
+    for (auto& bm : heap_sizes_) {
+      if (bm.contains("package")) {
+        if (bm["package"] == package_name) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+size_t Heap::GetHeapSizeForTargetApp(std::string package_name) {
+  DCHECK(!heap_sizes_.empty()) << "Heap sizes can't be empty if setting target heap size";
+  for (auto& bm : heap_sizes_) {
+    if (bm.contains("package")) {
+      if (bm["package"] == package_name) {
+        if (bm.contains("heap_size")) {
+          return (size_t) bm["heap_size"];
+        }
+      }
+    }
+  }
+
+  // Default heap size
+  return 256;
+}
+
 void Heap::ClampGrowthLimit() {
   // Use heap bitmap lock to guard against races with BindLiveToMarkBitmap.
   ScopedObjectAccess soa(Thread::Current());
   WriterMutexLock mu(soa.Self(), *Locks::heap_bitmap_lock_);
+  ReadHeapSizesFile();
   std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
-  if (package_name == "com.android.settings") {
+  if (IsTargetApp(package_name)) {
     LOG(INFO) << "Found target app " << package_name << "!";
-    size_t minheap = 256;
-    std::ifstream minheap_file("/data/local/minheap");
-    if (minheap_file.is_open()) {
-      std::string line;
-      getline(minheap_file, line);
-      std::stringstream sstream(line);
-      sstream >> minheap;
-      minheap_file.close();
-    }
+    size_t heap_size = GetHeapSizeForTargetApp(package_name);
     size_t MB = 1024 * 1024;
-    capacity_ = minheap * MB;
+    capacity_ = heap_size * MB;
     if (growth_limit_ > capacity_) {
       growth_limit_ = capacity_;
     }
@@ -4081,8 +4113,7 @@ void Heap::ClampGrowthLimit() {
   if (main_space_backup_.get() != nullptr) {
     main_space_backup_->ClampGrowthLimit();
   }
-  LOG(INFO) << "Clamping growth limit for "
-    << Runtime::Current()->GetAppInfo()->PackageName()
+  LOG(INFO) << "Clamping growth limit for " << package_name
     << ". Capacity = " << capacity_ << " (" << 2 * capacity_
     << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
     << ". Growth limit = " << growth_limit_
@@ -4090,8 +4121,9 @@ void Heap::ClampGrowthLimit() {
 }
 
 void Heap::ClearGrowthLimit() {
+  ReadHeapSizesFile();
   std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
-  if (package_name == "com.android.settings") {
+  if (IsTargetApp(package_name)) {
     LOG(INFO) << "Target app " << package_name << " uses large heap, clamping heap instead";
     ClampGrowthLimit();
     return;
