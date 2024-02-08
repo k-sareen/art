@@ -367,6 +367,12 @@ uint64_t PerfCounter::ReadCounter() {
     ssize_t ret = read(fd_, values, sizeof(values));
     if (ret < (ssize_t) sizeof(values)) {
       LOG(WARNING) << "Read failed for perf counter " << name_;
+      if (ret == -1) {
+        LOG(WARNING) << "  errno set to " << strerror(errno);
+      } else {
+        LOG(WARNING) << "  Read " << ret << " bytes. Expected "
+          << sizeof(values) << " bytes";
+      }
       return 0;
     } else {
       if (values[1] != values[2]) {
