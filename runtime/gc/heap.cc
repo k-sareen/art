@@ -1413,6 +1413,8 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
 
   std::ostringstream output_string;
+  output_string.setf(std::ios::fixed, std::ios::floatfield);
+  output_string.precision(3);
 
   output_string << "============================ Tabulate Statistics ============================\n";
 
@@ -1430,27 +1432,26 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     }
   }
 
-  std::string table_headers = "GC\tmajorGC\ttime\ttime.other\ttime.stw";
+  output_string << "GC\tmajorGC\ttime\ttime.other\ttime.stw";
   for (PerfCounter* perf_counter : perf_counters_) {
-    table_headers += "\t" + perf_counter->name_ + ".other"
-      + "\t" + perf_counter->name_ + ".stw";
+    output_string << "\t" << perf_counter->name_ << ".other"
+      << "\t" << perf_counter->name_ << ".stw";
   }
 
-  output_string << table_headers + "\n";
+  output_string << "\n";
 
-  std::string table_values = "";
-  table_values += std::to_string(total_gc_count)
-    + "\t" + std::to_string(major_gc_count)
-    + "\t" + std::to_string(total_time)
-    + "\t" + std::to_string(total_time - total_paused_time)
-    + "\t" + std::to_string(total_paused_time);
+  output_string << total_gc_count
+    << "\t" << major_gc_count
+    << "\t" << (((double) total_time) / 1e6)
+    << "\t" << (((double) total_time - total_paused_time) / 1e6)
+    << "\t" << (((double) total_paused_time) / 1e6);
 
   for (PerfCounter* perf_counter : perf_counters_) {
-    table_values += "\t" + std::to_string(perf_counter->GetOtherCount())
-      + "\t" + std::to_string(perf_counter->GetStwCount());
+    output_string << "\t" << perf_counter->GetOtherCount()
+      << "\t" << perf_counter->GetStwCount();
   }
 
-  output_string << table_values + "\n";
+  output_string << "\n";
   output_string << "-------------------------- End Tabulate Statistics --------------------------\n";
 
   output_string << "Number of GCs for each collector:\n";
