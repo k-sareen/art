@@ -145,7 +145,6 @@ inline size_t Object::VisitRefsForCompaction(const Visitor& visitor,
     VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
     size = kFetchObjSize ? klass->GetObjectSize<kSizeOfFlags>() : 0;
   } else if ((class_flags & kClassFlagNoReferenceFields) != 0) {
-    CheckNoReferenceField<kVerifyFlags, kReadBarrierOption>(klass);
     if ((class_flags & kClassFlagString) != 0) {
       size = kFetchObjSize ? static_cast<String*>(this)->SizeOf<kSizeOfFlags>() : 0;
     } else if (klass->IsArrayClass<kVerifyFlags>()) {
@@ -168,7 +167,6 @@ inline size_t Object::VisitRefsForCompaction(const Visitor& visitor,
                                                                                    visitor);
     size = kFetchObjSize ? as_klass->SizeOf<kSizeOfFlags>() : 0;
   } else if (class_flags == kClassFlagObjectArray) {
-    DCHECK((klass->IsObjectArrayClass<kVerifyFlags, kReadBarrierOption>()));
     ObjPtr<ObjectArray<Object>> obj_arr = ObjPtr<ObjectArray<Object>>::DownCast(this);
     obj_arr->VisitReferences(visitor, begin, end);
     size = kFetchObjSize ?
