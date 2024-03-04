@@ -4103,9 +4103,9 @@ void Heap::ClampGrowthLimit() {
     size_t heap_size = GetHeapSizeForTargetApp(package_name);
     size_t MB = 1024 * 1024;
     capacity_ = heap_size * MB;
-    if (growth_limit_ > capacity_) {
-      growth_limit_ = capacity_;
-    }
+    // Unconditionally set the growth_limit to the capacity. This ensures that
+    // even for large heap sizes values, the correct heap size is respected
+    growth_limit_ = capacity_;
     SetIdealFootprint(capacity_);
     SetDefaultConcurrentStartBytes();
     Runtime::Current()->SetDumpGCPerformanceOnShutdown(true);
