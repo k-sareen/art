@@ -46,6 +46,7 @@
 
 #include "../../libcore/ojluni/src/main/native/jvm.h"  // TODO(narayan): fix it
 
+#include "app_info.h"
 #include "base/macros.h"
 #include "base/fast_exit.h"
 #include "common_throws.h"
@@ -319,16 +320,89 @@ JNIEXPORT jstring JVM_InternString(JNIEnv* env, jstring jstr) {
   return soa.AddLocalReference<jstring>(s->Intern());
 }
 
+static bool requires_heap_size_spoofing() {
+  art::Runtime* runtime = art::Runtime::Current();
+  art::gc::Heap* heap = runtime->GetHeap();
+  std::string package_name = runtime->GetPackageName();
+
+  return heap->IsTargetApp(package_name) && heap->RequiresHeapSizeSpoofing(package_name);
+}
+
+[[maybe_unused]] static std::string get_java_stack_trace() {
+  JNIEnv* env = nullptr;
+  art::JavaVMExt* vm = art::Runtime::Current()->GetJavaVM();
+  if (vm->GetEnv((void**) &env, JNI_VERSION_1_6) != JNI_OK) {
+    return "Could not get JNIEnv";
+  }
+
+  jclass exception_class = env->FindClass("java/lang/Exception");
+  if (exception_class == nullptr) {
+    return "Could not find Exception class";
+  }
+
+  jmethodID constructor = env->GetMethodID(exception_class, "<init>", "()V");
+  if (constructor == nullptr) {
+    return "Could not find constructor for Exception class";
+  }
+
+  jobject exception = env->NewObject(exception_class, constructor);
+  if (exception == nullptr) {
+    return "Could create new object";
+  }
+
+  // Get the stack trace of the created exception
+  jmethodID get_stack_trace_method = env->GetMethodID(exception_class, "getStackTrace", "()[Ljava/lang/StackTraceElement;");
+  if (get_stack_trace_method == nullptr) {
+    return "Could not find getStackTrace method";
+  }
+
+  jobjectArray stack_trace_elements = (jobjectArray)env->CallObjectMethod(exception, get_stack_trace_method);
+  if (stack_trace_elements == nullptr) {
+    return "Could not call getStackTrace method";
+  }
+
+  std::string stack_trace;
+  int stack_trace_length = env->GetArrayLength(stack_trace_elements);
+  for (int i = 0; i < stack_trace_length; i++) {
+    jobject element = env->GetObjectArrayElement(stack_trace_elements, i);
+    jstring string = (jstring)env->CallObjectMethod(element, env->GetMethodID(env->FindClass("java/lang/Object"), "toString", "()Ljava/lang/String;"));
+    const char* utf_string = env->GetStringUTFChars(string, NULL);
+    stack_trace += utf_string;
+    stack_trace += "\n";
+    env->ReleaseStringUTFChars(string, utf_string);
+  }
+
+  return stack_trace;
+}
+
 JNIEXPORT jlong JVM_FreeMemory(void) {
-  return art::Runtime::Current()->GetHeap()->GetFreeMemory();
+  size_t free_memory = art::Runtime::Current()->GetHeap()->GetFreeMemory();
+  if (requires_heap_size_spoofing()) {
+    size_t spoof_total_memory = 128 * 1024 * 1024;
+    if (free_memory > spoof_total_memory) {
+      free_memory = spoof_total_memory;
+    }
+  }
+
+  return free_memory;
 }
 
 JNIEXPORT jlong JVM_TotalMemory(void) {
-  return art::Runtime::Current()->GetHeap()->GetTotalMemory();
+  size_t total_memory = art::Runtime::Current()->GetHeap()->GetTotalMemory();
+  if (requires_heap_size_spoofing()) {
+    total_memory = 128 * 1024 * 1024;
+  }
+
+  return total_memory;
 }
 
 JNIEXPORT jlong JVM_MaxMemory(void) {
-  return art::Runtime::Current()->GetHeap()->GetMaxMemory();
+  size_t max_memory = art::Runtime::Current()->GetHeap()->GetMaxMemory();
+  if (requires_heap_size_spoofing()) {
+    max_memory = 512 * 1024 * 1024;
+  }
+
+  return max_memory;
 }
 
 JNIEXPORT void JVM_GC(void) {

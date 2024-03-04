@@ -1098,6 +1098,9 @@ class Heap {
     return perf_counters_;
   }
 
+  EXPORT bool IsTargetApp(std::string package_name);
+  EXPORT bool RequiresHeapSizeSpoofing(std::string package_name);
+
  private:
   class ConcurrentGCTask;
   class CollectorTransitionTask;
@@ -1404,7 +1407,6 @@ class Heap {
   void SetDefaultConcurrentStartBytesLocked();
 
   void ReadHeapSizesFile();
-  bool IsTargetApp(std::string package_name);
   size_t GetHeapSizeForTargetApp(std::string package_name);
 
   // All-known continuous spaces, where objects lie within fixed bounds.

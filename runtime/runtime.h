@@ -1132,6 +1132,8 @@ class Runtime {
 
   AppInfo* GetAppInfo() { return &app_info_; }
 
+  EXPORT std::string GetPackageName() { return GetAppInfo()->PackageName(); }
+
   void RequestMetricsReport(bool synchronous = true);
 
   static void MadviseFileForRange(size_t madvise_size_limit_bytes,

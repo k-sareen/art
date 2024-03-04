@@ -92,7 +92,7 @@ class AppInfo {
   // be kUnknown until an explicit registration for that path has been made.
   CodeType GetRegisteredCodeType(const std::string& code_path);
 
-  std::string PackageName();
+  EXPORT std::string PackageName();
 
  private:
   // Encapsulates optimization information about a particular code location.

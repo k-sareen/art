@@ -4061,6 +4061,21 @@ bool Heap::IsTargetApp(std::string package_name) {
   return false;
 }
 
+bool Heap::RequiresHeapSizeSpoofing(std::string package_name) {
+  DCHECK(IsTargetApp(package_name)) << "Can't call this function for non-target apps";
+  for (auto& bm : heap_sizes_) {
+    if (bm.contains("package")) {
+      if (bm["package"] == package_name) {
+        if (bm.contains("heap_size_spoofing")) {
+          return bm["heap_size_spoofing"];
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 size_t Heap::GetHeapSizeForTargetApp(std::string package_name) {
   DCHECK(!heap_sizes_.empty()) << "Heap sizes can't be empty if setting target heap size";
   for (auto& bm : heap_sizes_) {
