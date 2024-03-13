@@ -1417,6 +1417,9 @@ uint64_t Heap::GetTotalGcCpuTime() {
 void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
 
+  std::cout.setf(std::ios::fixed, std::ios::floatfield);
+  std::cout.precision(3);
+
   std::cout << "============================ Tabulate Statistics ============================\n";
 
   uint64_t total_paused_time = 0;
@@ -1444,9 +1447,9 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
 
   std::cout << total_gc_count
     << "\t" << major_gc_count
-    << "\t" << total_time
-    << "\t" << total_time - total_paused_time
-    << "\t" << total_paused_time;
+    << "\t" << (((double) total_time) / 1e6)
+    << "\t" << (((double) total_time - total_paused_time) / 1e6)
+    << "\t" << (((double) total_paused_time) / 1e6);
 
   for (PerfCounter* perf_counter : perf_counters_) {
     std::cout << "\t" << perf_counter->GetOtherCount()
