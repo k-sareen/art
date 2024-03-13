@@ -1153,7 +1153,9 @@ void IntrinsicCodeGeneratorX86_64::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    codegen_->MarkGCCard(temp1, temp2, dest);
+    if (gUseWriteBarrier) {
+      codegen_->MarkGCCard(temp1, temp2, dest);
+    }
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -2088,7 +2090,7 @@ static void GenUnsafePut(LocationSummary* locations, DataType::Type type, bool i
     codegen->MemoryFence();
   }
 
-  if (type == DataType::Type::kReference) {
+  if (type == DataType::Type::kReference && gUseWriteBarrier) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(locations->GetTemp(0).AsRegister<CpuRegister>(),
                              locations->GetTemp(1).AsRegister<CpuRegister>(),
@@ -2388,8 +2390,10 @@ static void GenCompareAndSetOrExchangeRef(CodeGeneratorX86_64* codegen,
   X86_64Assembler* assembler = down_cast<X86_64Assembler*>(codegen->GetAssembler());
 
   // Mark card for object assuming new value is stored.
-  bool value_can_be_null = true;  // TODO: Worth finding out this information?
-  codegen->MaybeMarkGCCard(temp1, temp2, base, value, value_can_be_null);
+  if (gUseWriteBarrier) {
+    bool value_can_be_null = true;  // TODO: Worth finding out this information?
+    codegen->MaybeMarkGCCard(temp1, temp2, base, value, value_can_be_null);
+  }
 
   Address field_addr(base, offset, TIMES_1, 0);
   if (codegen->EmitBakerReadBarrier()) {
@@ -2699,8 +2703,10 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
     }
 
     // Mark card for object as a new value shall be stored.
-    bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-    codegen->MaybeMarkGCCard(temp1, temp2, base, /*value=*/out, new_value_can_be_null);
+    if (gUseWriteBarrier) {
+      bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
+      codegen->MaybeMarkGCCard(temp1, temp2, base, /*value=*/out, new_value_can_be_null);
+    }
 
     if (kPoisonHeapReferences) {
       // Use a temp to avoid poisoning base of the field address, which might happen if `out`
@@ -4444,7 +4450,9 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke,
           &temp1,
           &temp2);
     }
-    codegen->MarkGCCard(temp1, temp2, ref);
+    if (gUseWriteBarrier) {
+      codegen->MarkGCCard(temp1, temp2, ref);
+    }
 
     DCHECK_EQ(valreg, out.AsRegister<CpuRegister>());
     if (kPoisonHeapReferences) {
