@@ -6071,19 +6071,21 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
       UNREACHABLE();
   }
 
-  if (needs_write_barrier) {
-    vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
-    vixl32::Register card = RegisterFrom(locations->GetTemp(1));
-    codegen_->MaybeMarkGCCard(
-        temp,
-        card,
-        base,
-        RegisterFrom(value),
-        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
-  } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
-    vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
-    vixl32::Register card = RegisterFrom(locations->GetTemp(1));
-    codegen_->CheckGCCardIsValid(temp, card, base);
+  if (gUseWriteBarrier) {
+    if (needs_write_barrier) {
+      vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
+      vixl32::Register card = RegisterFrom(locations->GetTemp(1));
+      codegen_->MaybeMarkGCCard(
+          temp,
+          card,
+          base,
+          RegisterFrom(value),
+          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
+    } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
+      vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
+      vixl32::Register card = RegisterFrom(locations->GetTemp(1));
+      codegen_->CheckGCCardIsValid(temp, card, base);
+    }
   }
 
   if (is_volatile) {
@@ -6942,7 +6944,7 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
           codegen_->StoreToShiftedRegOffset(value_type, value_loc, temp, RegisterFrom(index));
         }
         codegen_->MaybeRecordImplicitNullCheck(instruction);
-        if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+        if (gUseWriteBarrier && write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
           // We need to set a write barrier here even though we are writing null, since this write
           // barrier is being relied on.
           DCHECK(needs_write_barrier);
@@ -7022,19 +7024,21 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
         __ Bind(&do_store);
       }
 
-      if (needs_write_barrier) {
-        // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
-        // this write barrier when its value is null (without an extra CompareAndBranchIfZero since
-        // we already checked if the value is null for the type check). This will be done as a
-        // follow-up since it is a runtime optimization that needs extra care.
-        vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
-        vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
-        codegen_->MarkGCCard(temp1, temp2, array);
-      } else if (codegen_->ShouldCheckGCCard(
-                     value_type, instruction->GetValue(), write_barrier_kind)) {
-        vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
-        vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
-        codegen_->CheckGCCardIsValid(temp1, temp2, array);
+      if (gUseWriteBarrier) {
+        if (needs_write_barrier) {
+          // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
+          // this write barrier when its value is null (without an extra CompareAndBranchIfZero since
+          // we already checked if the value is null for the type check). This will be done as a
+          // follow-up since it is a runtime optimization that needs extra care.
+          vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
+          vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
+          codegen_->MarkGCCard(temp1, temp2, array);
+        } else if (codegen_->ShouldCheckGCCard(
+                       value_type, instruction->GetValue(), write_barrier_kind)) {
+          vixl32::Register temp1 = RegisterFrom(locations->GetTemp(0));
+          vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
+          codegen_->CheckGCCardIsValid(temp1, temp2, array);
+        }
       }
 
       vixl32::Register source = value;
@@ -7260,38 +7264,42 @@ void CodeGeneratorARMVIXL::MaybeMarkGCCard(vixl32::Register temp,
                                            vixl32::Register object,
                                            vixl32::Register value,
                                            bool emit_null_check) {
-  vixl32::Label is_null;
-  if (emit_null_check) {
-    __ CompareAndBranchIfZero(value, &is_null, /* is_far_target=*/ false);
-  }
-  MarkGCCard(temp, card, object);
-  if (emit_null_check) {
-    __ Bind(&is_null);
+  if (gUseWriteBarrier) {
+    vixl32::Label is_null;
+    if (emit_null_check) {
+      __ CompareAndBranchIfZero(value, &is_null, /* is_far_target=*/ false);
+    }
+    MarkGCCard(temp, card, object);
+    if (emit_null_check) {
+      __ Bind(&is_null);
+    }
   }
 }
 
 void CodeGeneratorARMVIXL::MarkGCCard(vixl32::Register temp,
                                       vixl32::Register card,
                                       vixl32::Register object) {
-  // Load the address of the card table into `card`.
-  GetAssembler()->LoadFromOffset(
-      kLoadWord, card, tr, Thread::CardTableOffset<kArmPointerSize>().Int32Value());
-  // Calculate the offset (in the card table) of the card corresponding to `object`.
-  __ Lsr(temp, object, Operand::From(gc::accounting::CardTable::kCardShift));
-  // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
-  // `object`'s card.
-  //
-  // Register `card` contains the address of the card table. Note that the card
-  // table's base is biased during its creation so that it always starts at an
-  // address whose least-significant byte is equal to `kCardDirty` (see
-  // art::gc::accounting::CardTable::Create). Therefore the STRB instruction
-  // below writes the `kCardDirty` (byte) value into the `object`'s card
-  // (located at `card + object >> kCardShift`).
-  //
-  // This dual use of the value in register `card` (1. to calculate the location
-  // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
-  // (no need to explicitly load `kCardDirty` as an immediate value).
-  __ Strb(card, MemOperand(card, temp));
+  if (gUseWriteBarrier) {
+    // Load the address of the card table into `card`.
+    GetAssembler()->LoadFromOffset(
+        kLoadWord, card, tr, Thread::CardTableOffset<kArmPointerSize>().Int32Value());
+    // Calculate the offset (in the card table) of the card corresponding to `object`.
+    __ Lsr(temp, object, Operand::From(gc::accounting::CardTable::kCardShift));
+    // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
+    // `object`'s card.
+    //
+    // Register `card` contains the address of the card table. Note that the card
+    // table's base is biased during its creation so that it always starts at an
+    // address whose least-significant byte is equal to `kCardDirty` (see
+    // art::gc::accounting::CardTable::Create). Therefore the STRB instruction
+    // below writes the `kCardDirty` (byte) value into the `object`'s card
+    // (located at `card + object >> kCardShift`).
+    //
+    // This dual use of the value in register `card` (1. to calculate the location
+    // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
+    // (no need to explicitly load `kCardDirty` as an immediate value).
+    __ Strb(card, MemOperand(card, temp));
+  }
 }
 
 void CodeGeneratorARMVIXL::CheckGCCardIsValid(vixl32::Register temp,
