@@ -77,10 +77,12 @@ std::string Verification::DumpObjectInfo(const void* addr, const char* tag) cons
     if (space != nullptr) {
       oss << " space=" << *space;
     }
-    accounting::CardTable* card_table = heap_->GetCardTable();
-    if (card_table->AddrIsInCardTable(addr)) {
-      oss << " card=" << static_cast<size_t>(
-          card_table->GetCard(reinterpret_cast<const mirror::Object*>(addr)));
+    if (gUseWriteBarrier) {
+      accounting::CardTable* card_table = heap_->GetCardTable();
+      if (card_table->AddrIsInCardTable(addr)) {
+        oss << " card=" << static_cast<size_t>(
+            card_table->GetCard(reinterpret_cast<const mirror::Object*>(addr)));
+      }
     }
     // Dump adjacent RAM.
     oss << DumpRAMAroundAddress(reinterpret_cast<uintptr_t>(addr), 4 * kObjectAlignment);

@@ -256,7 +256,9 @@
    .else
    POISON_HEAP_REF_IF_OBJECT $is_object, w26
    $store  w26, [x2, x0]
+#ifdef USE_WRITE_BARRIER
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_skip_write_barrier
+#endif   // USE_WRITE_BARRIER
    .endif
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE ip
@@ -289,7 +291,9 @@
    .else
    POISON_HEAP_REF_IF_OBJECT $is_object, w26
    $volatile_store w26, [x3]
+#ifdef USE_WRITE_BARRIER
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_slow_path_skip_write_barrier
+#endif   // USE_WRITE_BARRIER
    .endif
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE ip
@@ -425,7 +429,9 @@
    .else
    POISON_HEAP_REF_IF_OBJECT $is_object, w26
    $store  w26, [x0, x1]
+#ifdef USE_WRITE_BARRIER
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_skip_write_barrier
+#endif   // USE_WRITE_BARRIER
    .endif
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE ip
@@ -462,7 +468,9 @@
    .else
    POISON_HEAP_REF_IF_OBJECT $is_object, w26
    $volatile_store    w26, [x1]
+#ifdef USE_WRITE_BARRIER
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_slow_path_skip_write_barrier
+#endif   // USE_WRITE_BARRIER
    .endif
    FETCH_ADVANCE_INST 2
    GET_INST_OPCODE ip
