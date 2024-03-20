@@ -57,7 +57,7 @@ namespace collector {
 class SemiSpace : public GarbageCollector {
  public:
   // If true, use remembered sets in the generational mode.
-  static constexpr bool kUseRememberedSet = true;
+  static constexpr bool kUseRememberedSet = false;
 
   explicit SemiSpace(Heap* heap, const std::string& name_prefix = "");
 
