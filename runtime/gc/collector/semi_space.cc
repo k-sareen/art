@@ -222,8 +222,11 @@ void SemiSpace::MarkingPhase() {
   // used for the Zygote so if the pages are not returned back to the operating
   // system here, then the phone soft reboots (restarts inplace) before
   // eventually dying completely from out of memory errors
-  // from_space_->ClearAndDontRelease();
-  from_space_->Clear();
+  if (heap_->IsTargetApp(Runtime::Current()->GetPackageName())) {
+    from_space_->ClearAndDontRelease();
+  } else {
+    from_space_->Clear();
+  }
   // b/31172841. Temporarily disable the from-space protection with host debug build
   // due to some protection issue in the build server.
   if (kProtectFromSpace && !(kIsDebugBuild && !kIsTargetBuild)) {
