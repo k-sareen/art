@@ -90,8 +90,9 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
   }
 }
 
-static void stop_all_mutators() {
+static void suspend_mutators(void* tls) {
   VLOG(threads) << "Suspend all mutators. Sending request to companion thread.";
+  art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
 
@@ -100,7 +101,7 @@ static void stop_all_mutators() {
   companion->Request(art::StwState::Suspended);
   VLOG(threads) << "Suspend request sent to companion thread.";
 
-  tp_heap->StartGC(art::Thread::Current(), art::gc::kGcCauseForAlloc);
+  tp_heap->StartGC(self, art::gc::kGcCauseForAlloc);
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
@@ -241,7 +242,7 @@ ArtUpcalls art_upcalls = {
   scan_object,
   block_for_gc,
   spawn_gc_thread,
-  stop_all_mutators,
+  suspend_mutators,
   resume_mutators,
   number_of_mutators,
   is_mutator,
