@@ -1250,12 +1250,15 @@ DEFINE_FUNCTION art_quick_aput_obj
     movb %dl, (%rdx, %rdi)
 #else
     PUSH_ARG rsi
-    subq LITERAL(8), %rsp            // Alignment padding.
-    CFI_ADJUST_CFA_OFFSET(8)
+    // XXX(kunals): Pushing %rsi above aligns the stack pointer to 16-byte. Note
+    // that this was discovered empirically and hopefully this doesn't break for
+    // other programs
+    // subq LITERAL(8), %rsp            // Alignment padding.
+    // CFI_ADJUST_CFA_OFFSET(8)
     leaq MIRROR_OBJECT_ARRAY_DATA_OFFSET(%rdi, %rsi, 4), %rsi
     call SYMBOL(art_quick_write_barrier_post) // (rdi=src, rsi=slot, rdx=target)
-    addq LITERAL(8), %rsp
-    CFI_ADJUST_CFA_OFFSET(-8)
+    // addq LITERAL(8), %rsp
+    // CFI_ADJUST_CFA_OFFSET(-8)
     POP_ARG rsi
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
@@ -1291,12 +1294,15 @@ DEFINE_FUNCTION art_quick_aput_obj
     movb %dl, (%rdx, %rdi)
 #else
     PUSH_ARG rsi
-    subq LITERAL(8), %rsp            // Alignment padding.
-    CFI_ADJUST_CFA_OFFSET(8)
+    // XXX(kunals): Pushing %rsi above aligns the stack pointer to 16-byte. Note
+    // that this was discovered empirically and hopefully this doesn't break for
+    // other programs
+    // subq LITERAL(8), %rsp            // Alignment padding.
+    // CFI_ADJUST_CFA_OFFSET(8)
     leaq MIRROR_OBJECT_ARRAY_DATA_OFFSET(%rdi, %rsi, 4), %rsi
     call SYMBOL(art_quick_write_barrier_post) // (rdi=src, rsi=slot, rdx=target)
-    addq LITERAL(8), %rsp
-    CFI_ADJUST_CFA_OFFSET(-8)
+    // addq LITERAL(8), %rsp
+    // CFI_ADJUST_CFA_OFFSET(-8)
     POP_ARG rsi
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
@@ -1941,24 +1947,20 @@ END_FUNCTION art_quick_read_barrier_for_root_slow
 
 #if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 DEFINE_FUNCTION art_quick_write_barrier_post
-    SETUP_FP_CALLEE_SAVE_FRAME
-    subq LITERAL(8), %rsp            // Alignment padding.
-    CFI_ADJUST_CFA_OFFSET(8)
+    // XXX(kunals): Save everything that may be potentially overwritten by the
+    // write barrier slow path
+    SETUP_SAVE_EVERYTHING_FRAME
     call SYMBOL(artWriteBarrierPost) // artWriteBarrierPost(src, slot, target)
-    addq LITERAL(8), %rsp
-    CFI_ADJUST_CFA_OFFSET(-8)
-    RESTORE_FP_CALLEE_SAVE_FRAME
+    RESTORE_SAVE_EVERYTHING_FRAME
     ret
 END_FUNCTION art_quick_write_barrier_post
 
 DEFINE_FUNCTION art_quick_array_copy_barrier_post
-    SETUP_FP_CALLEE_SAVE_FRAME
-    subq LITERAL(8), %rsp                // Alignment padding.
-    CFI_ADJUST_CFA_OFFSET(8)
+    // XXX(kunals): Save everything that may be potentially overwritten by the
+    // write barrier slow path
+    SETUP_SAVE_EVERYTHING_FRAME
     call SYMBOL(artArrayCopyBarrierPost) // artArrayCopyBarrierPost(src, dst, offset)
-    addq LITERAL(8), %rsp
-    CFI_ADJUST_CFA_OFFSET(-8)
-    RESTORE_FP_CALLEE_SAVE_FRAME
+    RESTORE_SAVE_EVERYTHING_FRAME
     ret
 END_FUNCTION art_quick_array_copy_barrier_post
 #endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
