@@ -1034,31 +1034,48 @@ class WriteBarrierPostX86_64 : public SlowPathCode {
     DCHECK(locations->CanCall());
 
     __ Bind(GetEntryLabel());
-    SaveLiveRegisters(codegen, locations);
 
     InvokeRuntimeCallingConvention calling_convention;
     CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
+
+    CpuRegister rdi = CpuRegister(calling_convention.GetRegisterAt(0));
+    CpuRegister rsi = CpuRegister(calling_convention.GetRegisterAt(1));
+    CpuRegister rdx = CpuRegister(calling_convention.GetRegisterAt(2));
+
+    // XXX(kunals): Just save the argument registers we use as the
+    // `art_quick_write_barrier_post` will save all other registers
+    __ pushq(rdi);
+    __ pushq(rsi);
+    __ pushq(rdx);
+    __ subq(CpuRegister(RSP), Immediate(8)); // Alignment padding
+
+    __ leal(CpuRegister(TMP), slot_);
+
     HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
     parallel_move.AddMove(src_,
-                          Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+                          Location::RegisterLocation(rdi.AsRegister()),
+                          DataType::Type::kReference,
+                          nullptr);
+    parallel_move.AddMove(Location::RegisterLocation(TMP),
+                          Location::RegisterLocation(rsi.AsRegister()),
                           DataType::Type::kReference,
                           nullptr);
     parallel_move.AddMove(target_,
-                          Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+                          Location::RegisterLocation(rdx.AsRegister()),
                           DataType::Type::kInt32,
                           nullptr);
     codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
-
-    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), src_);
-    __ leal(CpuRegister(calling_convention.GetRegisterAt(1)), slot_);
-    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), target_);
 
     // There is no need to update the stack mask, as this runtime call will not
     // trigger a garbage collection.
     int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
     x86_64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
 
-    RestoreLiveRegisters(codegen, locations);
+    __ addq(CpuRegister(RSP), Immediate(8));
+    __ popq(rdx);
+    __ popq(rsi);
+    __ popq(rdi);
+
     __ jmp(GetExitLabel());
   }
 
@@ -1094,35 +1111,46 @@ class ArrayCopyBarrierPostX86_64 : public SlowPathCode {
     DCHECK(locations->CanCall());
 
     __ Bind(GetEntryLabel());
-    SaveLiveRegisters(codegen, locations);
 
     InvokeRuntimeCallingConvention calling_convention;
     CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
+
+    CpuRegister rdi = CpuRegister(calling_convention.GetRegisterAt(0));
+    CpuRegister rsi = CpuRegister(calling_convention.GetRegisterAt(1));
+    CpuRegister rdx = CpuRegister(calling_convention.GetRegisterAt(2));
+
+    // XXX(kunals): Just save the argument registers we use as the
+    // `art_quick_array_copy_barrier_post` will save all other registers
+    __ pushq(rdi);
+    __ pushq(rsi);
+    __ pushq(rdx);
+    __ subq(CpuRegister(RSP), Immediate(8)); // Alignment padding
+
     HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
     parallel_move.AddMove(src_,
-                          Location::RegisterLocation(calling_convention.GetRegisterAt(0)),
+                          Location::RegisterLocation(rdi.AsRegister()),
                           DataType::Type::kReference,
                           nullptr);
     parallel_move.AddMove(dst_,
-                          Location::RegisterLocation(calling_convention.GetRegisterAt(1)),
+                          Location::RegisterLocation(rsi.AsRegister()),
                           DataType::Type::kReference,
                           nullptr);
     parallel_move.AddMove(count_,
-                          Location::RegisterLocation(calling_convention.GetRegisterAt(2)),
+                          Location::RegisterLocation(rdx.AsRegister()),
                           DataType::Type::kInt32,
                           nullptr);
     codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
-
-    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(0)), src_);
-    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(1)), dst_);
-    // x86_64_codegen->Move(Location::RegisterLocation(calling_convention.GetRegisterAt(2)), count_);
 
     // There is no need to update the stack mask, as this runtime call will not
     // trigger a garbage collection.
     int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pArrayCopyBarrierPost).Int32Value();
     x86_64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
 
-    RestoreLiveRegisters(codegen, locations);
+    __ addq(CpuRegister(RSP), Immediate(8));
+    __ popq(rdx);
+    __ popq(rsi);
+    __ popq(rdi);
+
     __ jmp(GetExitLabel());
   }
 
@@ -5548,7 +5576,9 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
                                                     bool byte_swap,
                                                     WriteBarrierKind write_barrier_kind) {
 #if ART_USE_MMTK
+#ifndef USE_WRITE_BARRIER
   UNUSED(base);
+#endif  // USE_WRITE_BARRIER
   UNUSED(value_can_be_null);
   UNUSED(write_barrier_kind);
 #endif  // ART_USE_MMTK
