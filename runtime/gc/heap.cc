@@ -3899,7 +3899,12 @@ collector::GcType Heap::WaitForGcToCompleteLocked(GcCause cause, Thread* self) {
   collector::GcType last_gc_type = collector::kGcTypeNone;
   GcCause last_gc_cause = kGcCauseNone;
   uint64_t wait_start = NanoTime();
+#if ART_USE_MMTK
+  // XXX(kunals): Currently all collections are blocking
+  running_collection_is_blocking_ = true;
+#endif  // ART_USE_MMTK
   while (collector_type_running_ != kCollectorTypeNone) {
+#if !ART_USE_MMTK
     if (self != task_processor_->GetRunningThread()) {
       // The current thread is about to wait for a currently running
       // collection to finish. If the waiting thread is not the heap
@@ -3908,6 +3913,7 @@ collector::GcType Heap::WaitForGcToCompleteLocked(GcCause cause, Thread* self) {
       running_collection_is_blocking_ = true;
       VLOG(gc) << "Waiting for a blocking GC " << cause;
     }
+#endif  // !ART_USE_MMTK
     SCOPED_TRACE << "GC: Wait For Completion " << cause;
     // We must wait, change thread state then sleep on gc_complete_cond_;
     gc_complete_cond_->Wait(self);
@@ -3917,9 +3923,11 @@ collector::GcType Heap::WaitForGcToCompleteLocked(GcCause cause, Thread* self) {
   uint64_t wait_time = NanoTime() - wait_start;
   total_wait_time_ += wait_time;
   if (wait_time > long_pause_log_threshold_) {
-    LOG(INFO) << "WaitForGcToComplete blocked " << cause << " on " << last_gc_cause << " for "
+    LOG(INFO) << "WaitForGcToComplete blocked " << *self << " " << cause
+              << " on " << last_gc_cause << " for "
               << PrettyDuration(wait_time);
   }
+#if !ART_USE_MMTK
   if (self != task_processor_->GetRunningThread()) {
     // The current thread is about to run a collection. If the thread
     // is not the heap task daemon thread, it's considered as a
@@ -3932,6 +3940,7 @@ collector::GcType Heap::WaitForGcToCompleteLocked(GcCause cause, Thread* self) {
       VLOG(gc) << *self << " Starting a blocking GC " << cause;
     }
   }
+#endif  // !ART_USE_MMTK
   return last_gc_type;
 }
 

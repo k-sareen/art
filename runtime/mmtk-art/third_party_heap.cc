@@ -58,17 +58,19 @@ size_t ThirdPartyHeap::GetBytesAllocated() {
   return mmtk_get_used_bytes();
 }
 
-void ThirdPartyHeap::BlockThreadForCollection(GcCause cause, Thread* self) {
-  art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Thread* self) {
   Heap* heap = Runtime::Current()->GetHeap();
+  VLOG(threads) << "Blocking GC requested by thread: " << *self;
+
+  uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
   {
-    MutexLock mu(self, *(heap->gc_complete_lock_));
-    // Set the collector_type_running_ to kCollectorTypeThirdPartyHeap so that
-    // Heap::WaitForGcToComplete will wait until GC has finished
-    heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
-    heap->last_gc_cause_ = cause;
+    art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+    MutexLock mu(self, *heap->gc_complete_lock_);
+    heap->gc_complete_cond_->CheckSafeToWait(self);
+    while (heap->GetCurrentGcNum() < next_gc_num) {
+      heap->gc_complete_cond_->Wait(self);
+    }
   }
-  heap->WaitForGcToComplete(cause, self);
 }
 
 bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
@@ -145,6 +147,13 @@ void ThirdPartyHeap::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
                                             ObjPtr<mirror::Reference> reference) {
   Heap* heap = Runtime::Current()->GetHeap();
   heap->GetReferenceProcessor()->DelayReferenceReferentTPH(klass, reference);
+}
+
+void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
+  Heap* heap = Runtime::Current()->GetHeap();
+  MutexLock mu(self, *heap->gc_complete_lock_);
+  heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
+  heap->last_gc_cause_ = cause;
 }
 
 void ThirdPartyHeap::FinishGC(Thread* self) {

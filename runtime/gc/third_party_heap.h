@@ -100,6 +100,7 @@ class ThirdPartyHeap {
                               ObjPtr<mirror::Reference> reference)
       NO_THREAD_SAFETY_ANALYSIS;
 
+  void StartGC(Thread* self, GcCause cause);
   void FinishGC(Thread* self);
 
   void* GetCompanionThread() {
