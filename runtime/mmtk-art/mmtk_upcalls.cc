@@ -64,11 +64,12 @@ static void block_for_gc(void* tls) {
     }                                                                                       \
   }()
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
+  VLOG(threads) << "Block for GC requested: " << *self;
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
-  // ThirdPartyHeap::BlockThreadForCollection calls Heap::WaitForGcToComplete internally
   PERFORM_SUSPENDING_OPERATION(self, tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
 #undef PERFORM_SUSPENDING_OPERATION
+  VLOG(threads) << "Block for GC finished: " << *self;
 }
 
 static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
@@ -90,16 +91,21 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
 }
 
 static void stop_all_mutators() {
+  VLOG(threads) << "Suspend all mutators. Sending request to companion thread.";
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
 
   art::MmtkVmCompanionThread* companion =
     reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
   companion->Request(art::StwState::Suspended);
+  VLOG(threads) << "Suspend request sent to companion thread.";
+
+  tp_heap->StartGC(art::Thread::Current(), art::gc::kGcCauseForAlloc);
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
 static void resume_mutators(void* tls) {
+  VLOG(threads) << "Resume all mutators. Sending request to companion thread.";
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::Runtime* runtime = art::Runtime::Current();
   {
@@ -120,6 +126,7 @@ static void resume_mutators(void* tls) {
     reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
   companion->Request(art::StwState::Resumed);
   tp_heap->FinishGC(self);
+  VLOG(threads) << "Resume request sent to companion thread.";
 
   // Collect cleared references.
   art::SelfDeletingTask* clear =
