@@ -61,6 +61,10 @@ class ThirdPartyHeap {
   // Return bytes allocated
   size_t GetBytesAllocated();
 
+  // Inform the ThirdPartyHeap of the location of the boot image and its size so
+  // that it can keep track of any objects it sees that may be in the boot image
+  void SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size);
+
   // Block and suspend mutator thread for GC
   void BlockThreadForCollection(GcCause cause, Thread* self)
     REQUIRES(!*Heap::gc_complete_lock_)
