@@ -58,6 +58,10 @@ size_t ThirdPartyHeap::GetBytesAllocated() {
   return mmtk_get_used_bytes();
 }
 
+void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size) {
+  mmtk_set_image_space(boot_image_start_address, boot_image_size);
+}
+
 void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Thread* self) {
   Heap* heap = Runtime::Current()->GetHeap();
   VLOG(threads) << "Blocking GC requested by thread: " << *self;

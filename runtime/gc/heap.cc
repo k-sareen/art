@@ -612,10 +612,11 @@ Heap::Heap(size_t initial_size,
   }
 #endif  // ART_USE_MMTK
   ChangeCollector(desired_collector_type_);
-#if !ART_USE_MMTK
+
+  // XXX(kunals): We do not use these bitmaps for actual objects in MMTk ART,
+  // but need to create bitmaps for objects in the Zygote
   live_bitmap_.reset(new accounting::HeapBitmap(this));
   mark_bitmap_.reset(new accounting::HeapBitmap(this));
-#endif  // !ART_USE_MMTK
 
   // We don't have hspace compaction enabled with CC.
   if (foreground_collector_type_ == kCollectorTypeCC
@@ -685,6 +686,9 @@ Heap::Heap(size_t initial_size,
     if (kIsDebugBuild) {
       VerifyBootImagesContiguity(boot_image_spaces_);
     }
+#if ART_USE_MMTK
+    tp_heap_->SetBootImageSpace(boot_images_start_address_, boot_images_size_);
+#endif  // ART_USE_MMTK
   } else {
     if (foreground_collector_type_ == kCollectorTypeCC) {
       // Need to use a low address so that we can allocate a contiguous 2 * Xmx space
