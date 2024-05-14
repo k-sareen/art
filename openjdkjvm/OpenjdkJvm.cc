@@ -388,18 +388,22 @@ JNIEXPORT jlong JVM_FreeMemory(void) {
 }
 
 JNIEXPORT jlong JVM_TotalMemory(void) {
-  size_t total_memory = art::Runtime::Current()->GetHeap()->GetTotalMemory();
+  size_t total_memory;
   if (requires_heap_size_spoofing()) {
     total_memory = 128 * 1024 * 1024;
+  } else {
+    total_memory = art::Runtime::Current()->GetHeap()->GetTotalMemory();
   }
 
   return total_memory;
 }
 
 JNIEXPORT jlong JVM_MaxMemory(void) {
-  size_t max_memory = art::Runtime::Current()->GetHeap()->GetMaxMemory();
+  size_t max_memory;
   if (requires_heap_size_spoofing()) {
     max_memory = 512 * 1024 * 1024;
+  } else {
+    max_memory = art::Runtime::Current()->GetHeap()->GetMaxMemory();
   }
 
   return max_memory;
