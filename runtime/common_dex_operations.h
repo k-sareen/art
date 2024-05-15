@@ -59,7 +59,7 @@ namespace interpreter {
 
 }  // namespace interpreter
 
-inline bool EnsureInitialized(Thread* self, ShadowFrame* shadow_frame)
+inline NO_STACK_PROTECTOR bool EnsureInitialized(Thread* self, ShadowFrame* shadow_frame)
     REQUIRES_SHARED(Locks::mutator_lock_) {
   if (LIKELY(!shadow_frame->GetMethod()->StillNeedsClinitCheck())) {
     return true;
@@ -78,7 +78,7 @@ inline bool EnsureInitialized(Thread* self, ShadowFrame* shadow_frame)
   return true;
 }
 
-inline void PerformCall(Thread* self,
+inline NO_STACK_PROTECTOR void PerformCall(Thread* self,
                         const CodeItemDataAccessor& accessor,
                         ArtMethod* caller_method,
                         const size_t first_dest_reg,
