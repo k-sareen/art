@@ -285,14 +285,10 @@ art_cc_defaults {
     test_options: {
         test_suite_tag: ["art-host-gtest"],
     },
-   
     header_libs: [
         "libmmtk_art_headers",
     ],
-
-    shared_libs: [
-        "libartd",
-        "libartd-disassembler",
+    static_libs: [
         "libartd-gtest",
     ],
     // Reduce test executable size by disabling automatic export of static lib symbols.

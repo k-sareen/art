@@ -657,7 +657,7 @@ class Heap {
   // consume. For a regular VM this would relate to the -Xmx option and would return -1 if no Xmx
   // were specified. Android apps start with a growth limit (small heap size) which is
   // cleared/extended for large apps.
-  size_t GetMaxMemory() const {
+  EXPORT size_t GetMaxMemory() const {
     // There are some race conditions in the allocation code that can cause bytes allocated to
     // become larger than growth_limit_ in rare cases.
     return std::max(GetBytesAllocated(), growth_limit_);
@@ -680,7 +680,7 @@ class Heap {
 
   // Returns how much free memory we have until we need to grow the heap to perform an allocation.
   // Similar to GetFreeMemoryUntilGC. Implements java.lang.Runtime.freeMemory.
-  size_t GetFreeMemory() const;
+  EXPORT size_t GetFreeMemory() const;
 
   // Get the space that corresponds to an object's address. Current implementation searches all
   // spaces in turn. If fail_ok is false then failing to find a space will cause an abort.

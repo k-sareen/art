@@ -798,7 +798,7 @@ void ThreadList::SuspendAll(const char* cause, bool long_suspend, bool is_self_r
     ScopedTrace trace("Suspending mutator threads");
     const uint64_t start_time = NanoTime();
 
-    SuspendAllInternal(self, is_self_registered);
+    SuspendAllInternal(self, /*reason=*/SuspendReason::kInternal, is_self_registered);
     // All threads are known to have suspended (but a thread may still own the mutator lock)
     // Make sure this thread grabs exclusive access to the mutator lock and its protected data.
 #if HAVE_TIMED_RWLOCK
@@ -867,6 +867,13 @@ void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason, bool is_
 
   // The atomic counter for number of threads that need to pass the barrier.
   AtomicInteger pending_threads;
+  int ignored;
+
+  if (self == nullptr || !is_self_registered) {
+    ignored = 0;
+  } else {
+    ignored = 1;
+  }
 
   for (int iter_count = 1;; ++iter_count) {
     {
@@ -879,7 +886,7 @@ void ThreadList::SuspendAllInternal(Thread* self, SuspendReason reason, bool is_
         bool found_myself = false;
         // Update global suspend all state for attaching threads.
         ++suspend_all_count_;
-        pending_threads.store(list_.size() - (self == nullptr ? 0 : 1), std::memory_order_relaxed);
+        pending_threads.store(list_.size() - ignored, std::memory_order_relaxed);
         // Increment everybody else's suspend count.
         for (const auto& thread : list_) {
           if (thread == self) {

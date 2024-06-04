@@ -44,18 +44,18 @@ void MmtkWorkerThread::CreateWorkerThread(MmtkWorkerThread* worker) {
   // a guard page, so don't do anything special on Bionic libc.
   if (kUseCustomThreadPoolStack) {
     // Add an inaccessible page to catch stack overflow.
-    stack_size += kPageSize;
+    stack_size += gPageSize;
     worker->stack_ = MemMap::MapAnonymous(worker->name_.c_str(),
                                   stack_size,
                                   PROT_READ | PROT_WRITE,
                                   /*low_4gb=*/ false,
                                   &error_msg);
     CHECK(worker->stack_.IsValid()) << error_msg;
-    CHECK_ALIGNED(worker->stack_.Begin(), kPageSize);
+    CHECK_ALIGNED(worker->stack_.Begin(), gPageSize);
     CheckedCall(mprotect,
                 "mprotect bottom page of MmtkWorkerThread stack",
                 worker->stack_.Begin(),
-                kPageSize,
+                gPageSize,
                 PROT_NONE);
   }
   const char* reason = "MmtkWorkerThread";

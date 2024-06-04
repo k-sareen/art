@@ -2370,6 +2370,8 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
     } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
       codegen_->CheckGCCardIsValid(obj);
     }
+#else
+    UNUSED(needs_write_barrier);
 #endif  // !ART_USE_MMTK
   }
 }

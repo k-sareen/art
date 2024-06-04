@@ -5511,11 +5511,9 @@ void LocationsBuilderX86_64::HandleFieldSet(HInstruction* instruction,
   if (needs_write_barrier ||
       check_gc_card ||
       (kPoisonHeapReferences && field_type == DataType::Type::kReference)) {
-#if !ART_USE_MMTK
     // Temporary registers for the write barrier.
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());  // Possibly used for reference poisoning too.
-#endif  // !ART_USE_MMTK
   } else if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
     // Temporary register for the reference poisoning.
     locations->AddTemp(Location::RequiresRegister());
@@ -6045,10 +6043,8 @@ void LocationsBuilderX86_64::VisitArraySet(HArraySet* instruction) {
     // Used by reference poisoning, type checking, emitting write barrier, or checking write
     // barrier.
     locations->AddTemp(Location::RequiresRegister());
-#if !ART_USE_MMTK
     // Only used when emitting a write barrier, or when checking for the card table.
     locations->AddTemp(Location::RequiresRegister());
-#endif  // !ART_USE_MMTK
   } else if ((kPoisonHeapReferences && value_type == DataType::Type::kReference) ||
              instruction->NeedsTypeCheck()) {
     // Used for poisoning or type checking.
@@ -8237,34 +8233,6 @@ void CodeGeneratorX86_64::GenerateReadBarrierForRootSlow(HInstruction* instructi
   // not need to do anything special for this here.
   SlowPathCode* slow_path =
       new (GetScopedAllocator()) ReadBarrierForRootSlowPathX86_64(instruction, out, root);
-  AddSlowPath(slow_path);
-
-  __ jmp(slow_path->GetEntryLabel());
-  __ Bind(slow_path->GetExitLabel());
-}
-
-void CodeGeneratorX86_64::GenerateWriteBarrierPost(HInstruction* instruction,
-                                                   Location src,
-                                                   Address slot,
-                                                   Location target) {
-  DCHECK(gUseWriteBarrier);
-
-  SlowPathCode* slow_path = new (GetScopedAllocator())
-      WriteBarrierPostX86_64(instruction, src, slot, target);
-  AddSlowPath(slow_path);
-
-  __ jmp(slow_path->GetEntryLabel());
-  __ Bind(slow_path->GetExitLabel());
-}
-
-void CodeGeneratorX86_64::GenerateArrayCopyBarrierPost(HInstruction* instruction,
-                                                       Location src,
-                                                       Location dst,
-                                                       Location count) {
-  DCHECK(gUseWriteBarrier);
-
-  SlowPathCode* slow_path = new (GetScopedAllocator())
-      ArrayCopyBarrierPostX86_64(instruction, src, dst, count);
   AddSlowPath(slow_path);
 
   __ jmp(slow_path->GetEntryLabel());

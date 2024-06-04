@@ -103,6 +103,7 @@ void ReferenceQueue::DisableReadBarrierForReference(ObjPtr<mirror::Reference> re
   }
 #else
   UNUSED(ref);
+  UNUSED(order);
 #endif  // !ART_USE_MMTK
 }
 

@@ -31,6 +31,9 @@ cc_defaults {
         "native/service.cc",
     ],
     export_include_dirs: ["native"],
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
     shared_libs: [
         "libarttools", // Contains "libc++fs".
         "libbase",

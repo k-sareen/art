@@ -39,6 +39,7 @@ cc_defaults {
     header_libs: [
         "libart_headers",
         "libart_generated_headers",
+        "libmmtk_art_headers",
     ],
 }
 

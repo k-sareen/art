@@ -34,7 +34,10 @@ cc_defaults {
         "odr_metrics_record.cc",
     ],
     local_include_dirs: ["include"],
-    header_libs: ["dexoptanalyzer_headers"],
+    header_libs: [
+        "dexoptanalyzer_headers",
+        "libmmtk_art_headers",
+    ],
     generated_sources: [
         "apex-info-list-tinyxml",
         "art-apex-cache-info",

@@ -179,6 +179,9 @@ bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
 
     return result;
 #else
+    UNUSED(type);
+    UNUSED(value);
+    UNUSED(write_barrier_kind);
     return false;
 #endif  // !ART_USE_MMTK
   } else {
@@ -1643,9 +1646,14 @@ bool CodeGenerator::StoreNeedsWriteBarrier(DataType::Type type,
     // Check that null value is not represented as an integer constant.
     DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
     // Branch profiling currently doesn't support running optimizations.
+#if !ART_USE_MMTK
     return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
               ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
               : write_barrier_kind != WriteBarrierKind::kDontEmit;
+#else
+    UNUSED(write_barrier_kind);
+    return CodeGenerator::StoreNeedsWriteBarrier(type, value);
+#endif  // !ART_USE_MMTK
   } else {
     return false;
   }

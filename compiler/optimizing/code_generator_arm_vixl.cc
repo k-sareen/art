@@ -5944,10 +5944,8 @@ void LocationsBuilderARMVIXL::HandleFieldSet(HInstruction* instruction,
   // Temporary registers for the write barrier.
   // TODO: consider renaming StoreNeedsWriteBarrier to StoreNeedsGCMark.
   if (needs_write_barrier || check_gc_card) {
-#if !ART_USE_MMTK
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());
-#endif  // !ART_USE_MMTK
   } else if (generate_volatile) {
     // ARM encoding have some additional constraints for ldrexd/strexd:
     // - registers need to be consecutive
@@ -6095,6 +6093,8 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
       vixl32::Register card = RegisterFrom(locations->GetTemp(1));
       codegen_->CheckGCCardIsValid(temp, card, base);
     }
+#else
+    UNUSED(needs_write_barrier);
 #endif  // !ART_USE_MMTK
   }
 
@@ -6868,12 +6868,10 @@ void LocationsBuilderARMVIXL::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RequiresRegister());
   }
   if (needs_write_barrier || check_gc_card || instruction->NeedsTypeCheck()) {
-#if !ART_USE_MMTK
     // Temporary registers for type checking, write barrier, checking the dirty bit, or register
     // poisoning.
     locations->AddTemp(Location::RequiresRegister());
     locations->AddTemp(Location::RequiresRegister());
-#endif  // !ART_USE_MMTK
   } else if (kPoisonHeapReferences && value_type == DataType::Type::kReference) {
     locations->AddTemp(Location::RequiresRegister());
   }
@@ -7056,6 +7054,8 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
           vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
           codegen_->CheckGCCardIsValid(temp1, temp2, array);
         }
+#else
+        UNUSED(needs_write_barrier);
 #endif  // !ART_USE_MMTK
       }
 

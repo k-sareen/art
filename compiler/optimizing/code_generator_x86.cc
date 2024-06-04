@@ -6070,11 +6070,9 @@ void LocationsBuilderX86::HandleFieldSet(HInstruction* instruction,
         codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind);
 
     if (needs_write_barrier || check_gc_card) {
-#if !ART_USE_MMTK
       locations->AddTemp(Location::RequiresRegister());
       // Ensure the card is in a byte register.
       locations->AddTemp(Location::RegisterLocation(ECX));
-#endif  // !ART_USE_MMTK
     } else if (kPoisonHeapReferences && field_type == DataType::Type::kReference) {
       locations->AddTemp(Location::RequiresRegister());
     }
@@ -6526,12 +6524,10 @@ void LocationsBuilderX86::VisitArraySet(HArraySet* instruction) {
     locations->SetInAt(2, Location::RegisterOrConstant(instruction->InputAt(2)));
   }
   if (needs_write_barrier || check_gc_card) {
-#if !ART_USE_MMTK
     // Used by reference poisoning, type checking, emitting, or checking a write barrier.
     locations->AddTemp(Location::RequiresRegister());
     // Only used when emitting or checking a write barrier. Ensure the card is in a byte register.
     locations->AddTemp(Location::RegisterLocation(ECX));
-#endif  // !ART_USE_MMTK
   } else if ((kPoisonHeapReferences && value_type == DataType::Type::kReference) ||
              instruction->NeedsTypeCheck()) {
     locations->AddTemp(Location::RequiresRegister());
@@ -6599,6 +6595,8 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
             codegen_->MarkGCCard(temp, card, array);
           }
 #endif  // !ART_USE_MMTK
+        }
+
         DCHECK(!needs_type_check);
         break;
       }
@@ -6680,6 +6678,8 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
           Register card = locations->GetTemp(1).AsRegister<Register>();
           codegen_->CheckGCCardIsValid(temp, card, array);
         }
+#else
+        UNUSED(needs_write_barrier);
 #endif  // !ART_USE_MMTK
       }
 

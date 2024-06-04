@@ -33,6 +33,7 @@ cc_defaults {
     header_libs: [
         "art_cmdlineparser_headers",
         "profman_headers",
+        "libmmtk_art_headers",
     ],
     shared_libs: [
         "libartservice",
