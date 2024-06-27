@@ -25,12 +25,32 @@
 namespace art HIDDEN {
 namespace mirror {
 
+// NO_THREAD_SAFETY_ANALYSIS for mutator_lock_ and heap_bitmap_lock_, as
+// requirements for these vary depending on the visitor.
+template <VerifyObjectFlags kVerifyFlags, typename Visitor>
+inline void Class::VisitStaticFieldsReferences(const Visitor& visitor) NO_THREAD_SAFETY_ANALYSIS {
+  DCHECK(!IsTemp<kVerifyFlags>());
+  const size_t num_reference_fields = NumReferenceStaticFields();
+  if (num_reference_fields > 0u) {
+    // Presumably GC can happen when we are cross compiling, it should not cause performance
+    // problems to do pointer size logic.
+    MemberOffset field_offset = GetFirstReferenceStaticFieldOffset<kVerifyFlags>(
+        Runtime::Current()->GetClassLinker()->GetImagePointerSize());
+    for (size_t i = 0u; i < num_reference_fields; ++i) {
+      DCHECK_NE(field_offset.Uint32Value(), ClassOffset().Uint32Value());
+      visitor(this, field_offset, /*is_static=*/true);
+      field_offset =
+          MemberOffset(field_offset.Uint32Value() + sizeof(mirror::HeapReference<mirror::Object>));
+    }
+  }
+}
+
 template <bool kVisitNativeRoots,
           VerifyObjectFlags kVerifyFlags,
           ReadBarrierOption kReadBarrierOption,
           typename Visitor>
 inline void Class::VisitReferences(ObjPtr<Class> klass, const Visitor& visitor) {
-  VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass.Ptr(), visitor);
+  VisitInstanceFieldsReferences<kVerifyFlags>(klass.Ptr(), visitor);
   // Right after a class is allocated, but not yet loaded
   // (ClassStatus::kNotReady, see ClassLinker::LoadClass()), GC may find it
   // and scan it. IsTemp() may call Class::GetAccessFlags() but may
@@ -42,7 +62,7 @@ inline void Class::VisitReferences(ObjPtr<Class> klass, const Visitor& visitor) 
     // Temp classes don't ever populate imt/vtable or static fields and they are not even
     // allocated with the right size for those. Also, unresolved classes don't have fields
     // linked yet.
-    VisitStaticFieldsReferences<kVerifyFlags, kReadBarrierOption>(this, visitor);
+    VisitStaticFieldsReferences<kVerifyFlags>(visitor);
   }
   if (kVisitNativeRoots) {
     // Since this class is reachable, we must also visit the associated roots when we scan it.

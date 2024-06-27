@@ -2033,13 +2033,14 @@ uint32_t Redefiner::ClassRedefinition::GetNewClassSize(art::ClassAccessor& acces
     }
   }
 
-  return art::mirror::Class::ComputeClassSize(/*has_embedded_vtable=*/ false,
-                                              /*num_vtable_entries=*/ 0,
+  return art::mirror::Class::ComputeClassSize(/*has_embedded_vtable=*/false,
+                                              /*num_vtable_entries=*/0,
                                               num_8bit_static_fields,
                                               num_16bit_static_fields,
                                               num_32bit_static_fields,
                                               num_64bit_static_fields,
                                               num_ref_static_fields,
+                                              /*num_ref_bitmap_entries=*/0,
                                               art::kRuntimePointerSize);
 }
 

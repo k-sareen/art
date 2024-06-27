@@ -128,7 +128,7 @@ inline T* GcRootArray<T>::Get(uint32_t index) {
 
 inline uint32_t DexCache::ClassSize(PointerSize pointer_size) {
   const uint32_t vtable_entries = Object::kVTableLength;
-  return Class::ComputeClassSize(true, vtable_entries, 0, 0, 0, 0, 0, pointer_size);
+  return Class::ComputeClassSize(true, vtable_entries, 0, 0, 0, 0, 0, 0, pointer_size);
 }
 
 inline String* DexCache::GetResolvedString(dex::StringIndex string_idx) {
@@ -291,7 +291,7 @@ template <bool kVisitNativeRoots,
           typename Visitor>
 inline void DexCache::VisitReferences(ObjPtr<Class> klass, const Visitor& visitor) {
   // Visit instance fields first.
-  VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
+  VisitInstanceFieldsReferences<kVerifyFlags>(klass, visitor);
   // Visit arrays after.
   if (kVisitNativeRoots) {
     VisitNativeRoots<kVerifyFlags, kReadBarrierOption>(visitor);

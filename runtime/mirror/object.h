@@ -714,22 +714,10 @@ class EXPORT MANAGED LOCKABLE Object {
     }
   }
 
-  // TODO: Fixme when anotatalysis works with visitors.
-  template<bool kIsStatic,
-          VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
-          ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
-          typename Visitor>
-  void VisitFieldsReferences(uint32_t ref_offsets, const Visitor& visitor) HOT_ATTR
-      NO_THREAD_SAFETY_ANALYSIS;
-  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
-           ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
-           typename Visitor>
+  template <VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
+            ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
+            typename Visitor>
   void VisitInstanceFieldsReferences(ObjPtr<mirror::Class> klass, const Visitor& visitor) HOT_ATTR
-      REQUIRES_SHARED(Locks::mutator_lock_);
-  template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
-           ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
-           typename Visitor>
-  void VisitStaticFieldsReferences(ObjPtr<mirror::Class> klass, const Visitor& visitor) HOT_ATTR
       REQUIRES_SHARED(Locks::mutator_lock_);
 
  private:

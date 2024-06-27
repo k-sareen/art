@@ -657,7 +657,7 @@ inline MemberOffset Class::GetFirstReferenceStaticFieldOffset(PointerSize pointe
   if (ShouldHaveEmbeddedVTable<kVerifyFlags>()) {
     // Static fields come after the embedded tables.
     base = Class::ComputeClassSize(
-        true, GetEmbeddedVTableLength<kVerifyFlags>(), 0, 0, 0, 0, 0, pointer_size);
+        true, GetEmbeddedVTableLength<kVerifyFlags>(), 0, 0, 0, 0, 0, 0, pointer_size);
   }
   return MemberOffset(base);
 }
@@ -668,8 +668,8 @@ inline MemberOffset Class::GetFirstReferenceStaticFieldOffsetDuringLinking(
   uint32_t base = sizeof(Class);  // Static fields come after the class.
   if (ShouldHaveEmbeddedVTable()) {
     // Static fields come after the embedded tables.
-    base = Class::ComputeClassSize(true, GetVTableDuringLinking()->GetLength(),
-                                           0, 0, 0, 0, 0, pointer_size);
+    base = Class::ComputeClassSize(
+        true, GetVTableDuringLinking()->GetLength(), 0, 0, 0, 0, 0, 0, pointer_size);
   }
   return MemberOffset(base);
 }
@@ -757,6 +757,126 @@ inline size_t Class::GetPrimitiveTypeSizeShift() {
   return size_shift;
 }
 
+template <VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>
+inline void Class::VerifyOverflowReferenceBitmap() {
+  // Can't reliably access super-classes during CMC compaction.
+  if (Runtime::Current()->GetHeap()->IsPerformingUffdCompaction()) {
+    return;
+  }
+  CHECK(!IsVariableSize<kVerifyFlags>());
+  ObjPtr<Class> klass;
+  ObjPtr<mirror::Class> super_class;
+  size_t num_bits =
+      (RoundUp(GetObjectSize<kVerifyFlags>(), sizeof(mirror::HeapReference<mirror::Object>)) -
+       mirror::kObjectHeaderSize) /
+      sizeof(mirror::HeapReference<mirror::Object>);
+  std::vector<bool> check_bitmap(num_bits, false);
+  for (klass = this; klass != nullptr; klass = super_class) {
+    super_class = klass->GetSuperClass<kVerifyFlags, kReadBarrierOption>();
+    if (klass->NumReferenceInstanceFields<kVerifyFlags>() != 0) {
+      break;
+    }
+  }
+
+  if (super_class != nullptr) {
+    std::vector<ObjPtr<Class>> klasses;
+    for (; klass != nullptr; klass = super_class) {
+      super_class = klass->GetSuperClass<kVerifyFlags, kReadBarrierOption>();
+      if (super_class != nullptr) {
+        klasses.push_back(klass);
+      }
+    }
+
+    for (auto iter = klasses.rbegin(); iter != klasses.rend(); iter++) {
+      klass = *iter;
+      size_t idx = (klass->GetFirstReferenceInstanceFieldOffset<kVerifyFlags, kReadBarrierOption>()
+                        .Uint32Value() -
+                    mirror::kObjectHeaderSize) /
+                   sizeof(mirror::HeapReference<mirror::Object>);
+      uint32_t num_refs = klass->NumReferenceInstanceFields<kVerifyFlags>();
+      for (uint32_t i = 0; i < num_refs; i++) {
+        check_bitmap[idx++] = true;
+      }
+      CHECK_LE(idx, num_bits) << PrettyClass();
+    }
+  }
+
+  uint32_t ref_offsets =
+      GetField32<kVerifyFlags>(OFFSET_OF_OBJECT_MEMBER(Class, reference_instance_offsets_));
+  CHECK_NE(ref_offsets, 0u) << PrettyClass();
+  CHECK((ref_offsets & kVisitReferencesSlowpathMask) != 0) << PrettyClass();
+  uint32_t bitmap_num_words = ref_offsets & ~kVisitReferencesSlowpathMask;
+  uint32_t* overflow_bitmap = reinterpret_cast<uint32_t*>(
+      reinterpret_cast<uint8_t*>(this) +
+      (GetClassSize<kVerifyFlags>() - bitmap_num_words * sizeof(uint32_t)));
+  for (uint32_t i = 0, field_offset = 0; i < bitmap_num_words; i++, field_offset += 32) {
+    ref_offsets = overflow_bitmap[i];
+    uint32_t check_bitmap_idx = field_offset;
+    // Confirm that all the bits in check_bitmap that ought to be set, are set.
+    while (ref_offsets != 0) {
+      if ((ref_offsets & 1) != 0) {
+        CHECK(check_bitmap[check_bitmap_idx])
+            << PrettyClass() << " i:" << i << " field_offset:" << field_offset
+            << " check_bitmap_idx:" << check_bitmap_idx << " bitmap_word:" << overflow_bitmap[i];
+        check_bitmap[check_bitmap_idx] = false;
+      }
+      ref_offsets >>= 1;
+      check_bitmap_idx++;
+    }
+  }
+  // Confirm that there is no other bit set.
+  std::ostringstream oss;
+  bool found = false;
+  for (size_t i = 0; i < check_bitmap.size(); i++) {
+    if (check_bitmap[i]) {
+      if (!found) {
+        DumpClass(oss, kDumpClassFullDetail);
+        oss << " set-bits:";
+      }
+      found = true;
+      oss << i << ",";
+    }
+  }
+  if (found) {
+    oss << " stored-bitmap:";
+    for (size_t i = 0; i < bitmap_num_words; i++) {
+      oss << overflow_bitmap[i] << ":";
+    }
+    LOG(FATAL) << oss.str();
+  }
+}
+
+inline size_t Class::AdjustClassSizeForReferenceOffsetBitmapDuringLinking(ObjPtr<Class> klass,
+                                                                          size_t class_size) {
+  if (klass->IsInstantiable()) {
+    // Find the first class with non-zero instance field count and its super-class'
+    // object-size together will tell us the required size.
+    for (ObjPtr<Class> k = klass; k != nullptr; k = k->GetSuperClass()) {
+      size_t num_reference_fields = k->NumReferenceInstanceFieldsDuringLinking();
+      if (num_reference_fields != 0) {
+        ObjPtr<Class> super = k->GetSuperClass();
+        // Leave it for mirror::Object (the class field is handled specially).
+        if (super != nullptr) {
+          // All of the fields that contain object references are guaranteed to be grouped in
+          // memory starting at an appropriately aligned address after super class object data.
+          uint32_t start_offset =
+              RoundUp(super->GetObjectSize(), sizeof(mirror::HeapReference<mirror::Object>));
+          uint32_t start_bit = (start_offset - mirror::kObjectHeaderSize) /
+                               sizeof(mirror::HeapReference<mirror::Object>);
+          if (start_bit + num_reference_fields > 31) {
+            // Alignment that maybe required at the end of static fields smaller than 32-bit.
+            class_size = RoundUp(class_size, sizeof(uint32_t));
+            // 32-bit words required for the overflow bitmap.
+            class_size += RoundUp(start_bit + num_reference_fields, 32) / 32 * sizeof(uint32_t);
+          }
+        }
+        break;
+      }
+    }
+  }
+  return class_size;
+}
+
 inline uint32_t Class::ComputeClassSize(bool has_embedded_vtable,
                                         uint32_t num_vtable_entries,
                                         uint32_t num_8bit_static_fields,
@@ -764,6 +884,7 @@ inline uint32_t Class::ComputeClassSize(bool has_embedded_vtable,
                                         uint32_t num_32bit_static_fields,
                                         uint32_t num_64bit_static_fields,
                                         uint32_t num_ref_static_fields,
+                                        uint32_t num_ref_bitmap_entries,
                                         PointerSize pointer_size) {
   // Space used by java.lang.Class and its instance fields.
   uint32_t size = sizeof(Class);
@@ -799,6 +920,12 @@ inline uint32_t Class::ComputeClassSize(bool has_embedded_vtable,
   // Space used for primitive static fields.
   size += num_8bit_static_fields * sizeof(uint8_t) + num_16bit_static_fields * sizeof(uint16_t) +
       num_32bit_static_fields * sizeof(uint32_t) + num_64bit_static_fields * sizeof(uint64_t);
+
+  // Space used by reference-offset bitmap.
+  if (num_ref_bitmap_entries > 0) {
+    size = RoundUp(size, sizeof(uint32_t));
+    size += num_ref_bitmap_entries * sizeof(uint32_t);
+  }
   return size;
 }
 

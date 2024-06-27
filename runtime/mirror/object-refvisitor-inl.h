@@ -72,6 +72,7 @@ inline void Object::VisitReferences(const Visitor& visitor,
   const uint32_t class_flags = klass->GetClassFlags<kVerifyNone>();
   if (LIKELY(class_flags == kClassFlagNormal) || class_flags == kClassFlagRecord) {
     CheckNormalClass<kVerifyFlags>(klass);
+    DCHECK(klass->IsInstantiableNonArray()) << klass->PrettyDescriptor();
     VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
     return;
   }
@@ -84,6 +85,7 @@ inline void Object::VisitReferences(const Visitor& visitor,
   DCHECK(!klass->IsStringClass<kVerifyFlags>());
   if (class_flags == kClassFlagClass) {
     DCHECK(klass->IsClassClass<kVerifyFlags>());
+    DCHECK(klass->IsInstantiableNonArray()) << klass->PrettyDescriptor();
     ObjPtr<Class> as_klass = AsClass<kVerifyNone>();
     as_klass->VisitReferences<kVisitNativeRoots, kVerifyFlags, kReadBarrierOption>(klass, visitor);
     return;
@@ -96,12 +98,14 @@ inline void Object::VisitReferences(const Visitor& visitor,
   }
 
   if ((class_flags & kClassFlagReference) != 0) {
+    DCHECK(klass->IsInstantiableNonArray()) << klass->PrettyDescriptor();
     VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
     ref_visitor(klass, AsReference<kVerifyFlags, kReadBarrierOption>());
     return;
   }
 
   if (class_flags == kClassFlagDexCache) {
+    DCHECK(klass->IsInstantiableNonArray()) << klass->PrettyDescriptor();
     DCHECK(klass->IsDexCacheClass<kVerifyFlags>());
     ObjPtr<mirror::DexCache> const dex_cache = AsDexCache<kVerifyFlags, kReadBarrierOption>();
     dex_cache->VisitReferences<kVisitNativeRoots,
@@ -111,6 +115,7 @@ inline void Object::VisitReferences(const Visitor& visitor,
   }
 
   if (class_flags == kClassFlagClassLoader) {
+    DCHECK(klass->IsInstantiableNonArray()) << klass->PrettyDescriptor();
     DCHECK(klass->IsClassLoaderClass<kVerifyFlags>());
     ObjPtr<mirror::ClassLoader> const class_loader =
         AsClassLoader<kVerifyFlags, kReadBarrierOption>();

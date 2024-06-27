@@ -1609,9 +1609,15 @@ class RuntimeImageHelper {
     // Clear static field values.
     auto clear_class = [&] () REQUIRES_SHARED(Locks::mutator_lock_) {
       MemberOffset static_offset = cls->GetFirstReferenceStaticFieldOffset(kRuntimePointerSize);
-      memset(objects_.data() + offset + static_offset.Uint32Value(),
-             0,
-             cls->GetClassSize() - static_offset.Uint32Value());
+      uint32_t ref_offsets = cls->GetReferenceInstanceOffsets();
+      size_t size = cls->GetClassSize() - static_offset.Uint32Value();
+      // Adjust for overflow instance-offset bitmap, which is after the static
+      // fields.
+      if ((ref_offsets & mirror::Class::kVisitReferencesSlowpathMask) != 0) {
+        ref_offsets &= ~mirror::Class::kVisitReferencesSlowpathMask;
+        size -= ref_offsets * sizeof(uint32_t);
+      }
+      memset(objects_.data() + offset + static_offset.Uint32Value(), 0, size);
     };
     clear_class();
 

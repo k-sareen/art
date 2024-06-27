@@ -86,11 +86,12 @@ class EXPORT MANAGED Class final : public Object {
  public:
   MIRROR_CLASS("Ljava/lang/Class;");
 
-  // A magic value for reference_instance_offsets_. Ignore the bits and walk the super chain when
-  // this is the value.
-  // [This is an unlikely "natural" value, since it would be 30 non-ref instance fields followed by
-  // 2 ref instance fields.]
-  static constexpr uint32_t kClassWalkSuper = 0xC0000000;
+  // 'reference_instance_offsets_' may contain up to 31 reference offsets. If
+  // more bits are required, then we set the most-significant bit and store the
+  // number of 32-bit bitmap entries required in the remaining bits. All the
+  // required bitmap entries after stored after static fields (at the end of the class).
+  static constexpr uint32_t kVisitReferencesSlowpathShift = 31;
+  static constexpr uint32_t kVisitReferencesSlowpathMask = 1u << kVisitReferencesSlowpathShift;
 
   // Shift primitive type by kPrimitiveTypeSizeShiftShift to get the component type size shift
   // Used for computing array size as follows:
@@ -567,6 +568,12 @@ class EXPORT MANAGED Class final : public Object {
   void SetClassSize(uint32_t new_class_size)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+  // Adjust class-size during linking in case an overflow bitmap for reference
+  // offsets is required.
+  static size_t AdjustClassSizeForReferenceOffsetBitmapDuringLinking(ObjPtr<Class> klass,
+                                                                     size_t class_size)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
   // Compute how many bytes would be used a class with the given elements.
   static uint32_t ComputeClassSize(bool has_embedded_vtable,
                                    uint32_t num_vtable_entries,
@@ -575,18 +582,19 @@ class EXPORT MANAGED Class final : public Object {
                                    uint32_t num_32bit_static_fields,
                                    uint32_t num_64bit_static_fields,
                                    uint32_t num_ref_static_fields,
+                                   uint32_t num_ref_bitmap_entries,
                                    PointerSize pointer_size);
 
   // The size of java.lang.Class.class.
   static uint32_t ClassClassSize(PointerSize pointer_size) {
     // The number of vtable entries in java.lang.Class.
     uint32_t vtable_entries = Object::kVTableLength + 83;
-    return ComputeClassSize(true, vtable_entries, 0, 0, 4, 1, 0, pointer_size);
+    return ComputeClassSize(true, vtable_entries, 0, 0, 4, 1, 0, 0, pointer_size);
   }
 
   // The size of a java.lang.Class representing a primitive such as int.class.
   static uint32_t PrimitiveClassSize(PointerSize pointer_size) {
-    return ComputeClassSize(false, 0, 0, 0, 0, 0, 0, pointer_size);
+    return ComputeClassSize(false, 0, 0, 0, 0, 0, 0, 0, pointer_size);
   }
 
   template<VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags>
@@ -896,6 +904,14 @@ class EXPORT MANAGED Class final : public Object {
 
   void PopulateEmbeddedVTable(PointerSize pointer_size)
       REQUIRES_SHARED(Locks::mutator_lock_);
+
+  template <VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
+            ReadBarrierOption kReadBarrierOption = kWithReadBarrier>
+  void VerifyOverflowReferenceBitmap() REQUIRES_SHARED(Locks::mutator_lock_);
+  // If the bitmap in `reference_instance_offsets_` was found to be insufficient
+  // in CreateReferenceInstanceOffsets(), then populate the overflow bitmap,
+  // which is at the end of class object.
+  void PopulateReferenceOffsetBitmap() REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Given a method implemented by this class but potentially from a super class, return the
   // specific implementation method for this class.
@@ -1430,6 +1446,9 @@ class EXPORT MANAGED Class final : public Object {
   // Check that the pointer size matches the one in the class linker.
   ALWAYS_INLINE static void CheckPointerSize(PointerSize pointer_size);
 
+  template <VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags, typename Visitor>
+  void VisitStaticFieldsReferences(const Visitor& visitor) HOT_ATTR;
+
   template <bool kVisitNativeRoots,
             VerifyObjectFlags kVerifyFlags = kDefaultVerifyFlags,
             ReadBarrierOption kReadBarrierOption = kWithReadBarrier,
@@ -1544,7 +1563,8 @@ class EXPORT MANAGED Class final : public Object {
   // TODO: really 16bits
   int32_t dex_type_idx_;
 
-  // Number of instance fields that are object refs.
+  // Number of instance fields that are object refs. Does not count object refs
+  // in any super classes.
   uint32_t num_reference_instance_fields_;
 
   // Number of static fields that are object refs,
@@ -1578,19 +1598,20 @@ class EXPORT MANAGED Class final : public Object {
   // The offset of the first declared virtual methods in the methods_ array.
   uint16_t virtual_methods_offset_;
 
-  // TODO: ?
-  // initiating class loader list
-  // NOTE: for classes with low serialNumber, these are unused, and the
-  // values are kept in a table in gDvm.
-  // InitiatingLoaderList initiating_loader_list_;
-
   // The following data exist in real class objects.
-  // Embedded Imtable, for class object that's not an interface, fixed size.
-  // ImTableEntry embedded_imtable_[0];
+  // Embedded Vtable length, for class object that's instantiable, fixed size.
+  // uint32_t vtable_length_;
+  // Embedded Imtable pointer, for class object that's not an interface, fixed size.
+  // ImTableEntry embedded_imtable_;
   // Embedded Vtable, for class object that's not an interface, variable size.
   // VTableEntry embedded_vtable_[0];
   // Static fields, variable size.
   // uint32_t fields_[0];
+  // Embedded bitmap of offsets of ifields, for classes that need more than 31
+  // reference-offset bits. 'reference_instance_offsets_' stores the number of
+  // 32-bit entries that hold the entire bitmap. We compute the offset of first
+  // entry by subtracting this number from class_size_.
+  // uint32_t reference_bitmap_[0];
 
   ART_FRIEND_TEST(DexCacheTest, TestResolvedFieldAccess);  // For ResolvedFieldAccessTest
   friend struct art::ClassOffsets;  // for verifying offset information

@@ -38,7 +38,7 @@ namespace mirror {
 
 uint32_t ClassExt::ClassSize(PointerSize pointer_size) {
   uint32_t vtable_entries = Object::kVTableLength;
-  return Class::ComputeClassSize(true, vtable_entries, 0, 0, 0, 0, 0, pointer_size);
+  return Class::ComputeClassSize(true, vtable_entries, 0, 0, 0, 0, 0, 0, pointer_size);
 }
 
 void ClassExt::SetObsoleteArrays(ObjPtr<PointerArray> methods,
