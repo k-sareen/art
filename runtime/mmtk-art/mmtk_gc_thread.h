@@ -24,6 +24,7 @@
 
 #include "base/locks.h"
 #include "base/mem_map.h"
+#include "gc/third_party_heap.h"
 #include "thread.h"
 
 namespace art {
@@ -70,11 +71,6 @@ class MmtkCollectorThread : MmtkWorkerThread {
 
  protected:
   void Run() override;
-};
-
-enum StwState {
-  Resumed,
-  Suspended,
 };
 
 // A separate companion thread whose sole job is to suspend/resume all mutator

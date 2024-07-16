@@ -17,6 +17,10 @@
 #ifndef ART_RUNTIME_GC_THIRD_PARTY_HEAP_H_
 #define ART_RUNTIME_GC_THIRD_PARTY_HEAP_H_
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+
 #include "base/locks.h"
 #include "base/macros.h"
 #include "gc/collector/gc_type.h"
@@ -27,6 +31,12 @@
 #include "mirror/object_reference.h"
 
 namespace art {
+
+// State of mutator threads
+enum StwState {
+  Resumed,
+  Suspended,
+};
 
 namespace mirror {
 class Object;
@@ -107,13 +117,45 @@ class ThirdPartyHeap {
   void StartGC(Thread* self, GcCause cause);
   void FinishGC(Thread* self);
 
-  void* GetCompanionThread() {
-    return companion_thread_;
-  }
+  // Request to transition to desired_state
+  void Request(StwState desired_state);
 
  private:
-  void* companion_thread_;
+  // Run the companion thread routine to suspend and resume all mutator threads
+  void RunCompanionThreadRoutine(Thread* self);
+
+  // Suspend all mutator threads. Acquires exclusive lock on mutator_lock_
+  void SuspendAll() EXCLUSIVE_LOCK_FUNCTION(Locks::mutator_lock_);
+
+  // Resume all mutator threads. Releases exclusive lock on mutator_lock_
+  void ResumeAll() UNLOCK_FUNCTION(Locks::mutator_lock_);
+
+  // Use the thread-local allocation buffer?
   const bool use_tlab_;
+
+  // Used to ensure only the first mutator to call `BlockThreadForCollection`
+  // performs the `RunCompanionThreadRoutine`
+  std::atomic<bool> first_mutator_to_block_;
+
+  // Used by the GC worker(s) to communicate to the mutator thread
+  // running `RunCompanionThreadRoutine`.
+  // We use C++ stdlib mutex and condvar implementations as ART does not allow
+  // waiting on a condvar while holding on to another lock (in this case we
+  // would wait on `first_mutator_cond_` while holding on to the mutator_lock).
+  std::mutex first_mutator_lock_;
+
+  // Used by the GC worker(s) to communicate to the mutator thread
+  // running `RunCompanionThreadRoutine`.
+  // We use C++ stdlib mutex and condvar implementations as ART does not allow
+  // waiting on a condvar while holding on to another lock (in this case we
+  // would wait on `first_mutator_cond_` while holding on to the mutator_lock).
+  std::condition_variable first_mutator_cond_;
+
+  // Current state of mutator threads
+  StwState current_state_;
+
+  // Desired state of mutator threads
+  StwState desired_state_;
 };
 
 class ThirdPartyHeapRootVisitor : public RootVisitor {

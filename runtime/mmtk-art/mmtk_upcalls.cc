@@ -92,10 +92,8 @@ static void suspend_mutators(void* tls) {
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
 
-  art::MmtkVmCompanionThread* companion =
-    reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
-  companion->Request(art::StwState::Suspended);
-  VLOG(threads) << "Suspend request sent to companion thread.";
+  tp_heap->Request(art::StwState::Suspended);
+  VLOG(threads) << "Suspend request sent to first mutator thread.";
 
   tp_heap->StartGC(self, art::gc::kGcCauseForAlloc);
 }
@@ -119,11 +117,10 @@ static void resume_mutators(void* tls) {
   art::gc::Heap* heap = runtime->GetHeap();
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap = heap->GetThirdPartyHeap();
 
-  art::MmtkVmCompanionThread* companion =
-    reinterpret_cast<art::MmtkVmCompanionThread*>(tp_heap->GetCompanionThread());
-  companion->Request(art::StwState::Resumed);
+  tp_heap->Request(art::StwState::Resumed);
+  VLOG(threads) << "Resume request sent to first mutator thread.";
+
   tp_heap->FinishGC(self);
-  VLOG(threads) << "Resume request sent to companion thread.";
 
   // Collect cleared references.
   art::SelfDeletingTask* clear =

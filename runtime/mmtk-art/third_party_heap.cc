@@ -32,17 +32,17 @@ namespace third_party_heap {
 ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
                                size_t capacity,
                                bool use_tlab)
-                            : use_tlab_(use_tlab) {
+                            : use_tlab_(use_tlab),
+                              first_mutator_to_block_(false),
+                              current_state_(StwState::Resumed),
+                              desired_state_(StwState::Resumed) {
   mmtk_set_heap_size(initial_size, capacity);
   mmtk_init(&art_upcalls);
-  // We create and start the companion thread in EnableCollection
-  companion_thread_ = nullptr;
 }
 
 ThirdPartyHeap::~ThirdPartyHeap() {}
 
 void ThirdPartyHeap::EnableCollection(Thread* tls) {
-  companion_thread_ = reinterpret_cast<void*>(new MmtkVmCompanionThread("MMTk VM Companion Thread"));
   mmtk_initialize_collection(tls);
 }
 
@@ -62,12 +62,70 @@ void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32
   mmtk_set_image_space(boot_image_start_address, boot_image_size);
 }
 
+bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
+  return mmtk_is_object_in_heap_space(addr);
+}
+
+bool ThirdPartyHeap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
+  return mmtk_is_object_movable(obj.Ptr());
+}
+
+void ThirdPartyHeap::Request(StwState desired_state) {
+  std::unique_lock mu(first_mutator_lock_);
+  desired_state_ = desired_state;
+  first_mutator_cond_.notify_all();
+  first_mutator_cond_.wait(mu, [&]{ return current_state_ == desired_state; });
+}
+
+void ThirdPartyHeap::SuspendAll() {
+  Runtime::Current()->GetThreadList()->SuspendAll(__FUNCTION__, /* long_suspend= */ false);
+}
+
+void ThirdPartyHeap::ResumeAll() {
+  Runtime::Current()->GetThreadList()->ResumeAll();
+}
+
+void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
+  art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+
+  {
+    std::unique_lock mu(first_mutator_lock_);
+    first_mutator_cond_.wait(mu, [&]{ return desired_state_ == StwState::Suspended; });
+  }
+
+  SuspendAll();
+
+  {
+    std::unique_lock mu(first_mutator_lock_);
+    current_state_ = StwState::Suspended;
+    first_mutator_cond_.notify_all();
+    first_mutator_cond_.wait(mu, [&]{ return desired_state_ == StwState::Resumed; });
+  }
+
+  ResumeAll();
+
+  {
+    std::unique_lock mu(first_mutator_lock_);
+    current_state_ = StwState::Resumed;
+    first_mutator_cond_.notify_all();
+  }
+}
+
 void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Thread* self) {
+  DCHECK(self->GetMmtkMutator() != nullptr);
+
   Heap* heap = Runtime::Current()->GetHeap();
   VLOG(threads) << "Blocking GC requested by thread: " << *self;
 
+  bool expected = false;
   uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
-  {
+  if (first_mutator_to_block_.compare_exchange_strong(expected, true)) {
+    VLOG(threads) << "First thread to block: " << *self;
+    RunCompanionThreadRoutine(self);
+    VLOG(threads) << "First thread to block is waking up: " << *self;
+    expected = true;
+    first_mutator_to_block_.compare_exchange_strong(expected, false);
+  } else {
     art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
     MutexLock mu(self, *heap->gc_complete_lock_);
     heap->gc_complete_cond_->CheckSafeToWait(self);
@@ -75,14 +133,6 @@ void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Th
       heap->gc_complete_cond_->Wait(self);
     }
   }
-}
-
-bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
-  return mmtk_is_object_in_heap_space(addr);
-}
-
-bool ThirdPartyHeap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
-  return mmtk_is_object_movable(obj.Ptr());
 }
 
 mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
