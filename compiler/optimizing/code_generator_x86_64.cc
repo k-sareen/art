@@ -1062,7 +1062,7 @@ class WriteBarrierPostX86_64 : public SlowPathCode {
                           nullptr);
     parallel_move.AddMove(target_,
                           Location::RegisterLocation(rdx.AsRegister()),
-                          DataType::Type::kInt32,
+                          DataType::Type::kReference,
                           nullptr);
     codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
 
