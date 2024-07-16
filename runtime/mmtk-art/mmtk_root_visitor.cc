@@ -21,7 +21,7 @@
 #include "mmtk_root_visitor.h"
 #include "mmtk.h"
 
-#include <iostream>
+// #include <iostream>
 
 namespace art {
 namespace gc {
