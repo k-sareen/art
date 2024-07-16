@@ -8239,6 +8239,7 @@ void CodeGeneratorX86_64::GenerateReadBarrierForRootSlow(HInstruction* instructi
   __ Bind(slow_path->GetExitLabel());
 }
 
+#if ART_USE_MMTK
 void CodeGeneratorX86_64::GenerateWriteBarrierPost(HInstruction* instruction,
                                                    Location src,
                                                    Address slot,
@@ -8266,6 +8267,7 @@ void CodeGeneratorX86_64::GenerateArrayCopyBarrierPost(HInstruction* instruction
   __ jmp(slow_path->GetEntryLabel());
   __ Bind(slow_path->GetExitLabel());
 }
+#endif  // ART_USE_MMTK
 
 void LocationsBuilderX86_64::VisitBoundType([[maybe_unused]] HBoundType* instruction) {
   // Nothing to do, this should be removed during prepare for register allocator.
