@@ -102,17 +102,6 @@ void MmtkCollectorThread::Run() {
   mmtk_start_gc_worker_thread((void*) thread_, (void*) context_);
 }
 
-MmtkControllerThread::MmtkControllerThread(const std::string& name,
-                                           void* context)
-                                    : MmtkWorkerThread(name, context) {
-  CreateWorkerThread(this);
-}
-
-void MmtkControllerThread::Run() {
-  LOG(INFO) << "Starting MmtkControllerThread " << thread_ << " with context " << context_;
-  mmtk_start_gc_controller_thread((void*) thread_, (void*) context_);
-}
-
 MmtkVmCompanionThread::MmtkVmCompanionThread(const std::string& name)
                                     : MmtkWorkerThread(name, nullptr),
                                       current_state_(StwState::Resumed),

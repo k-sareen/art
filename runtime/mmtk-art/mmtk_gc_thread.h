@@ -72,16 +72,6 @@ class MmtkCollectorThread : MmtkWorkerThread {
   void Run() override;
 };
 
-// MMTk GC Controller thread. There is only a single such thread. It is
-// responsible for coordinating garbage collection.
-class MmtkControllerThread : MmtkWorkerThread {
- public:
-  MmtkControllerThread(const std::string& name, void* context);
-
- protected:
-  void Run() override;
-};
-
 enum StwState {
   Resumed,
   Suspended,

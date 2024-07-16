@@ -75,10 +75,6 @@ static void block_for_gc(void* tls) {
 static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
   UNUSED(tls);
   switch (kind) {
-    case MmtkGcController: {
-      new art::MmtkControllerThread("MMTk Controller Context Thread", ctx);
-      break;
-    }
     case MmtkGcWorker: {
       new art::MmtkCollectorThread("MMTk Collector Thread", ctx);
       break;
