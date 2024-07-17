@@ -2781,9 +2781,13 @@ void ClassLinker::FinishArrayClassSetup(ObjPtr<mirror::Class> array_class) {
   array_class->SetVTable(java_lang_Object->GetVTable());
   array_class->SetPrimitiveType(Primitive::kPrimNot);
   ObjPtr<mirror::Class> component_type = array_class->GetComponentType();
-  array_class->SetClassFlags(component_type->IsPrimitive()
-                                 ? mirror::kClassFlagNoReferenceFields
-                                 : mirror::kClassFlagObjectArray);
+  DCHECK_LT(component_type->GetPrimitiveTypeSizeShift(), 4u);
+  uint32_t class_flags =
+      component_type->GetPrimitiveTypeSizeShift() << mirror::kArrayComponentSizeShiftShift;
+  class_flags |= component_type->IsPrimitive()
+                     ? (mirror::kClassFlagNoReferenceFields | mirror::kClassFlagPrimitiveArray)
+                     : mirror::kClassFlagObjectArray;
+  array_class->SetClassFlags(class_flags);
   array_class->SetClassLoader(component_type->GetClassLoader());
   array_class->SetStatusForPrimitiveOrArray(ClassStatus::kLoaded);
   array_class->PopulateEmbeddedVTable(image_pointer_size_);

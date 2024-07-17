@@ -36,22 +36,21 @@ inline uint32_t Array::ClassSize(PointerSize pointer_size) {
   return Class::ComputeClassSize(true, vtable_entries, 0, 0, 0, 0, 0, pointer_size);
 }
 
-template <VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption, bool kIsObjArray>
-inline size_t Array::SizeOf() {
-  // When we are certain that this is a object array, then don't fetch shift
-  // from component_type_ as that doesn't work well with userfaultfd GC as the
-  // component-type class may be allocated at a higher address than the array.
-  size_t component_size_shift = kIsObjArray ?
-                                    Primitive::ComponentSizeShift(Primitive::kPrimNot) :
-                                    GetClass<kVerifyFlags, kReadBarrierOption>()
-                                        ->template GetComponentSizeShift<kReadBarrierOption>();
-  // Don't need to check this since we already check this in GetClass.
-  int32_t component_count =
-      GetLength<static_cast<VerifyObjectFlags>(kVerifyFlags & ~kVerifyThis)>();
+template <VerifyObjectFlags kVerifyFlags>
+inline size_t Array::SizeOf(size_t component_size_shift) {
+  int32_t component_count = GetLength<kVerifyFlags>();
   // This is safe from overflow because the array was already allocated.
   size_t header_size = DataOffset(1U << component_size_shift).SizeValue();
   size_t data_size = component_count << component_size_shift;
   return header_size + data_size;
+}
+
+template <VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>
+inline size_t Array::SizeOf() {
+  size_t component_size_shift = GetClass<kVerifyFlags, kReadBarrierOption>()
+                                    ->template GetComponentSizeShift<kReadBarrierOption>();
+  // Don't need to check this since we already check this in GetClass.
+  return SizeOf<static_cast<VerifyObjectFlags>(kVerifyFlags & ~kVerifyThis)>(component_size_shift);
 }
 
 template<VerifyObjectFlags kVerifyFlags>

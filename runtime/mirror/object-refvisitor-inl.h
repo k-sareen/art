@@ -89,7 +89,7 @@ inline void Object::VisitReferences(const Visitor& visitor,
     return;
   }
 
-  if (class_flags == kClassFlagObjectArray) {
+  if ((class_flags & kClassFlagObjectArray) != 0) {
     DCHECK((klass->IsObjectArrayClass<kVerifyFlags, kReadBarrierOption>()));
     AsObjectArray<mirror::Object, kVerifyNone>()->VisitReferences(visitor);
     return;
@@ -147,13 +147,11 @@ inline size_t Object::VisitRefsForCompaction(const Visitor& visitor,
   } else if ((class_flags & kClassFlagNoReferenceFields) != 0) {
     if ((class_flags & kClassFlagString) != 0) {
       size = kFetchObjSize ? static_cast<String*>(this)->SizeOf<kSizeOfFlags>() : 0;
-    } else if (klass->IsArrayClass<kVerifyFlags>()) {
-      // TODO: We can optimize this by implementing a SizeOf() version which takes
-      // component-size-shift as an argument, thereby avoiding multiple loads of
-      // component_type.
-      size = kFetchObjSize
-             ? static_cast<Array*>(this)->SizeOf<kSizeOfFlags, kReadBarrierOption>()
-             : 0;
+    } else if ((class_flags & kClassFlagPrimitiveArray) != 0) {
+      ObjPtr<Array> arr = ObjPtr<Array>::DownCast(this);
+      size = kFetchObjSize ?
+                 arr->SizeOf<kSizeOfFlags>(class_flags >> kArrayComponentSizeShiftShift) :
+                 0;
     } else {
       DCHECK_EQ(class_flags, kClassFlagNoReferenceFields)
           << "class_flags: " << std::hex << class_flags;
@@ -166,11 +164,11 @@ inline size_t Object::VisitRefsForCompaction(const Visitor& visitor,
     as_klass->VisitReferences<kVisitNativeRoots, kVerifyFlags, kReadBarrierOption>(klass,
                                                                                    visitor);
     size = kFetchObjSize ? as_klass->SizeOf<kSizeOfFlags>() : 0;
-  } else if (class_flags == kClassFlagObjectArray) {
+  } else if ((class_flags & kClassFlagObjectArray) != 0) {
     ObjPtr<ObjectArray<Object>> obj_arr = ObjPtr<ObjectArray<Object>>::DownCast(this);
     obj_arr->VisitReferences(visitor, begin, end);
     size = kFetchObjSize ?
-               obj_arr->SizeOf<kSizeOfFlags, kReadBarrierOption, /*kIsObjArray*/ true>() :
+               obj_arr->SizeOf<kSizeOfFlags>(class_flags >> kArrayComponentSizeShiftShift) :
                0;
   } else if ((class_flags & kClassFlagReference) != 0) {
     VisitInstanceFieldsReferences<kVerifyFlags, kReadBarrierOption>(klass, visitor);
