@@ -1544,6 +1544,11 @@ void Heap::ResetGcPerformanceInfo() {
 }
 
 void Heap::HarnessBegin() {
+  inside_harness_ = true;
+  dumped_gc_performance_info_ = false;
+#if ART_USE_MMTK
+  mmtk_harness_begin(Thread::Current());
+#else
   if (gc_plan_.back() != collector::kGcTypeNoGC) {
     LOG(INFO) << "Performing a GC with " << gc_plan_.back()
       << " before HarnessBegin\n";
@@ -1553,8 +1558,6 @@ void Heap::HarnessBegin() {
     LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
   }
 
-  inside_harness_ = true;
-  dumped_gc_performance_info_ = false;
   harness_begin_start_time_ns_ = NanoTime();
 
   LOG(INFO) << "Starting perf counters for "
@@ -1569,9 +1572,13 @@ void Heap::HarnessBegin() {
   }
 
   ResetGcPerformanceInfo();
+#endif  // ART_USE_MMTK
 }
 
 void Heap::HarnessEnd() {
+#if ART_USE_MMTK
+  mmtk_harness_end();
+#else
   LOG(INFO) << "Stopping perf counters for "
     << Runtime::Current()->GetAppInfo()->PackageName()
     << "\n";
@@ -1584,7 +1591,7 @@ void Heap::HarnessEnd() {
   }
 
   DumpGcPerformanceInfo(LOG_STREAM(INFO));
-
+#endif  // ART_USE_MMTK
   inside_harness_ = false;
   dumped_gc_performance_info_ = true;
 }
