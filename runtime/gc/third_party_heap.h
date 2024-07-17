@@ -124,12 +124,6 @@ class ThirdPartyHeap {
   // Run the companion thread routine to suspend and resume all mutator threads
   void RunCompanionThreadRoutine(Thread* self);
 
-  // Suspend all mutator threads. Acquires exclusive lock on mutator_lock_
-  void SuspendAll() EXCLUSIVE_LOCK_FUNCTION(Locks::mutator_lock_);
-
-  // Resume all mutator threads. Releases exclusive lock on mutator_lock_
-  void ResumeAll() UNLOCK_FUNCTION(Locks::mutator_lock_);
-
   // Use the thread-local allocation buffer?
   const bool use_tlab_;
 

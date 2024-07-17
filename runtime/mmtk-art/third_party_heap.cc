@@ -77,11 +77,15 @@ void ThirdPartyHeap::Request(StwState desired_state) {
   first_mutator_cond_.wait(mu, [&]{ return current_state_ == desired_state; });
 }
 
-void ThirdPartyHeap::SuspendAll() {
+// Suspend all mutator threads. Acquires exclusive lock on mutator_lock_
+EXCLUSIVE_LOCK_FUNCTION(Locks::mutator_lock_)
+static void SuspendAll() {
   Runtime::Current()->GetThreadList()->SuspendAll(__FUNCTION__, /* long_suspend= */ false);
 }
 
-void ThirdPartyHeap::ResumeAll() {
+// Resume all mutator threads. Releases exclusive lock on mutator_lock_
+UNLOCK_FUNCTION(Locks::mutator_lock_)
+static void ResumeAll() {
   Runtime::Current()->GetThreadList()->ResumeAll();
 }
 
