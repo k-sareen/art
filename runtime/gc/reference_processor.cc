@@ -27,6 +27,9 @@
 #include "mirror/class-inl.h"
 #include "mirror/object-inl.h"
 #include "mirror/reference-inl.h"
+#if ART_USE_MMTK
+#include "mmtk-art/mmtk_is_marked_visitor.h"
+#endif  // ART_USE_MMTK
 #include "nativehelper/scoped_local_ref.h"
 #include "object_callbacks.h"
 #include "reflection.h"
@@ -117,6 +120,7 @@ ObjPtr<mirror::Object> ReferenceProcessor::GetReferent(Thread* self,
   MutexLock mu(self, *Locks::reference_processor_lock_);
   // Keeping reference_processor_lock_ blocks the broadcast when we try to reenable the fast path.
   while (slow_path_required()) {
+#if !ART_USE_MMTK
     DCHECK(collector_ != nullptr);
     const bool other_read_barrier = !kUseBakerReadBarrier && gUseReadBarrier;
     if (UNLIKELY(reference->IsFinalizerReferenceInstance()
@@ -135,6 +139,19 @@ ObjPtr<mirror::Object> ReferenceProcessor::GetReferent(Thread* self,
       condition_.WaitHoldingLocks(self);
       continue;
     }
+#else
+    if (UNLIKELY(reference->IsFinalizerReferenceInstance()
+                 || rp_state_ == RpState::kStarting /* too early to determine mark state */)) {
+      self->CheckEmptyCheckpointFromWeakRefAccess(Locks::reference_processor_lock_);
+      if (!started_trace) {
+        ATraceBegin("GetReferent blocked");
+        started_trace = true;
+        start_millis = MilliTime();
+      }
+      condition_.WaitHoldingLocks(self);
+      continue;
+    }
+#endif  // !ART_USE_MMTK
     DCHECK(!reference->IsPhantomReferenceInstance());
 
     if (rp_state_ == RpState::kInitClearingDone) {
@@ -148,8 +165,14 @@ ObjPtr<mirror::Object> ReferenceProcessor::GetReferent(Thread* self,
     // Re-load and re-check referent, since the current one may have been read before we acquired
     // reference_lock. In particular a Reference.clear() call may have intervened. (b/33569625)
     referent = reference->GetReferent<kWithoutReadBarrier>();
+#if !ART_USE_MMTK
     ObjPtr<mirror::Object> forwarded_ref =
         referent.IsNull() ? nullptr : collector_->IsMarked(referent.Ptr());
+#else
+    IsMarkedVisitor* is_marked_visitor = new third_party_heap::MmtkIsMarkedVisitor();
+    ObjPtr<mirror::Object> forwarded_ref =
+        referent.IsNull() ? nullptr : is_marked_visitor->IsMarked(referent.Ptr());
+#endif  // !ART_USE_MMTK
     // Either the referent was marked, and forwarded_ref is the correct return value, or it
     // was not, and forwarded_ref == null, which is again the correct return value.
     if (started_trace) {
