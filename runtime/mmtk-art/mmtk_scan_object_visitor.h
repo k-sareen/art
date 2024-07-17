@@ -60,8 +60,14 @@ class MmtkScanObjectVisitor {
       void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
       closure_.invoke(referent_slot);
     } else {
-      ThirdPartyHeap* tp_heap_ = runtime->GetHeap()->GetThirdPartyHeap();
-      tp_heap_->DelayReferenceReferent(klass, ref);
+      if (LIKELY(mmtk_is_nursery_collection())) {
+        // Treat java.lang.ref.Reference as a strong reference and trace the referent
+        void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
+        closure_.invoke(referent_slot);
+      } else {
+        ThirdPartyHeap* tp_heap_ = runtime->GetHeap()->GetThirdPartyHeap();
+        tp_heap_->DelayReferenceReferent(klass, ref);
+      }
     }
   }
 

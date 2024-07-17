@@ -130,6 +130,7 @@ void Verification::LogHeapCorruption(ObjPtr<mirror::Object> holder,
 }
 
 bool Verification::IsAddressInHeapSpace(const void* addr, space::Space** out_space) const {
+#if !ART_USE_MMTK
   space::Space* const space = heap_->FindSpaceFromAddress(addr);
   if (space != nullptr) {
     if (out_space != nullptr) {
@@ -138,6 +139,10 @@ bool Verification::IsAddressInHeapSpace(const void* addr, space::Space** out_spa
     return true;
   }
   return false;
+#else
+  UNUSED(out_space);
+  return mmtk_is_object_in_heap_space(addr);
+#endif  // !ART_USE_MMTK
 }
 
 bool Verification::IsValidHeapObjectAddress(const void* addr, space::Space** out_space) const {
