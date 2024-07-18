@@ -128,7 +128,7 @@ void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Th
     RunCompanionThreadRoutine(self);
     VLOG(threads) << "First thread to block is waking up: " << *self;
     expected = true;
-    first_mutator_to_block_.compare_exchange_strong(expected, false);
+    first_mutator_to_block_.compare_exchange_strong(expected, false, std::memory_order_relaxed);
   } else {
     art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
     MutexLock mu(self, *heap->gc_complete_lock_);
