@@ -87,6 +87,7 @@ class ThirdPartyHeap {
   // that this check does not use the valid-object bit.
   bool IsObjectInHeapSpace(const void* addr) const REQUIRES_SHARED(Locks::mutator_lock_);
 
+  // Return if the given object obj may move during a GC
   bool IsMovableObject(ObjPtr<mirror::Object> obj) const REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Try to allocate an object of size alloc_size. This function can potentially
@@ -113,11 +114,17 @@ class ThirdPartyHeap {
   // Collect dead objects in heap
   collector::GcType CollectGarbage(Thread* self, GcCause gc_cause);
 
+  // Delay visiting the referent of a weak reference by enqueuing it to the
+  // correct weak reference discovered queue
   void DelayReferenceReferent(ObjPtr<mirror::Class> klass,
                               ObjPtr<mirror::Reference> reference)
       NO_THREAD_SAFETY_ANALYSIS;
 
+  // Set heap state to signify the start of a GC
   void StartGC(Thread* self, GcCause cause);
+
+  // Set heap state to signify the end of a GC. Wake up any threads that were
+  // waiting on the GC to complete
   void FinishGC(Thread* self);
 
   // Request to transition to desired_state
