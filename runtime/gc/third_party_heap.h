@@ -71,6 +71,9 @@ class ThirdPartyHeap {
   // Return bytes allocated
   size_t GetBytesAllocated();
 
+  // Return number of GC worker threads
+  uint32_t GetNumberOfWorkers();
+
   // Inform the ThirdPartyHeap of the location of the boot image and its size so
   // that it can keep track of any objects it sees that may be in the boot image
   void SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size);
