@@ -126,7 +126,6 @@ void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Th
   VLOG(threads) << "Blocking GC requested by thread: " << *self;
 
   bool expected = false;
-  uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
   if (first_mutator_to_block_.compare_exchange_strong(expected, true)) {
     VLOG(threads) << "First thread to block: " << *self;
     RunCompanionThreadRoutine(self);
@@ -136,6 +135,7 @@ void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Th
   } else {
     art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
     MutexLock mu(self, *heap->gc_complete_lock_);
+    uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
     heap->gc_complete_cond_->CheckSafeToWait(self);
     while (heap->GetCurrentGcNum() < next_gc_num) {
       heap->gc_complete_cond_->Wait(self);
