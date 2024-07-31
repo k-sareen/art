@@ -80,6 +80,7 @@ art_cc_binary {
         },
     },
 
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
     ldflags: ["-Wl,--allow-multiple-definition"],
 
     apex_available: [
@@ -138,6 +139,7 @@ art_cc_binary {
         },
     },
 
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
     ldflags: ["-Wl,--allow-multiple-definition"],
 
     apex_available: [

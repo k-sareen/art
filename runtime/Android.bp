@@ -30,6 +30,9 @@ package {
 JIT_DEBUG_REGISTER_CODE_LDFLAGS = [
     "-Wl,--keep-unique,__jit_debug_register_code",
     "-Wl,--keep-unique,__dex_debug_register_code",
+    // XXX(kunals): Disable linker fatal warnings due to incompatible
+    // DWARF versions between Rust and C++ when using LTO
+    "-Wl,--no-fatal-warnings",
 ]
 
 // These are defaults for native shared libaries that are expected to be
