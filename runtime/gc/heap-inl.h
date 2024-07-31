@@ -43,6 +43,14 @@
 namespace art HIDDEN {
 namespace gc {
 
+inline bool Heap::HasZygoteSpace() const {
+#if !ART_USE_MMTK
+  return zygote_space_ != nullptr;
+#else
+  return tp_heap_->HasZygoteSpace();
+#endif  // !ART_USE_MMTK
+}
+
 template <bool kInstrumented, bool kCheckLargeObject, typename PreFenceVisitor>
 inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
                                                       ObjPtr<mirror::Class> klass,
@@ -104,14 +112,13 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     byte_count = RoundUp(byte_count, kObjectAlignment);
 
     if (allocator == kAllocatorTypeNonMoving) {
-      // XXX(kunals): Perhaps pin object instead of allocating via non-moving space?
       obj = tp_heap_->TryToAllocate(self, byte_count, /* non_moving= */ true,
                                       &bytes_allocated, &usable_size,
                                       &bytes_tl_bulk_allocated);
     } else {
       bool tlab_alloc_succeeded = false;
       if (use_tlab_ && byte_count < large_object_threshold_) {
-        if (LIKELY(byte_count < self->GetMmtkRemainingTlabSpace())) {
+        if (LIKELY(self->MmtkHasEnoughTlabSpace(byte_count))) {
           obj = self->MmtkAllocTlab(byte_count);
           DCHECK(obj != nullptr) << "MmtkAllocTlab can't fail";
           bytes_allocated = byte_count;

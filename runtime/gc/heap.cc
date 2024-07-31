@@ -180,7 +180,7 @@ static const size_t kDefaultMarkStackSize = 64 * KB;
 static const char* kDlMallocSpaceName[2] = {"main dlmalloc space", "main dlmalloc space 1"};
 static const char* kRosAllocSpaceName[2] = {"main rosalloc space", "main rosalloc space 1"};
 static const char* kMemMapSpaceName[2] = {"main space", "main space 1"};
-static const char* kNonMovingSpaceName = "non moving space";
+[[maybe_unused]] static const char* kNonMovingSpaceName = "non moving space";
 static const char* kZygoteSpaceName = "zygote space";
 static constexpr bool kGCALotMode = false;
 // GC alot mode uses a small allocation stack to stress test a lot of GC.
@@ -211,7 +211,7 @@ static constexpr bool kLogAllGCs = false;
 
 // Use Max heap for 2 seconds, this is smaller than the usual 5s window since we don't want to leave
 // allocate with relaxed ergonomics for that long.
-static constexpr size_t kPostForkMaxHeapDurationMS = 2000;
+[[maybe_unused]] static constexpr size_t kPostForkMaxHeapDurationMS = 2000;
 
 #if defined(__LP64__) || !defined(ADDRESS_SANITIZER)
 // 300 MB (0x12c00000) - (default non-moving space capacity).
@@ -560,13 +560,19 @@ Heap::Heap(size_t initial_size,
     LOG(INFO) << "Heap() entering";
   }
 
+  ScopedTrace trace(__FUNCTION__);
+  Runtime* const runtime = Runtime::Current();
+  // If we aren't the zygote, switch to the default non zygote allocator. This may update the
+  // entrypoints.
+  const bool is_zygote = runtime->IsZygote();
 #if ART_USE_MMTK
+  LOG(INFO) << "Using MMTk GC.";
   UNUSED(measure_gc_performance);
   UNUSED(large_object_space_type);
   UNUSED(kMemMapSpaceName);
   UNUSED(kZygoteSpaceName);
   UNUSED(kRegionSpaceName);
-  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_, capacity, use_tlab_));
+  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_, capacity, use_tlab_, is_zygote));
 #else
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (gUseUserfaultfd) {
@@ -594,11 +600,6 @@ Heap::Heap(size_t initial_size,
   verification_.reset(new Verification(this));
   // TODO(kunals): Max non-LOS alloc bytes
   CHECK_GE(large_object_threshold, kMinLargeObjectThreshold);
-  ScopedTrace trace(__FUNCTION__);
-  Runtime* const runtime = Runtime::Current();
-  // If we aren't the zygote, switch to the default non zygote allocator. This may update the
-  // entrypoints.
-  const bool is_zygote = runtime->IsZygote();
 #if ART_USE_MMTK
   // Set the background collector type to be third party heap
   background_collector_type_ = kCollectorTypeThirdPartyHeap;
@@ -2350,6 +2351,7 @@ size_t Heap::GetObjectsAllocated() const {
   for (space::AllocSpace* space : alloc_spaces_) {
     total += space->GetObjectsAllocated();
   }
+  // TODO(kunals): GetObjectsAllocated MMTk
   return total;
 }
 
@@ -2712,6 +2714,7 @@ void Heap::IncrementFreedEver() {
 // FIXME: BUT it did exceed... http://b/197647048
 #  pragma clang diagnostic ignored "-Wframe-larger-than="
 void Heap::PreZygoteFork() {
+#if !ART_USE_MMTK
   if (!HasZygoteSpace()) {
     // We still want to GC in case there is some unreachable non moving objects that could cause a
     // suboptimal bin packing when we compact the zygote space.
@@ -2880,6 +2883,28 @@ void Heap::PreZygoteFork() {
         << "Failed to create post-zygote non-moving space remembered set";
     AddRememberedSet(post_zygote_non_moving_space_rem_set);
   }
+#else
+  Thread* self = Thread::Current();
+  MutexLock mu(self, zygote_creation_lock_);
+
+  if (HasZygoteSpace()) {
+    tp_heap_->PreZygoteFork();
+    return;
+  }
+
+  Runtime* runtime = Runtime::Current();
+  // Setup linear-alloc pool for post-zygote fork allocations before freezing
+  // snapshots of intern-table and class-table.
+  runtime->SetupLinearAllocForPostZygoteFork(self);
+  runtime->GetInternTable()->AddNewTable();
+  runtime->GetClassLinker()->MoveClassTableToPreZygote();
+
+  tp_heap_->PreFirstZygoteForkCollection(self);
+
+  CHECK(HasZygoteSpace()) << "Failed creating zygote space";
+
+  tp_heap_->PreZygoteFork();
+#endif  // !ART_USE_MMTK
 }
 #pragma clang diagnostic pop
 
@@ -4352,6 +4377,15 @@ bool Heap::RequestConcurrentGC(Thread* self,
                                GcCause cause,
                                bool force_full,
                                uint32_t observed_gc_num) {
+#if ART_USE_MMTK
+  UNUSED(self);
+  UNUSED(cause);
+  UNUSED(force_full);
+  UNUSED(observed_gc_num);
+  // TODO(kunals): Concurrent GC with MMTk
+  LOG(FATAL) << "Cannot currently request concurrent GC with MMTk!";
+  return false;
+#else
   uint32_t max_gc_requested = max_gc_requested_.load(std::memory_order_relaxed);
   if (!GCNumberLt(observed_gc_num, max_gc_requested)) {
     // observed_gc_num >= max_gc_requested: Nobody beat us to requesting the next gc.
@@ -4372,6 +4406,7 @@ bool Heap::RequestConcurrentGC(Thread* self,
     return false;
   }
   return true;  // Vacuously.
+#endif  // ART_USE_MMTK
 }
 
 void Heap::ConcurrentGC(Thread* self, GcCause cause, bool force_full, uint32_t requested_gc_num) {
@@ -5154,16 +5189,21 @@ class Heap::ReduceTargetFootprintTask : public HeapTask {
 // Return a pseudo-random integer between 0 and 19999, using the uid as a seed.  We want this to
 // be deterministic for a given process, but to vary randomly across processes. Empirically, the
 // uids for processes for which this matters are distinct.
-static uint32_t GetPseudoRandomFromUid() {
+[[maybe_unused]] static uint32_t GetPseudoRandomFromUid() {
   std::default_random_engine rng(getuid());
   std::uniform_int_distribution<int> dist(0, 19999);
   return dist(rng);
 }
 
 void Heap::PostForkChildAction(Thread* self) {
+#if !ART_USE_MMTK
   uint32_t starting_gc_num = GetCurrentGcNum();
   uint64_t last_adj_time = NanoTime();
   next_gc_type_ = NonStickyGcType();  // Always start with a full gc.
+#else
+  UNUSED(self);
+#endif  // !ART_USE_MMTK
+  // TODO(kunals): Force next GC as full heap GC for MMTk
 
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (gUseUserfaultfd) {
@@ -5177,6 +5217,7 @@ void Heap::PostForkChildAction(Thread* self) {
   SetIdealFootprint(growth_limit_);
   SetDefaultConcurrentStartBytes();
 
+#if !ART_USE_MMTK
   // Shrink heap after kPostForkMaxHeapDurationMS, to force a memory hog process to GC.
   // This remains high enough that many processes will continue without a GC.
   if (initial_heap_size_ < growth_limit_) {
@@ -5200,6 +5241,7 @@ void Heap::PostForkChildAction(Thread* self) {
       + MsToNs(4 * kPostForkMaxHeapDurationMS + GetPseudoRandomFromUid());
   GetTaskProcessor()->AddTask(self,
                               new TriggerPostForkCCGcTask(post_fork_gc_time, starting_gc_num));
+#endif  // !ART_USE_MMTK
 }
 
 void Heap::VisitReflectiveTargets(ReflectiveValueVisitor *visit) {

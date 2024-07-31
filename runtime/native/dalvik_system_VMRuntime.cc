@@ -337,15 +337,27 @@ static void VMRuntime_trimHeap(JNIEnv* env, jobject) {
 }
 
 static void VMRuntime_requestHeapTrim(JNIEnv* env, jobject) {
+#if !ART_USE_MMTK
   Runtime::Current()->GetHeap()->RequestTrim(Thread::ForEnv(env));
+#else
+  // TODO(kunals): Heap trim with MMTk
+  UNUSED(env);
+  LOG(WARNING) << "Cannot currently request heap trim with MMTk!";
+#endif  // !ART_USE_MMTK
 }
 
 static void VMRuntime_requestConcurrentGC(JNIEnv* env, jobject) {
+#if !ART_USE_MMTK
   gc::Heap *heap = Runtime::Current()->GetHeap();
   heap->RequestConcurrentGC(Thread::ForEnv(env),
                             gc::kGcCauseBackground,
                             true,
                             heap->GetCurrentGcNum());
+#else
+  // TODO(kunals): Concurrent GC with MMTk
+  UNUSED(env);
+  LOG(WARNING) << "Cannot currently request concurrent GC with MMTk!";
+#endif  // !ART_USE_MMTK
 }
 
 static void VMRuntime_startHeapTaskProcessor(JNIEnv* env, jobject) {

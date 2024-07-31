@@ -118,6 +118,7 @@ art_cc_library {
     defaults: ["libopenjdkjvmti_defaults"],
     shared_libs: [
         "libart",
+        "liblog",
         "libdexfile",
         "libartbase",
     ],
@@ -136,6 +137,7 @@ art_cc_library {
     ],
     shared_libs: [
         "libartd",
+        "liblog",
         "libdexfiled",
         "libartbased",
     ],

@@ -448,6 +448,13 @@ static void ClearDexFileCookies() REQUIRES_SHARED(Locks::mutator_lock_) {
       field->SetObject</*kTransactionActive*/false>(obj, nullptr);
     }
   };
+#if ART_USE_MMTK
+  {
+    // XXX(kunals): For MMTk we need to do a GC at least once to be able to visit objects
+    // TODO(kunals): Fix this by implementing a better heap visitor
+    Runtime::Current()->GetHeap()->CollectGarbage(/* clear_soft_references */ false);  // Remove garbage.
+  }
+#endif  // ART_USE_MMTK
   Runtime::Current()->GetHeap()->VisitObjects(visitor);
 }
 
@@ -480,6 +487,9 @@ bool ImageWriter::PrepareImageAddressSpace(TimingLogger* timings) {
   }
 
   {
+    // XXX(kunals): If it is an app image then we have already done a GC in
+    // `ClearDexFileCookies` but we since we have cleared some fields we do
+    // another GC to actually clear all dead objects
     TimingLogger::ScopedTiming t("CollectGarbage", timings);
     heap->CollectGarbage(/* clear_soft_references */ false);  // Remove garbage.
   }

@@ -1448,6 +1448,15 @@ class EXPORT Thread {
 #endif  // ART_USE_MMTK
   }
 
+  bool MmtkHasEnoughTlabSpace(size_t byte_count) const {
+#if ART_USE_MMTK
+    return (((size_t)tlsPtr_.mmtk_default_bump_pointer.cursor) + byte_count)
+        < ((size_t)tlsPtr_.mmtk_default_bump_pointer.limit);
+#else
+    return false;
+#endif  // ART_USE_MMTK
+  }
+
   // Doesn't check that there is room.
   mirror::Object* MmtkAllocTlab(size_t bytes);
 

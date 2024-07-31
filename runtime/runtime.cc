@@ -786,6 +786,56 @@ static void WaitUntilSingleThreaded() {
 #endif
 }
 
+#if ART_USE_MMTK
+// Wait until the kernel thinks we have a single thread and the MMTk GC threads.
+static void WaitUntilOnlyMainAndMmtkGcThreads() {
+#if defined(__linux__)
+  // Read num_threads field from /proc/self/stat, avoiding higher-level IO libraries that may
+  // break atomicity of the read.
+  static constexpr size_t kNumTries = 1000;
+  static constexpr size_t kNumThreadsIndex = 20;
+  static constexpr ssize_t BUF_SIZE = 500;
+  static constexpr ssize_t BUF_PRINT_SIZE = 150;  // Only log this much on failure to limit length.
+  static_assert(BUF_SIZE > BUF_PRINT_SIZE);
+  char buf[BUF_SIZE];
+  ssize_t bytes_read = -1;
+  uint32_t num_mmtk_workers = mmtk_get_number_of_workers();
+  const char num_threads = '0' + (1 + num_mmtk_workers);
+  for (size_t tries = 0; tries < kNumTries; ++tries) {
+    int stat_fd = open("/proc/self/stat", O_RDONLY | O_CLOEXEC);
+    CHECK(stat_fd >= 0) << strerror(errno);
+    bytes_read = TEMP_FAILURE_RETRY(read(stat_fd, buf, BUF_SIZE));
+    CHECK(bytes_read >= 0) << strerror(errno);
+    int ret = close(stat_fd);
+    DCHECK(ret == 0) << strerror(errno);
+    ssize_t pos = 0;
+    while (pos < bytes_read && buf[pos++] != ')') {}
+    ++pos;
+    // We're now positioned at the beginning of the third field. Don't count blanks embedded in
+    // second (command) field.
+    size_t blanks_seen = 2;
+    while (pos < bytes_read && blanks_seen < kNumThreadsIndex - 1) {
+      if (buf[pos++] == ' ') {
+        ++blanks_seen;
+      }
+    }
+    CHECK(pos < bytes_read - 2);
+    // pos is first character of num_threads field.
+    CHECK_EQ(buf[pos + 1], ' ');  // We never have more than single-digit threads here.
+    if (buf[pos] == num_threads) {
+      return;  //  num_threads == 1 + num_mmtk_workers; success.
+    }
+    usleep(1000);
+  }
+  buf[std::min(BUF_PRINT_SIZE, bytes_read)] = '\0';  // Truncate buf before printing.
+  LOG(FATAL) << "Failed to reach single-threaded state: bytes_read = " << bytes_read
+             << " stat contents = \"" << buf << "...\"";
+#else  // Not Linux; shouldn't matter, but this has a high probability of working slowly.
+  usleep(20'000);
+#endif
+}
+#endif  // ART_USE_MMTK
+
 void Runtime::PreZygoteFork() {
   if (GetJit() != nullptr) {
     GetJit()->PreZygoteFork();
@@ -813,7 +863,11 @@ void Runtime::PreZygoteFork() {
     }
     CHECK_EQ(tl->Size(), 1u);
     // And then wait until the kernel thinks the threads are gone.
+#if !ART_USE_MMTK
     WaitUntilSingleThreaded();
+#else
+    WaitUntilOnlyMainAndMmtkGcThreads();
+#endif  // !ART_USE_MMTK
   }
 
   if (!heap_->HasZygoteSpace()) {
@@ -830,6 +884,13 @@ void Runtime::PreZygoteFork() {
     class_linker_->VisitClasses(&visitor);
   }
   heap_->PreZygoteFork();
+
+#if ART_USE_MMTK
+  // Now wait until the MMTk GC threads have stopped and the kernel thinks we
+  // are single-threaded
+  WaitUntilSingleThreaded();
+#endif  // ART_USE_MMTK
+
   PreZygoteForkNativeBridge();
 }
 
@@ -845,6 +906,9 @@ void Runtime::PostZygoteFork() {
                      : jit->GetThreadPoolPthreadPriority());
     }
   }
+#if ART_USE_MMTK
+  heap_->GetThirdPartyHeap()->PostZygoteFork();
+#endif  // ART_USE_MMTK
   // Reset all stats.
   ResetStats(0xFFFFFFFF);
 }
@@ -2575,7 +2639,7 @@ bool Runtime::AttachCurrentThread(const char* thread_name, bool as_daemon, jobje
   return self != nullptr;
 }
 
-void Runtime::DetachCurrentThread(bool should_run_callbacks) {
+void Runtime::DetachCurrentThread(bool should_run_callbacks, bool is_self_registered) {
   ScopedTrace trace(__FUNCTION__);
   Thread* self = Thread::Current();
   if (self == nullptr) {
@@ -2584,7 +2648,14 @@ void Runtime::DetachCurrentThread(bool should_run_callbacks) {
   if (self->HasManagedStack()) {
     LOG(FATAL) << *Thread::Current() << " attempting to detach while still running code";
   }
-  thread_list_->Unregister(self, should_run_callbacks);
+  if (LIKELY(is_self_registered)) {
+    thread_list_->Unregister(self, should_run_callbacks);
+  } else {
+    self->Destroy(should_run_callbacks);
+    uint32_t thin_lock_id = self->GetThreadId();
+    delete self;
+    thread_list_->ReleaseThreadId(/* self= */ nullptr, thin_lock_id);
+  }
 }
 
 mirror::Throwable* Runtime::GetPreAllocatedOutOfMemoryErrorWhenThrowingException() {
@@ -2704,6 +2775,7 @@ void Runtime::VisitReflectiveTargets(ReflectiveValueVisitor *visitor) {
 
 void Runtime::VisitImageRoots(RootVisitor* visitor) {
   // We only confirm that image roots are unchanged.
+#if !ART_USE_MMTK
   if (kIsDebugBuild) {
     for (auto* space : GetHeap()->GetContinuousSpaces()) {
       if (space->IsImageSpace()) {
@@ -2721,6 +2793,24 @@ void Runtime::VisitImageRoots(RootVisitor* visitor) {
       }
     }
   }
+#else
+  // XXX(kunals): Optimize this so that we don't have to visit it always
+  for (auto* space : GetHeap()->GetContinuousSpaces()) {
+    if (space->IsImageSpace()) {
+      auto* image_space = space->AsImageSpace();
+      const auto& image_header = image_space->GetImageHeader();
+      for (int32_t i = 0, size = image_header.GetImageRoots()->GetLength(); i != size; ++i) {
+        mirror::Object* obj =
+            image_header.GetImageRoot(static_cast<ImageHeader::ImageRoot>(i)).Ptr();
+        if (obj != nullptr) {
+          mirror::Object* after_obj = obj;
+          visitor->VisitRoot(&after_obj, RootInfo(kRootJavaFrame)); // StickyClass
+          CHECK_EQ(after_obj, obj);
+        }
+      }
+    }
+  }
+#endif  // ART_USE_MMTK
 }
 
 static ArtMethod* CreateRuntimeMethod(ClassLinker* class_linker, LinearAlloc* linear_alloc)

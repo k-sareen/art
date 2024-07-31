@@ -450,6 +450,10 @@ extern "C" void artArrayCopyBarrierPost(void* src,
 }
 #endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
+extern "C" void mmtk_debug_function(art::mirror::Object*);
+
+extern "C" void mmtkDebugFunction([[maybe_unused]] void* src) {}
+
 extern "C" mirror::Object* artReadBarrierMark(mirror::Object* obj) {
   DCHECK(gUseReadBarrier);
   return ReadBarrier::Mark(obj);

@@ -45,6 +45,7 @@
 #include "base/utils.h"
 #include "gc/accounting/mod_union_table-inl.h"
 #include "gc/collector_type.h"
+#include "gc/heap-inl.h"
 #include "gc/reference_processor.h"
 #include "gc/space/bump_pointer_space.h"
 #include "gc/task_processor.h"

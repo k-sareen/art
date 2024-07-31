@@ -17,6 +17,9 @@
 #ifndef ART_RUNTIME_GC_VERIFICATION_H_
 #define ART_RUNTIME_GC_VERIFICATION_H_
 
+#include <deque>
+#include <set>
+
 #include "base/macros.h"
 #include "obj_ptr.h"
 #include "offsets.h"
@@ -37,9 +40,12 @@ class Space;
 
 class Heap;
 
+using ObjectSet = std::set<mirror::Object*>;
+using WorkQueue = std::deque<std::pair<mirror::Object*, std::string>>;
+
 class Verification {
  public:
-  explicit Verification(gc::Heap* heap) : heap_(heap) {}
+  explicit Verification(gc::Heap* heap) : heap_(heap), live_(nullptr), queue_(nullptr) {}
 
   // Dump some debugging-relevant info about an object.
   std::string DumpObjectInfo(const void* obj, const char* tag) const
@@ -80,8 +86,18 @@ class Verification {
   std::string DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+  // Find the first path to the target from the root set. Should be called while paused since
+  // visiting roots is not safe otherwise.
+  EXPORT std::pair<std::vector<mirror::Object*>, std::string> FirstPathFromRootSetVector(ObjPtr<mirror::Object> target) const
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  void SanityPreGC() const REQUIRES_SHARED(Locks::mutator_lock_);
+  void SanityPostGC() const REQUIRES_SHARED(Locks::mutator_lock_);
+
  private:
   gc::Heap* const heap_;
+  mutable ObjectSet* live_;
+  mutable WorkQueue* queue_;
 
   class BFSFindReachable;
   class CollectRootVisitor;

@@ -17,12 +17,45 @@
 #ifndef MMTK_ART_THIRD_PARTY_HEAP_VISIT_OBJECTS_INL_H_
 #define MMTK_ART_THIRD_PARTY_HEAP_VISIT_OBJECTS_INL_H_
 
+#include <sstream>
+
 #include "gc/third_party_heap.h"
 #include "mmtk.h"
 
 namespace art {
 namespace gc {
 namespace third_party_heap {
+
+[[maybe_unused]] static inline std::string DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) {
+  uintptr_t* dump_start = reinterpret_cast<uintptr_t*>(addr - bytes);
+  uintptr_t* dump_end = reinterpret_cast<uintptr_t*>(addr + bytes);
+  std::ostringstream oss;
+  oss << " adjacent_ram=";
+
+  {
+    // Check if the RAM is accessible.
+    android::base::unique_fd read_fd, write_fd;
+    if (!android::base::Pipe(&read_fd, &write_fd)) {
+      LOG(WARNING) << "Could not create pipe, RAM being dumped may be unaccessible";
+    } else {
+      size_t count = 2 * bytes;
+      if (write(write_fd.get(), dump_start, count) != static_cast<ssize_t>(count)) {
+        oss << "unaccessible";
+        dump_start = dump_end;
+      }
+    }
+  }
+
+  for (const uintptr_t* p = dump_start; p < dump_end; ++p) {
+    if (p == reinterpret_cast<uintptr_t*>(addr)) {
+      // Marker of where the address is.
+      oss << "| ";
+    }
+    oss << std::hex << std::setfill('0') << std::setw(sizeof(uintptr_t) * 2) << *p << " ";
+  }
+
+  return oss.str();
+}
 
 template <typename Visitor>
 inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
@@ -45,6 +78,12 @@ inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
     } else {
       cursor += kObjectAlignment;
     }
+  }
+
+  {
+    // Visit objects inside image space
+    ReaderMutexLock mu(Thread::Current(), *Locks::heap_bitmap_lock_);
+    Runtime::Current()->GetHeap()->GetLiveBitmap()->Visit<Visitor>(visitor);
   }
 }
 

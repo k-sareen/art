@@ -41,7 +41,11 @@ inline void Heap::VisitObjects(Visitor&& visitor) {
   Locks::mutator_lock_->AssertSharedHeld(self);
   DCHECK(!Locks::mutator_lock_->IsExclusiveHeld(self)) << "Call VisitObjectsPaused() instead";
 #if ART_USE_MMTK
-  tp_heap_->VisitObjects(visitor);
+  {
+    ScopedThreadSuspension sts(self, ThreadState::kWaitingForVisitObjects);
+    ScopedSuspendAll ssa(__FUNCTION__);
+    tp_heap_->VisitObjects(visitor);
+  }
 #else
   if (IsGcConcurrentAndMoving()) {
     // Concurrent moving GC. Just suspending threads isn't sufficient
@@ -77,8 +81,12 @@ template <typename Visitor>
 inline void Heap::VisitObjectsPaused(Visitor&& visitor) {
   Thread* self = Thread::Current();
   Locks::mutator_lock_->AssertExclusiveHeld(self);
+#if ART_USE_MMTK
+  tp_heap_->VisitObjects(visitor);
+#else
   VisitObjectsInternalRegionSpace(visitor);
   VisitObjectsInternal(visitor);
+#endif  // ART_USE_MMTK
 }
 
 // Visit objects in the region spaces.

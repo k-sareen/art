@@ -890,9 +890,7 @@ class Heap {
     return task_processor_.get();
   }
 
-  bool HasZygoteSpace() const {
-    return zygote_space_ != nullptr;
-  }
+  bool HasZygoteSpace() const;
 
   // Returns the active concurrent copying collector.
   collector::ConcurrentCopying* ConcurrentCopyingCollector() {

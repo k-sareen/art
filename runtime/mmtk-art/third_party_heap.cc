@@ -31,13 +31,16 @@ namespace third_party_heap {
 
 ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
                                size_t capacity,
-                               bool use_tlab)
+                               bool use_tlab,
+                               bool is_zygote_process)
                             : use_tlab_(use_tlab),
+                              is_zygote_process_(is_zygote_process),
+                              has_zygote_space_(false),
                               first_mutator_to_block_(false),
                               current_state_(StwState::Resumed),
                               desired_state_(StwState::Resumed) {
   mmtk_set_heap_size(initial_size, capacity);
-  mmtk_init(&art_upcalls);
+  mmtk_init(&art_upcalls, is_zygote_process_);
 }
 
 ThirdPartyHeap::~ThirdPartyHeap() {}
@@ -71,7 +74,26 @@ bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
 }
 
 bool ThirdPartyHeap::IsMovableObject(ObjPtr<mirror::Object> obj) const {
-  return mmtk_is_object_movable(obj.Ptr());
+  mirror::Object* object = obj.Ptr();
+  if (mmtk_is_object_pinned(object)) {
+    return false;
+  }
+  return mmtk_is_object_movable(object);
+}
+
+void ThirdPartyHeap::SetIsZygoteProcess(bool is_zygote_process) {
+  is_zygote_process_ = is_zygote_process;
+  mmtk_set_is_zygote_process(is_zygote_process_);
+}
+
+void ThirdPartyHeap::SetHasZygoteSpace(bool has_zygote_space) {
+  has_zygote_space_ = has_zygote_space;
+}
+
+bool ThirdPartyHeap::HasZygoteSpace() {
+  // This is set by MMTk after performing the pre-first Zygote fork GC
+  // Do not set yourself!
+  return has_zygote_space_;
 }
 
 void ThirdPartyHeap::Request(StwState desired_state) {
@@ -95,6 +117,9 @@ static void ResumeAll() {
 
 void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
   art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+#if ART_USE_MMTK_SANITY
+  const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
+#endif  // ART_USE_MMTK_SANITY
 
   {
     std::unique_lock mu(first_mutator_lock_);
@@ -103,12 +128,20 @@ void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
 
   SuspendAll();
 
+#if ART_USE_MMTK_SANITY
+  verification->SanityPreGC();
+#endif  // ART_USE_MMTK_SANITY
+
   {
     std::unique_lock mu(first_mutator_lock_);
     current_state_ = StwState::Suspended;
     first_mutator_cond_.notify_all();
     first_mutator_cond_.wait(mu, [&]{ return desired_state_ == StwState::Resumed; });
   }
+
+#if ART_USE_MMTK_SANITY
+  verification->SanityPostGC();
+#endif  // ART_USE_MMTK_SANITY
 
   ResumeAll();
 
@@ -150,9 +183,6 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               size_t* usable_size,
                                               size_t* bytes_tl_bulk_allocated) {
   AllocationSemantics semantics = AllocatorDefault;
-  if (non_moving) {
-    semantics = AllocatorNonMoving;
-  }
   if (alloc_size >= Heap::kMinLargeObjectThreshold) {
     // Since LOS is non-moving anyway, we don't need to check if `non_moving` is true
     semantics = AllocatorLos;
@@ -191,6 +221,13 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
     *bytes_allocated = alloc_size;
     *usable_size = alloc_size;
     *bytes_tl_bulk_allocated = alloc_size;
+
+    if (non_moving && semantics == AllocatorDefault) {
+      bool pinned = mmtk_pin_object(ret);
+      CHECK(pinned) << "Allocated non-moving object at "
+                    << reinterpret_cast<mirror::Object*>(ret)
+                    << " in default space but it could not be pinned";
+    }
   }
   return reinterpret_cast<mirror::Object*>(ret);
 }
@@ -230,6 +267,19 @@ void ThirdPartyHeap::FinishGC(Thread* self) {
 
   // Wake anyone who may have been waiting for the GC to complete
   heap->gc_complete_cond_->Broadcast(self);
+}
+
+void ThirdPartyHeap::PreZygoteFork() {
+  mmtk_pre_zygote_fork();
+}
+
+void ThirdPartyHeap::PostZygoteFork() {
+  // XXX(kunals): tls is unused so passing a nullptr is fine
+  mmtk_post_zygote_fork(/* tls= */ nullptr);
+}
+
+void ThirdPartyHeap::PreFirstZygoteForkCollection(Thread* self) {
+  mmtk_handle_pre_first_zygote_fork_collection_request(reinterpret_cast<void*>(self));
 }
 
 }  // namespace third_party_heap

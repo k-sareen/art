@@ -229,9 +229,9 @@ class ThreadList {
   std::optional<std::string> WaitForSuspendBarrier(AtomicInteger* barrier, pid_t t = 0)
       REQUIRES(!Locks::thread_list_lock_, !Locks::thread_suspend_count_lock_);
 
+  void ReleaseThreadId(Thread* self, uint32_t id) REQUIRES(!Locks::allocated_thread_ids_lock_);
  private:
   uint32_t AllocThreadId(Thread* self);
-  void ReleaseThreadId(Thread* self, uint32_t id) REQUIRES(!Locks::allocated_thread_ids_lock_);
 
   void DumpUnattachedThreads(std::ostream& os, bool dump_native_stack)
       REQUIRES(!Locks::thread_list_lock_);

@@ -87,7 +87,8 @@ void* MmtkWorkerThread::Callback(void* arg) {
   worker->thread_->SetIsRuntimeThread(true);
   // Do work until its time to shut down.
   worker->Run();
-  runtime->DetachCurrentThread(/* should_run_callbacks= */ false);
+  runtime->DetachCurrentThread(/* should_run_callbacks= */ false,
+                               /* is_self_registered= */ false);
   return nullptr;
 }
 

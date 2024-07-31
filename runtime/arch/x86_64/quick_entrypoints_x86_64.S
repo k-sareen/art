@@ -1910,6 +1910,14 @@ DEFINE_FUNCTION art_quick_array_copy_barrier_post
 END_FUNCTION art_quick_array_copy_barrier_post
 #endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
+DEFINE_FUNCTION mmtk_debug_function
+    // XXX(kunals): Save everything that may be potentially overwritten
+    SETUP_SAVE_EVERYTHING_FRAME
+    call SYMBOL(mmtkDebugFunction)
+    RESTORE_SAVE_EVERYTHING_FRAME
+    ret
+END_FUNCTION mmtk_debug_function
+
     /*
      * On stack replacement stub.
      * On entry:

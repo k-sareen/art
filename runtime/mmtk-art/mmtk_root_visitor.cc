@@ -50,7 +50,7 @@ MmtkRootVisitor::~MmtkRootVisitor() {
 
 void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
                 size_t count,
-                const RootInfo& info ATTRIBUTE_UNUSED) {
+                [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
     auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
@@ -73,7 +73,7 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
 
 void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** roots,
                 size_t count,
-                const RootInfo& info ATTRIBUTE_UNUSED) {
+                [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i]->AsMirrorPtr();
     // std::cout << "Adding " << root << "\n";

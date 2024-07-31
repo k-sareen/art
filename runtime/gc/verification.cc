@@ -24,6 +24,7 @@
 #include "base/logging.h"
 #include "mirror/class-inl.h"
 #include "mirror/object-refvisitor-inl.h"
+#include "mmtk-art/mmtk_is_marked_visitor.h"
 
 namespace art HIDDEN {
 namespace gc {
@@ -51,7 +52,7 @@ std::string Verification::DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) 
   for (const uintptr_t* p = dump_start; p < dump_end; ++p) {
     if (p == reinterpret_cast<uintptr_t*>(addr)) {
       // Marker of where the address is.
-      oss << "|";
+      oss << "| ";
     }
     oss << std::hex << std::setfill('0') << std::setw(sizeof(uintptr_t) * 2) << *p << " ";
   }
@@ -141,16 +142,13 @@ bool Verification::IsAddressInHeapSpace(const void* addr, space::Space** out_spa
   return false;
 #else
   UNUSED(out_space);
-  return mmtk_is_object_in_heap_space(addr);
+  return heap_->GetThirdPartyHeap()->IsObjectInHeapSpace(addr);
 #endif  // !ART_USE_MMTK
 }
 
 bool Verification::IsValidHeapObjectAddress(const void* addr, space::Space** out_space) const {
   return IsAligned<kObjectAlignment>(addr) && IsAddressInHeapSpace(addr, out_space);
 }
-
-using ObjectSet = std::set<mirror::Object*>;
-using WorkQueue = std::deque<std::pair<mirror::Object*, std::string>>;
 
 // Use for visiting the GcRoots held live by ArtFields, ArtMethods, and ClassLoaders.
 class Verification::BFSFindReachable {
@@ -210,6 +208,32 @@ class Verification::CollectRootVisitor : public SingleRootVisitor {
   WorkQueue* const work_;
 };
 
+class CollectRootVectorVisitor : public SingleRootVisitor {
+ public:
+  CollectRootVectorVisitor(ObjectSet* visited,
+                           std::deque<
+                              std::tuple<
+                                mirror::Object*,
+                                std::string,
+                                std::vector<mirror::Object*>
+                              >
+                            >* work) : visited_(visited), work_(work) {}
+
+  void VisitRoot(mirror::Object* obj, const RootInfo& info)
+      override REQUIRES_SHARED(Locks::mutator_lock_) {
+    if (obj != nullptr && visited_->insert(obj).second) {
+      std::vector v = {obj};
+      std::ostringstream oss;
+      oss << info.ToString() << " = " << obj << "(" << obj->PrettyTypeOf() << ")";
+      work_->emplace_back(obj, oss.str(), v);
+    }
+  }
+
+ private:
+  ObjectSet* const visited_;
+  std::deque<std::tuple<mirror::Object*, std::string, std::vector<mirror::Object*>>>* const work_;
+};
+
 std::string Verification::FirstPathFromRootSet(ObjPtr<mirror::Object> target) const {
   Runtime* const runtime =  Runtime::Current();
   std::set<mirror::Object*> visited;
@@ -234,6 +258,103 @@ std::string Verification::FirstPathFromRootSet(ObjPtr<mirror::Object> target) co
     }
   }
   return "<no path found>";
+}
+
+std::pair<std::vector<mirror::Object*>, std::string> Verification::FirstPathFromRootSetVector(ObjPtr<mirror::Object> target) const {
+  Runtime* const runtime =  Runtime::Current();
+  std::set<mirror::Object*> visited;
+  std::deque<std::tuple<mirror::Object*, std::string, std::vector<mirror::Object*>>> work;
+  std::vector<mirror::Object*> empty_vec;
+  {
+    CollectRootVectorVisitor root_visitor(&visited, &work);
+    runtime->VisitRoots(&root_visitor, kVisitRootFlagAllRoots);
+  }
+  while (!work.empty()) {
+    auto [current_object, path, vec] = work.front();
+    work.pop_front();
+    if (current_object == target) {
+      return std::make_pair(vec, path);
+    }
+    BFSFindReachable visitor(&visited);
+    current_object->VisitReferences(visitor, VoidFunctor());
+    vec.emplace_back(current_object);
+    for (auto&& pair2 : visitor.NewlyVisited()) {
+      std::ostringstream oss;
+      mirror::Object* obj = pair2.first;
+      oss << path << " -> " << obj << "(" << obj->PrettyTypeOf() << ")." << pair2.second;
+      work.emplace_back(obj, oss.str(), vec);
+    }
+  }
+  return std::make_pair(empty_vec, "<no path found>");
+}
+
+void Verification::SanityPreGC() const {
+  if (live_ != nullptr) {
+    delete live_;
+  }
+  if (queue_ != nullptr) {
+    delete queue_;
+  }
+
+  Runtime* runtime = Runtime::Current();
+  live_ = new std::set<mirror::Object*>();
+  queue_ = new std::deque<std::pair<mirror::Object*, std::string>>();
+
+  {
+    CollectRootVisitor root_visitor(live_, queue_);
+    runtime->VisitRoots(&root_visitor, kVisitRootFlagAllRoots);
+  }
+
+  while (!queue_->empty()) {
+    auto pair = queue_->front();
+    queue_->pop_front();
+    BFSFindReachable visitor(live_);
+    pair.first->VisitReferences(visitor, VoidFunctor());
+    for (auto&& pair2 : visitor.NewlyVisited()) {
+      std::ostringstream oss;
+      mirror::Object* obj = pair2.first;
+      oss << pair.second << " -> " << obj << "(" << obj->PrettyTypeOf() << ")." << pair2.second;
+      queue_->emplace_back(obj, oss.str());
+    }
+  }
+}
+
+void Verification::SanityPostGC() const {
+  bool failed = false;
+  IsMarkedVisitor* is_marked_visitor = new third_party_heap::MmtkIsMarkedVisitor();
+  for (auto obj : *live_) {
+    if (is_marked_visitor->IsMarked(obj) == nullptr) {
+      failed = true;
+      auto [vec, path] = FirstPathFromRootSetVector(obj);
+      LOG(FATAL_WITHOUT_ABORT) << "SanityPostGC: Found live object "
+                 << obj
+                 << " that is not marked by MMTk!"
+                 << "\n"
+                 << FirstPathFromRootSet(obj)
+                 << "\n"
+                 << "Dumping memory around missing object "
+                 << obj
+                 << DumpRAMAroundAddress((uintptr_t)obj, 128);
+      for (auto path_obj : vec) {
+        LOG(FATAL_WITHOUT_ABORT) << "Object "
+                                 << path_obj
+                                 << " marked "
+                                 << (is_marked_visitor->IsMarked(path_obj) != nullptr)
+                                 << "\nDumping memory around "
+                                 << path_obj
+                                 << "\n"
+                                 << DumpRAMAroundAddress((uintptr_t)path_obj, 128);
+      }
+
+      if (failed) {
+        LOG(FATAL) << "SanityPostGC: Aborting early.";
+      }
+    }
+  }
+
+  if (failed) {
+    LOG(FATAL) << "SanityPostGC: Aborting";
+  }
 }
 
 }  // namespace gc

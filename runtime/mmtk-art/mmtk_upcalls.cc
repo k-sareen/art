@@ -182,7 +182,7 @@ REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void scan_all_roots(NodesClosure closure) {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
-  runtime->VisitRoots(&visitor);
+  runtime->VisitRoots(&visitor, art::kVisitRootFlagAllRoots);
   // {
   //   art::WriterMutexLock mu(art::Thread::Current(), *art::Locks::classlinker_classes_lock_);
   //   runtime->GetClassLinker()->VisitClassLoaders(&visitor);
@@ -230,6 +230,12 @@ static void sweep_system_weaks() {
   runtime->GetClassLinker()->CleanupClassLoaders();
 }
 
+static void set_has_zygote_space_in_art(bool has_zygote_space) {
+  art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
+    art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+  tp_heap->SetHasZygoteSpace(has_zygote_space);
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   scan_object,
@@ -244,4 +250,5 @@ ArtUpcalls art_upcalls = {
   scan_all_roots,
   process_references,
   sweep_system_weaks,
+  set_has_zygote_space_in_art,
 };

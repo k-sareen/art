@@ -2716,10 +2716,15 @@ Thread::~Thread() {
   }
 
 #if ART_USE_MMTK
-  mmtk_flush_mutator(tlsPtr_.mmtk_mutator);
-  mmtk_destroy_mutator(tlsPtr_.mmtk_mutator);
-  tlsPtr_.mmtk_mutator = nullptr;
-  tlsPtr_.mmtk_default_bump_pointer = MmtkBumpPointer {};
+  // XXX(kunals): Only flush state if the thread is a mutator. Note that this function is called
+  // for MMTk GC threads as well when we stop threads to fork the Zygote, hence the need to guard
+  // the flush_mutator
+  if (tlsPtr_.mmtk_mutator != nullptr) {
+    mmtk_flush_mutator(tlsPtr_.mmtk_mutator);
+    mmtk_destroy_mutator(tlsPtr_.mmtk_mutator);
+    tlsPtr_.mmtk_mutator = nullptr;
+    tlsPtr_.mmtk_default_bump_pointer = MmtkBumpPointer {};
+  }
 #endif  // ART_USE_MMTK
 
   Runtime::Current()->GetHeap()->AssertThreadLocalBuffersAreRevoked(this);
@@ -4117,6 +4122,7 @@ class ReferenceMapVisitor : public StackVisitor {
       mirror::Object* ref = shadow_frame->GetVRegReference(reg);
       if (ref != nullptr) {
 #if ART_USE_MMTK
+      // XXX(kunals): Fix slot reuse for MMTk
       // mirror::Object** slot = reinterpret_cast<mirror::Object**>(
       //   &(shadow_frame->References()[reg])
       // );

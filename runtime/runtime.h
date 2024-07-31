@@ -203,18 +203,9 @@ class Runtime {
     return is_system_server_;
   }
 
-  void SetAsSystemServer() {
-    is_system_server_ = true;
-    is_zygote_ = false;
-    is_primary_zygote_ = false;
-  }
+  void SetAsSystemServer();
 
-  void SetAsZygoteChild(bool is_system_server, bool is_zygote) {
-    // System server should have been set earlier in SetAsSystemServer.
-    CHECK_EQ(is_system_server_, is_system_server);
-    is_zygote_ = is_zygote;
-    is_primary_zygote_ = false;
-  }
+  void SetAsZygoteChild(bool is_system_server, bool is_zygote);
 
   bool IsExplicitGcDisabled() const {
     return is_explicit_gc_disabled_;
@@ -315,7 +306,12 @@ class Runtime {
   void CallExitHook(jint status);
 
   // Detaches the current native thread from the runtime.
-  void DetachCurrentThread(bool should_run_callbacks = true) REQUIRES(!Locks::mutator_lock_);
+  // XXX(kunals): Added an extra flag here since MMTk GC threads are spawned by
+  // Android but not registered in its thread list. We set `is_self_registered`
+  // to false for MMTk GC threads.
+  void DetachCurrentThread(bool should_run_callbacks = true,
+                           bool is_self_registered = true)
+      REQUIRES(!Locks::mutator_lock_);
 
   // If we are handling SIQQUIT return the time when we received it.
   std::optional<uint64_t> SiqQuitNanoTime() const;

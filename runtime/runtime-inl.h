@@ -26,6 +26,9 @@
 #include "base/mutex.h"
 #include "entrypoints/quick/callee_save_frame.h"
 #include "gc_root-inl.h"
+#if ART_USE_MMTK
+#include "gc/third_party_heap.h"
+#endif  // ART_USE_MMTK
 #include "obj_ptr-inl.h"
 #include "thread_list.h"
 
@@ -86,6 +89,25 @@ inline ArtMethod* Runtime::GetCalleeSaveMethod(CalleeSaveType type)
 inline ArtMethod* Runtime::GetCalleeSaveMethodUnchecked(CalleeSaveType type)
     REQUIRES_SHARED(Locks::mutator_lock_) {
   return reinterpret_cast64<ArtMethod*>(callee_save_methods_[static_cast<size_t>(type)]);
+}
+
+inline void Runtime::SetAsSystemServer() {
+  is_system_server_ = true;
+  is_zygote_ = false;
+  is_primary_zygote_ = false;
+#if ART_USE_MMTK
+  heap_->GetThirdPartyHeap()->SetIsZygoteProcess(is_zygote_);
+#endif  // ART_USE_MMTK
+}
+
+inline void Runtime::SetAsZygoteChild(bool is_system_server, bool is_zygote) {
+  // System server should have been set earlier in SetAsSystemServer.
+  CHECK_EQ(is_system_server_, is_system_server);
+  is_zygote_ = is_zygote;
+  is_primary_zygote_ = false;
+#if ART_USE_MMTK
+  heap_->GetThirdPartyHeap()->SetIsZygoteProcess(is_zygote_);
+#endif  // ART_USE_MMTK
 }
 
 }  // namespace art
