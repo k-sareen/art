@@ -87,20 +87,20 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
 }
 
 static void suspend_mutators(void* tls) {
-  VLOG(threads) << "Suspend all mutators. Sending request to companion thread.";
+  VLOG(threads) << "Suspend all mutators. Sending request to first mutator thread.";
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
 
+  tp_heap->StartGC(self, art::gc::kGcCauseForAlloc);
+
   tp_heap->Request(art::StwState::Suspended);
   VLOG(threads) << "Suspend request sent to first mutator thread.";
-
-  tp_heap->StartGC(self, art::gc::kGcCauseForAlloc);
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
 static void resume_mutators(void* tls) {
-  VLOG(threads) << "Resume all mutators. Sending request to companion thread.";
+  VLOG(threads) << "Resume all mutators. Sending request to first mutator thread.";
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::Runtime* runtime = art::Runtime::Current();
   {

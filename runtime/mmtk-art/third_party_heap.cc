@@ -233,7 +233,31 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
 }
 
 collector::GcType ThirdPartyHeap::CollectGarbage(Thread* self, GcCause cause) {
-  UNUSED(cause);
+  Heap* heap = Runtime::Current()->GetHeap();
+  {
+    MutexLock mu(self, *heap->gc_complete_lock_);
+    if (heap->collector_type_running_ != kCollectorTypeNone) {
+      // Someone else has scheduled a GC for us. Wait until the GC has finished
+      art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
+      VLOG(heap) << "Someone else has scheduled a GC for us. Us= "
+                 << *self
+                 << ", running GC "
+                 << heap->collector_type_running_
+                 << " "
+                 << heap->last_gc_cause_;
+      uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
+      heap->gc_complete_cond_->CheckSafeToWait(self);
+      while (heap->GetCurrentGcNum() < next_gc_num) {
+        heap->gc_complete_cond_->Wait(self);
+      }
+      // Since someone else has scheduled a GC for us, we just return instead of
+      // scheduling another GC
+      return collector::kGcTypeFull;
+    } else {
+      heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
+      heap->last_gc_cause_ = cause;
+    }
+  }
   mmtk_handle_user_collection_request(
     reinterpret_cast<void*>(self),
     /* force= */ true,
@@ -251,8 +275,19 @@ void ThirdPartyHeap::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
 void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
   Heap* heap = Runtime::Current()->GetHeap();
   MutexLock mu(self, *heap->gc_complete_lock_);
-  heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
-  heap->last_gc_cause_ = cause;
+  // XXX(kunals): Only set collector_type_running_ if it was previously None
+  if (heap->collector_type_running_ == kCollectorTypeNone) {
+    heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
+    heap->last_gc_cause_ = cause;
+  } else {
+    // XXX(kunals): The collector type can be something other than None only if
+    // `CollectGarbage` has been called. Assert that is the case
+    CHECK_EQ(heap->collector_type_running_, kCollectorTypeThirdPartyHeap)
+      << "Cannot run StartGC when some other GC is running. Running GC "
+      << heap->collector_type_running_
+      << ", cause "
+      << heap->last_gc_cause_;
+  }
 }
 
 void ThirdPartyHeap::FinishGC(Thread* self) {

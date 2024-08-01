@@ -123,7 +123,8 @@ class ThirdPartyHeap {
       REQUIRES(!Locks::heap_bitmap_lock_, !*Heap::gc_complete_lock_);
 
   // Collect dead objects in heap
-  collector::GcType CollectGarbage(Thread* self, GcCause gc_cause);
+  collector::GcType CollectGarbage(Thread* self, GcCause gc_cause)
+      REQUIRES(!*Heap::gc_complete_lock_);
 
   // Delay visiting the referent of a weak reference by enqueuing it to the
   // correct weak reference discovered queue
@@ -132,11 +133,11 @@ class ThirdPartyHeap {
       NO_THREAD_SAFETY_ANALYSIS;
 
   // Set heap state to signify the start of a GC
-  void StartGC(Thread* self, GcCause cause);
+  void StartGC(Thread* self, GcCause cause) REQUIRES(!*Heap::gc_complete_lock_);
 
   // Set heap state to signify the end of a GC. Wake up any threads that were
   // waiting on the GC to complete
-  void FinishGC(Thread* self);
+  void FinishGC(Thread* self) REQUIRES(!*Heap::gc_complete_lock_);
 
   // Request to transition to desired_state
   void Request(StwState desired_state);
