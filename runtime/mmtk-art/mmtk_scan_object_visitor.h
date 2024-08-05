@@ -35,7 +35,9 @@ namespace third_party_heap {
 
 class MmtkScanObjectVisitor {
  public:
-  MmtkScanObjectVisitor(ScanObjectClosure closure) : closure_(closure) {}
+  MmtkScanObjectVisitor(ScanObjectClosure closure)
+      : is_nursery_collection_(mmtk_is_nursery_collection()),
+        closure_(closure) {}
 
   void operator()(ObjPtr<mirror::Object> obj, MemberOffset offset, bool /* is_static */) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
@@ -57,7 +59,7 @@ class MmtkScanObjectVisitor {
       void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
       closure_.invoke(referent_slot);
     } else {
-      if (LIKELY(mmtk_is_nursery_collection())) {
+      if (LIKELY(is_nursery_collection_)) {
         // Treat java.lang.ref.Reference as a strong reference and trace the referent
         void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
         closure_.invoke(referent_slot);
@@ -84,6 +86,7 @@ class MmtkScanObjectVisitor {
   }
 
  private:
+  const bool is_nursery_collection_;
   ScanObjectClosure closure_;
 };
 
