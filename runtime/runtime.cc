@@ -2804,7 +2804,7 @@ void Runtime::VisitImageRoots(RootVisitor* visitor) {
             image_header.GetImageRoot(static_cast<ImageHeader::ImageRoot>(i)).Ptr();
         if (obj != nullptr) {
           mirror::Object* after_obj = obj;
-          visitor->VisitRoot(&after_obj, RootInfo(kRootJavaFrame)); // StickyClass
+          visitor->VisitRoot(&after_obj, RootInfo(kRootStickyClass));
           CHECK_EQ(after_obj, obj);
         }
       }
