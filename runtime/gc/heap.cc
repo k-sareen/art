@@ -4261,9 +4261,17 @@ void Heap::ClampGrowthLimit() {
     // Unconditionally set the growth_limit to the capacity. This ensures that
     // even for large heap sizes values, the correct heap size is respected
     growth_limit_ = capacity_;
+#if !ART_USE_MMTK
     SetIdealFootprint(capacity_);
     SetDefaultConcurrentStartBytes();
     Runtime::Current()->SetDumpGCPerformanceOnShutdown(true);
+#else
+    if (!tp_heap_->ClampMaxHeapSize(capacity_)) {
+      LOG(WARNING) << "Unable to clamp max heap size to "
+                   << capacity_
+                   << " for MMTk!";
+    }
+#endif  // !ART_USE_MMTK
   } else {
     capacity_ = growth_limit_;
   }

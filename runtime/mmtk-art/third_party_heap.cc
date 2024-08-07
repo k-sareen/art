@@ -70,6 +70,10 @@ uint32_t ThirdPartyHeap::GetNumberOfWorkers() {
   return mmtk_get_number_of_workers();
 }
 
+bool ThirdPartyHeap::ClampMaxHeapSize(size_t max) {
+  return mmtk_clamp_max_heap_size(max);
+}
+
 void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size) {
   mmtk_set_image_space(boot_image_start_address, boot_image_size);
 }
