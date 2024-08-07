@@ -39,8 +39,13 @@ ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
                               first_mutator_to_block_(false),
                               current_state_(StwState::Resumed),
                               desired_state_(StwState::Resumed) {
+#if ART_USE_WRITE_BARRIER
+  MmtkPlanSelector plan = MmtkPlanSelector::StickyImmix;
+#else
+  MmtkPlanSelector plan = MmtkPlanSelector::Immix;
+#endif  // ART_USE_WRITE_BARRIER
   mmtk_set_heap_size(initial_size, capacity);
-  mmtk_init(&art_upcalls, is_zygote_process_);
+  mmtk_init(&art_upcalls, plan, is_zygote_process_);
 }
 
 ThirdPartyHeap::~ThirdPartyHeap() {}
