@@ -1257,9 +1257,10 @@ void Runtime::InitNonZygoteOrPostFork(
     }
   }
 
+#if !ART_USE_MMTK
   LOG(DEBUG) << "Creating perf counters";
-  // XXX: If you are using these many hardware performance counters, then you
-  // will have to temporarily change the devfreq governor (under
+  // XXX(kunals): If you are using these many hardware performance counters,
+  // then you will have to temporarily change the devfreq governor (under
   // /sys/class/devfreq/*/governor) from "mem_latency" to "performance". The
   // mem_latency governor uses four hardware performance counters, out of the
   // six available on the Google Pixel 6 Pro CPUs
@@ -1275,6 +1276,7 @@ void Runtime::InitNonZygoteOrPostFork(
   // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   LOG(DEBUG) << "Finished creating perf counters";
+#endif  // !ART_USE_MMTK
 
   if (is_child_zygote) {
     // If creating a child-zygote we only initialize native bridge. The rest of

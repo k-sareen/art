@@ -1050,7 +1050,7 @@ Heap::Heap(size_t initial_size,
   }
 }
 
-void Heap::PerfCounterCreate(std::string perf_event_name) {
+[[maybe_unused]] void Heap::PerfCounterCreate(std::string perf_event_name) {
   perf_counters_.push_back(new PerfCounter(perf_event_name));
 }
 
