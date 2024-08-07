@@ -1010,17 +1010,18 @@ bool Thread::Init(ThreadList* thread_list,
     }
   }
 
-  if (add_to_thread_list) {
-    ScopedTrace trace3("ThreadList::Register");
-    thread_list->Register(this);
-  }
-
 #if ART_USE_MMTK
+  // XXX(kunals): Bind mutator before registering it with the thread list
   if (add_to_thread_list) {
     VLOG(threads) << "Calling mmtk_bind_mutator with " << this;
     tlsPtr_.mmtk_mutator = mmtk_bind_mutator(this);
   }
 #endif  // ART_USE_MMTK
+
+  if (add_to_thread_list) {
+    ScopedTrace trace3("ThreadList::Register");
+    thread_list->Register(this);
+  }
 
   return true;
 }
