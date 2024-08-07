@@ -2212,13 +2212,13 @@ class EXPORT Thread {
                                thread_local_start(nullptr),
                                thread_local_limit(nullptr),
                                thread_local_objects(0),
-                               checkpoint_function(nullptr),
-                               thread_local_alloc_stack_top(nullptr),
-                               thread_local_alloc_stack_end(nullptr),
 #if ART_USE_MMTK
                                mmtk_mutator(nullptr),
                                mmtk_default_bump_pointer(MmtkBumpPointer {}),
 #endif  // ART_USE_MMTK
+                               checkpoint_function(nullptr),
+                               thread_local_alloc_stack_top(nullptr),
+                               thread_local_alloc_stack_end(nullptr),
                                mutator_lock(nullptr),
                                flip_function(nullptr),
                                thread_local_mark_stack(nullptr),
@@ -2354,6 +2354,14 @@ class EXPORT Thread {
 
     size_t thread_local_objects;
 
+#if ART_USE_MMTK
+    // XXX(kunals): For 32-bit ARM, we need to ensure that the offset used fits within the range 0-1020 [1]
+    // We also align the bump pointer to 8-bytes for potentially better performance
+    // [1]: https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Instruction-Details/Alphabetical-list-of-instructions/LDRD--immediate-
+    MmtkMutator mmtk_mutator;
+    MmtkBumpPointer mmtk_default_bump_pointer;
+#endif  // ART_USE_MMTK
+
     // Pending checkpoint function or null if non-pending. If this checkpoint is set and someone
     // requests another checkpoint, it goes to the checkpoint overflow list.
     Closure* checkpoint_function GUARDED_BY(Locks::thread_suspend_count_lock_);
@@ -2369,11 +2377,6 @@ class EXPORT Thread {
     // Thread-local allocation stack data/routines.
     StackReference<mirror::Object>* thread_local_alloc_stack_top;
     StackReference<mirror::Object>* thread_local_alloc_stack_end;
-
-#if ART_USE_MMTK
-    MmtkMutator mmtk_mutator;
-    MmtkBumpPointer mmtk_default_bump_pointer;
-#endif  // ART_USE_MMTK
 
     // Pointer to the mutator lock.
     // This is the same as `Locks::mutator_lock_` but cached for faster state transitions.
