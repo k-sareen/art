@@ -507,6 +507,10 @@ void ReferenceProcessor::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
 void ReferenceProcessor::DelayReferenceReferentTPH(ObjPtr<mirror::Class> klass,
                                                    ObjPtr<mirror::Reference> ref) {
 #if ART_USE_MMTK
+  // TODO(kunals): Need to check if the given java.lang.ref.Reference's referent is marked or not
+  // before enqueuing it. However, naively checking if the referent is marked or not using
+  // mmtk_is_object_marked does not seem to work because we get an assertion failure inside dex2oat
+  // complaining about a thin-locked object being found
   DCHECK(klass->IsTypeOfReferenceClass());
   Thread* self = Thread::Current();
   // TODO: Remove these locks, and use atomic stacks for storing references?
