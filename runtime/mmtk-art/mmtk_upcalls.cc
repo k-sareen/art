@@ -220,6 +220,7 @@ static void process_references(void* tls,
   }
 }
 
+REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void sweep_system_weaks() {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkIsMarkedVisitor is_marked_visitor;
