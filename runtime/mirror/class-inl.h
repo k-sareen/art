@@ -760,7 +760,8 @@ inline size_t Class::GetPrimitiveTypeSizeShift() {
 template <VerifyObjectFlags kVerifyFlags, ReadBarrierOption kReadBarrierOption>
 inline void Class::VerifyOverflowReferenceBitmap() {
   // Can't reliably access super-classes during CMC compaction.
-  if (Runtime::Current()->GetHeap()->IsPerformingUffdCompaction()) {
+  if (Runtime::Current() != nullptr && Runtime::Current()->GetHeap() != nullptr &&
+      Runtime::Current()->GetHeap()->IsPerformingUffdCompaction()) {
     return;
   }
   CHECK(!IsVariableSize<kVerifyFlags>());
