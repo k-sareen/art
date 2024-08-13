@@ -104,6 +104,11 @@ class ThirdPartyHeap {
   // Return if the Zygote space has been initialized or not
   bool HasZygoteSpace();
 
+  // Return if a transaction is currently active or not
+  bool IsActiveTransaction() {
+    return is_transaction_active_;
+  }
+
   // Try to allocate an object of size alloc_size. This function can potentially
   // suspend the mutator for a GC in case there is not enough space to fulfill
   // the allocation request.
@@ -170,6 +175,9 @@ class ThirdPartyHeap {
 
   // Does the runtime have a Zygote space?
   bool has_zygote_space_;
+
+  // Is a transaction currently active? Does not change over the course of a GC
+  bool is_transaction_active_;
 
   // Used to ensure only the first mutator to call `BlockThreadForCollection`
   // performs the `RunCompanionThreadRoutine`

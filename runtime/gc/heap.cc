@@ -1460,6 +1460,7 @@ uint64_t Heap::GetTotalGcCpuTime() {
 }
 
 void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
+#if !ART_USE_MMTK
   uint64_t total_time = NanoTime() - GetHarnessBeginStartTime();
 
   std::ostringstream output_string;
@@ -1512,6 +1513,7 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   }
 
   LOG(INFO) << output_string.str();
+#endif  // !ART_USE_MMTK
 }
 
 void Heap::ResetGcPerformanceInfo() {

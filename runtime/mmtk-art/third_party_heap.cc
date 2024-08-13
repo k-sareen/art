@@ -297,6 +297,7 @@ void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
       << ", cause "
       << heap->last_gc_cause_;
   }
+  is_transaction_active_ = Runtime::Current()->IsActiveTransaction();
 }
 
 void ThirdPartyHeap::FinishGC(Thread* self) {
@@ -308,6 +309,8 @@ void ThirdPartyHeap::FinishGC(Thread* self) {
   heap->running_collection_is_blocking_ = false;
   heap->gcs_completed_.fetch_add(1, std::memory_order_release);
   heap->old_native_bytes_allocated_.store(heap->GetNativeBytes());
+
+  is_transaction_active_ = false;
 
   // Wake anyone who may have been waiting for the GC to complete
   heap->gc_complete_cond_->Broadcast(self);

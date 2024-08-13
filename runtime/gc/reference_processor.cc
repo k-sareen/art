@@ -29,6 +29,7 @@
 #include "mirror/reference-inl.h"
 #if ART_USE_MMTK
 #include "mmtk-art/mmtk_is_marked_visitor.h"
+#include "mmtk-art/mmtk_utils.h"
 #endif  // ART_USE_MMTK
 #include "nativehelper/scoped_local_ref.h"
 #include "object_callbacks.h"
@@ -507,26 +508,29 @@ void ReferenceProcessor::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
 void ReferenceProcessor::DelayReferenceReferentTPH(ObjPtr<mirror::Class> klass,
                                                    ObjPtr<mirror::Reference> ref) {
 #if ART_USE_MMTK
-  // TODO(kunals): Need to check if the given java.lang.ref.Reference's referent is marked or not
-  // before enqueuing it. However, naively checking if the referent is marked or not using
-  // mmtk_is_object_marked does not seem to work because we get an assertion failure inside dex2oat
-  // complaining about a thin-locked object being found
+  DCHECK(klass != nullptr);
   DCHECK(klass->IsTypeOfReferenceClass());
-  Thread* self = Thread::Current();
-  // TODO: Remove these locks, and use atomic stacks for storing references?
-  // We need to check that the references haven't already been enqueued since we can end up
-  // scanning the same reference multiple times due to dirty cards.
-  if (klass->IsSoftReferenceClass()) {
-    soft_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
-  } else if (klass->IsWeakReferenceClass()) {
-    weak_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
-  } else if (klass->IsFinalizerReferenceClass()) {
-    finalizer_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
-  } else if (klass->IsPhantomReferenceClass()) {
-    phantom_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
-  } else {
-    LOG(FATAL) << "Invalid reference type " << klass->PrettyClass() << " " << std::hex
-               << klass->GetAccessFlags();
+  DCHECK(!Runtime::Current()->IsActiveTransaction())
+    << "Active transaction cases should be handled by the caller";
+  third_party_heap::MmtkIsMarkedVisitor is_marked_visitor;
+  mirror::HeapReference<mirror::Object>* referent = ref->GetReferentReferenceAddr();
+  if (!MmtkIsNullOrMarkedHeapReference(referent, &is_marked_visitor)) {
+    Thread* self = Thread::Current();
+    // TODO: Remove these locks, and use atomic stacks for storing references?
+    // We need to check that the references haven't already been enqueued since we can end up
+    // scanning the same reference multiple times due to dirty cards.
+    if (klass->IsSoftReferenceClass()) {
+      soft_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+    } else if (klass->IsWeakReferenceClass()) {
+      weak_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+    } else if (klass->IsFinalizerReferenceClass()) {
+      finalizer_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+    } else if (klass->IsPhantomReferenceClass()) {
+      phantom_reference_queue_.AtomicEnqueueIfNotEnqueued(self, ref);
+    } else {
+      LOG(FATAL) << "Invalid reference type " << klass->PrettyClass() << " " << std::hex
+                 << klass->GetAccessFlags();
+    }
   }
 #endif  // ART_USE_MMTK
 }

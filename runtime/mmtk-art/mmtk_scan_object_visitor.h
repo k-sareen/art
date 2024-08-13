@@ -36,8 +36,9 @@ namespace third_party_heap {
 class MmtkScanObjectVisitor {
  public:
   MmtkScanObjectVisitor(ScanObjectClosure closure)
-      : is_nursery_collection_(mmtk_is_nursery_collection()),
-        closure_(closure) {}
+      : is_nursery_collection_(mmtk_is_nursery_collection()), closure_(closure) {
+    tp_heap_ = Runtime::Current()->GetHeap()->GetThirdPartyHeap();
+  }
 
   void operator()(ObjPtr<mirror::Object> obj, MemberOffset offset, bool /* is_static */) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
@@ -52,8 +53,7 @@ class MmtkScanObjectVisitor {
 
   void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
-    Runtime* runtime = Runtime::Current();
-    if (UNLIKELY(runtime->IsActiveTransaction())) {
+    if (UNLIKELY(tp_heap_->IsActiveTransaction())) {
       // In transaction mode, keep the referent alive and avoid any reference processing to avoid the
       // issue of rolling back reference processing.
       void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
@@ -64,7 +64,6 @@ class MmtkScanObjectVisitor {
         void* referent_slot = reinterpret_cast<void*>(ref->GetReferentReferenceAddr());
         closure_.invoke(referent_slot);
       } else {
-        ThirdPartyHeap* tp_heap_ = runtime->GetHeap()->GetThirdPartyHeap();
         tp_heap_->DelayReferenceReferent(klass, ref);
       }
     }
@@ -88,6 +87,7 @@ class MmtkScanObjectVisitor {
  private:
   const bool is_nursery_collection_;
   ScanObjectClosure closure_;
+  ThirdPartyHeap* tp_heap_;
 };
 
 }  // namespace third_party_heap

@@ -23,6 +23,9 @@
 #include "mirror/class-inl.h"
 #include "mirror/object-inl.h"
 #include "mirror/reference-inl.h"
+#if ART_USE_MMTK
+#include "mmtk-art/mmtk_utils.h"
+#endif  // ART_USE_MMTK
 #include "object_callbacks.h"
 
 namespace art HIDDEN {
@@ -173,29 +176,6 @@ void ReferenceQueue::ClearWhiteReferences(ReferenceQueue* cleared_references,
   UNUSED(report_cleared);
 #endif  // !ART_USE_MMTK
 }
-
-#if ART_USE_MMTK
-static bool MmtkIsNullOrMarkedHeapReference(mirror::HeapReference<mirror::Object>* object,
-                                            IsMarkedVisitor* visitor) NO_THREAD_SAFETY_ANALYSIS {
-  mirror::Object* obj = object->AsMirrorPtr();
-  if (obj == nullptr) {
-    return true;
-  }
-
-  mirror::Object* new_obj = visitor->IsMarked(obj);
-  if (new_obj == nullptr) {
-    return false;
-  }
-
-  if (new_obj != obj) {
-    // Write barrier is not necessary since it still points to the same object, just at a different
-    // address.
-    object->Assign(new_obj);
-  }
-
-  return true;
-}
-#endif  // ART_USE_MMTK
 
 void ReferenceQueue::ClearWhiteReferencesTPH(ReferenceQueue* cleared_references,
                                              IsMarkedVisitor* visitor,

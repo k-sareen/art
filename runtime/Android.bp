@@ -351,6 +351,7 @@ cc_defaults {
         "mmtk-art/mmtk_gc_thread.cc",
         "mmtk-art/mmtk_root_visitor.cc",
         "mmtk-art/mmtk_upcalls.cc",
+        "mmtk-art/mmtk_utils.cc",
         "mmtk-art/third_party_heap.cc",
         "monitor.cc",
         "monitor_objects_stack_visitor.cc",
