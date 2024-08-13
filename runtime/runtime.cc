@@ -1257,6 +1257,14 @@ void Runtime::InitNonZygoteOrPostFork(
     }
   }
 
+  if (is_child_zygote) {
+    // If creating a child-zygote we only initialize native bridge. The rest of
+    // runtime post-fork logic would spin up threads for Binder and JDWP.
+    // Instead, the Java side of the child process will call a static main in a
+    // class specified by the parent.
+    return;
+  }
+
 #if !ART_USE_MMTK
   LOG(DEBUG) << "Creating perf counters";
   // XXX(kunals): If you are using these many hardware performance counters,
@@ -1276,15 +1284,9 @@ void Runtime::InitNonZygoteOrPostFork(
   // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   GetHeap()->PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   LOG(DEBUG) << "Finished creating perf counters";
+#else
+  mmtk_create_perf_counters();
 #endif  // !ART_USE_MMTK
-
-  if (is_child_zygote) {
-    // If creating a child-zygote we only initialize native bridge. The rest of
-    // runtime post-fork logic would spin up threads for Binder and JDWP.
-    // Instead, the Java side of the child process will call a static main in a
-    // class specified by the parent.
-    return;
-  }
 
   DCHECK(!IsZygote());
 
