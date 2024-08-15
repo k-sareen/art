@@ -237,6 +237,32 @@ static void set_has_zygote_space_in_art(bool has_zygote_space) {
   tp_heap->SetHasZygoteSpace(has_zygote_space);
 }
 
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void throw_out_of_memory(void* tls, MmtkAllocationError err_kind) {
+  switch (err_kind) {
+    case MmapOOM:
+      LOG(FATAL) << "Failed to allocate pages for space";
+      break;
+    case HeapOOM:
+      art::Thread* self = reinterpret_cast<art::Thread*>(tls);
+      art::Runtime* runtime = art::Runtime::Current();
+      // If we're in a stack overflow, do not create a new exception. It would require running the
+      // constructor, which will of course still be in a stack overflow.
+      if (self->IsHandlingStackOverflow()) {
+        self->SetException(
+            runtime->GetPreAllocatedOutOfMemoryErrorWhenHandlingStackOverflow());
+        return;
+      }
+      // Allow plugins to intercept out of memory errors.
+      runtime->OutOfMemoryErrorHook();
+
+      std::ostringstream oss;
+      oss << "Failed to allocate object. Java heap space exhausted.";
+      self->ThrowOutOfMemoryError(oss.str().c_str());
+      break;
+  }
+}
+
 ArtUpcalls art_upcalls = {
   size_of,
   scan_object,
@@ -252,4 +278,5 @@ ArtUpcalls art_upcalls = {
   process_references,
   sweep_system_weaks,
   set_has_zygote_space_in_art,
+  throw_out_of_memory,
 };

@@ -4,3 +4,5 @@ JIT_ART
 **/*.iml
 **/*.pyc
 **/*.swn
+.vscode
+debug.txt

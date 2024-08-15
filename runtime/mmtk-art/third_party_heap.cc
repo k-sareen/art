@@ -223,10 +223,10 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
     );
   }
 
-  // XXX(kunals): If we actually add per-object metadata then we need to inline
-  // this call everywhere
-  mmtk_post_alloc(mmtk_mutator, ret, alloc_size, semantics);
   if (LIKELY(ret != nullptr)) {
+    // XXX(kunals): If we actually add per-object metadata then we need to inline
+    // this call everywhere
+    mmtk_post_alloc(mmtk_mutator, ret, alloc_size, semantics);
     *bytes_allocated = alloc_size;
     *usable_size = alloc_size;
     *bytes_tl_bulk_allocated = alloc_size;

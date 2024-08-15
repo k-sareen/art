@@ -134,13 +134,26 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       }
     }
 
-    // UNUSED(allocator);
-    // obj = tp_heap_->TryToAllocate(self, byte_count, /* non_moving= */ false,
-    //                                 &bytes_allocated, &usable_size,
-    //                                 &bytes_tl_bulk_allocated);
-
+    if (UNLIKELY(obj == nullptr)) {
+      // TODO(kunals): Actually check if this can happen when using MMTk
+      // The only way that we can get a null return if there is no pending exception is if the
+      // instrumentation changed.
+      if (!self->IsExceptionPending()) {
+        // Since we are restarting, allow thread suspension.
+        ScopedAllowThreadSuspension ats;
+        // Get the new class size in case class redefinition changed the class size since alloc
+        // started.
+        int new_byte_count = klass->IsVariableSize()? byte_count : klass->GetObjectSize();
+        // Instrumented as true is the safe default
+        return AllocObjectWithAllocator</*kInstrumented=*/true>(self,
+                                                                klass,
+                                                                new_byte_count,
+                                                                GetUpdatedAllocator(allocator),
+                                                                pre_fence_visitor);
+      }
+      return nullptr;
+    }
     obj->SetClass(klass);
-    // XXX(kunals): Is this required?
     no_suspend_pre_fence_visitor(obj, usable_size);
     QuasiAtomic::ThreadFenceForConstructor();
   }
