@@ -35,18 +35,14 @@ class Thread;
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static size_t size_of(void* object) {
-  // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
-  // state and causing segfaults
-  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
+  DCHECK(object != nullptr);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   return obj->SizeOf();
 }
 
 static void scan_object(void* object, ScanObjectClosure closure) {
+  DCHECK(object != nullptr);
   art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
-  // XXX(kunals): Temporarily mask lowest order bits to avoid reading MMTk GC
-  // state and causing segfaults
-  // art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>((size_t)object & ~0b11);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   obj->VisitReferences</* kVisitNativeRoots= */ true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
 }
@@ -63,6 +59,7 @@ static void block_for_gc(void* tls) {
       return (op);                                                                          \
     }                                                                                       \
   }()
+  DCHECK(tls != nullptr);
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   VLOG(threads) << "Block for GC requested: " << *self;
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
@@ -87,6 +84,7 @@ static void spawn_gc_thread(void* tls, GcThreadKind kind, void* ctx) {
 }
 
 static void suspend_mutators(void* tls) {
+  DCHECK(tls != nullptr);
   VLOG(threads) << "Suspend all mutators. Sending request to first mutator thread.";
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
@@ -100,6 +98,7 @@ static void suspend_mutators(void* tls) {
 
 REQUIRES(!art::Locks::thread_list_lock_)
 static void resume_mutators(void* tls) {
+  DCHECK(tls != nullptr);
   VLOG(threads) << "Resume all mutators. Sending request to first mutator thread.";
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::Runtime* runtime = art::Runtime::Current();
@@ -156,11 +155,14 @@ static size_t number_of_mutators() {
 }
 
 static bool is_mutator(void* tls) {
+  DCHECK(tls != nullptr);
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   return self->GetMmtkMutator() != nullptr;
 }
 
 static MmtkMutator get_mmtk_mutator(void* tls) {
+  DCHECK(tls != nullptr);
+  DCHECK(is_mutator(tls));
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   return self->GetMmtkMutator();
 }
@@ -198,6 +200,7 @@ static void process_references(void* tls,
                                TraceObjectClosure closure,
                                RefProcessingPhase phase,
                                bool clear_soft_references) {
+  DCHECK(tls != nullptr);
   art::Thread* self = reinterpret_cast<art::Thread*>(tls);
   art::Runtime* runtime = art::Runtime::Current();
 
@@ -239,6 +242,7 @@ static void set_has_zygote_space_in_art(bool has_zygote_space) {
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void throw_out_of_memory(void* tls, MmtkAllocationError err_kind) {
+  DCHECK(tls != nullptr);
   switch (err_kind) {
     case MmapOOM:
       LOG(FATAL) << "Failed to allocate pages for space";
