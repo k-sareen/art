@@ -64,7 +64,7 @@ static void block_for_gc(void* tls) {
   VLOG(threads) << "Block for GC requested: " << *self;
   art::gc::third_party_heap::ThirdPartyHeap* tp_heap =
     art::Runtime::Current()->GetHeap()->GetThirdPartyHeap();
-  PERFORM_SUSPENDING_OPERATION(self, tp_heap->BlockThreadForCollection(art::gc::kGcCauseForAlloc, self));
+  PERFORM_SUSPENDING_OPERATION(self, tp_heap->BlockThreadForCollection(self));
 #undef PERFORM_SUSPENDING_OPERATION
   VLOG(threads) << "Block for GC finished: " << *self;
 }

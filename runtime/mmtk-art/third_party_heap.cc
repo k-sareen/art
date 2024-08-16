@@ -161,7 +161,7 @@ void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
   }
 }
 
-void ThirdPartyHeap::BlockThreadForCollection([[maybe_unused]] GcCause cause, Thread* self) {
+void ThirdPartyHeap::BlockThreadForCollection(Thread* self) {
   DCHECK(self->GetMmtkMutator() != nullptr);
 
   Heap* heap = Runtime::Current()->GetHeap();

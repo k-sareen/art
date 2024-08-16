@@ -83,7 +83,7 @@ class ThirdPartyHeap {
   void SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size);
 
   // Block and suspend mutator thread for GC
-  void BlockThreadForCollection(GcCause cause, Thread* self)
+  void BlockThreadForCollection(Thread* self)
     REQUIRES(!*Heap::gc_complete_lock_)
     REQUIRES_SHARED(Locks::mutator_lock_);
 
