@@ -343,6 +343,11 @@ class PACKED(8) ImageHeader {
   ObjPtr<mirror::Object> GetImageRoot(ImageRoot image_root) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  mirror::Object** GetImageRootAddress(ImageRoot image_root) const
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
+
   template <ReadBarrierOption kReadBarrierOption = kWithReadBarrier>
   ObjPtr<mirror::ObjectArray<mirror::Object>> GetImageRoots() const
       REQUIRES_SHARED(Locks::mutator_lock_);

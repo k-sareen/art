@@ -325,7 +325,11 @@ void IndirectReferenceTable::Trim() {
 }
 
 void IndirectReferenceTable::VisitRoots(RootVisitor* visitor, const RootInfo& root_info) {
+#if !ART_USE_MMTK
   BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(visitor, root_info);
+#else
+  UnbufferedRootVisitor root_visitor(visitor, root_info);
+#endif  // !ART_USE_MMTK
   for (size_t i = 0, capacity = Capacity(); i != capacity; ++i) {
     GcRoot<mirror::Object>* ref = table_[i].GetReference();
     if (!ref->IsNull()) {

@@ -842,6 +842,12 @@ ObjPtr<mirror::Object> JavaVMExt::DecodeGlobal(IndirectRef ref) {
   return globals_.Get(ref);
 }
 
+#if ART_USE_MMTK
+GcRoot<mirror::Object>* JavaVMExt::GetRootAddressForGlobal(IndirectRef ref) {
+  return globals_.GetRootAddress(ref);
+}
+#endif  // ART_USE_MMTK
+
 void JavaVMExt::UpdateGlobal(Thread* self, IndirectRef ref, ObjPtr<mirror::Object> result) {
   WriterMutexLock mu(self, *Locks::jni_globals_lock_);
   globals_.Update(ref, result);
@@ -891,6 +897,35 @@ ObjPtr<mirror::Object> JavaVMExt::DecodeWeakGlobalDuringShutdown(Thread* self, I
   }
   return weak_globals_.Get(ref);
 }
+
+#if ART_USE_MMTK
+GcRoot<mirror::Object>* JavaVMExt::GetRootAddressForWeakGlobal(Thread* self, IndirectRef ref) {
+  // It is safe to access GetWeakRefAccessEnabled without the lock since CC uses checkpoints to call
+  // SetWeakRefAccessEnabled, and the other collectors only modify allow_accessing_weak_globals_
+  // when the mutators are paused.
+  // This only applies in the case where MayAccessWeakGlobals goes from false to true. In the other
+  // case, it may be racy, this is benign since DecodeWeakGlobalLocked does the correct behavior
+  // if MayAccessWeakGlobals is false.
+  DCHECK_EQ(IndirectReferenceTable::GetIndirectRefKind(ref), kWeakGlobal);
+  if (LIKELY(MayAccessWeakGlobals(self))) {
+    return weak_globals_.GetRootAddress(ref);
+  }
+  MutexLock mu(self, *Locks::jni_weak_globals_lock_);
+  return GetRootAddressForWeakGlobalLocked(self, ref);
+}
+
+GcRoot<mirror::Object>* JavaVMExt::GetRootAddressForWeakGlobalLocked(Thread* self, IndirectRef ref) {
+  if (kDebugLocking) {
+    Locks::jni_weak_globals_lock_->AssertHeld(self);
+  }
+  // TODO: Handle the already null case without waiting.
+  // TODO: Otherwise we should just wait for kInitMarkingDone, and track which weak globals were
+  // marked at that point. We would only need one mark bit per entry in the weak_globals_ table,
+  // and a quick pass over that early on during reference processing.
+  WaitForWeakGlobalsAccess(self);
+  return weak_globals_.GetRootAddress(ref);
+}
+#endif  // ART_USE_MMTK
 
 bool JavaVMExt::IsWeakGlobalCleared(Thread* self, IndirectRef ref) {
   DCHECK_EQ(IndirectReferenceTable::GetIndirectRefKind(ref), kWeakGlobal);

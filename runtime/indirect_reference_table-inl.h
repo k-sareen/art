@@ -90,6 +90,17 @@ inline ObjPtr<mirror::Object> IndirectReferenceTable::Get(IndirectRef iref) cons
   return obj;
 }
 
+#if ART_USE_MMTK
+inline GcRoot<mirror::Object>* IndirectReferenceTable::GetRootAddress(IndirectRef iref) const {
+  DCHECK_EQ(GetIndirectRefKind(iref), kind_);
+  uint32_t idx = ExtractIndex(iref);
+  DCHECK_LT(idx, top_index_);
+  DCHECK_EQ(DecodeSerial(reinterpret_cast<uintptr_t>(iref)), table_[idx].GetSerial());
+  DCHECK(!table_[idx].GetReference()->IsNull());
+  return table_[idx].GetReference();
+}
+#endif  // ART_USE_MMTK
+
 inline void IndirectReferenceTable::Update(IndirectRef iref, ObjPtr<mirror::Object> obj) {
   DCHECK_EQ(GetIndirectRefKind(iref), kind_);
   uint32_t idx = ExtractIndex(iref);

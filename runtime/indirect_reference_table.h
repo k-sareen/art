@@ -171,6 +171,12 @@ class IndirectReferenceTable {
   ObjPtr<mirror::Object> Get(IndirectRef iref) const REQUIRES_SHARED(Locks::mutator_lock_)
       ALWAYS_INLINE;
 
+#if ART_USE_MMTK
+  // Given an IndirectRef in the table, return its root address.
+  GcRoot<mirror::Object>* GetRootAddress(IndirectRef iref) const REQUIRES_SHARED(Locks::mutator_lock_)
+      ALWAYS_INLINE;
+#endif  // ART_USE_MMTK
+
   // Updates an existing indirect reference to point to a new object.
   void Update(IndirectRef iref, ObjPtr<mirror::Object> obj) REQUIRES_SHARED(Locks::mutator_lock_);
 

@@ -16,6 +16,7 @@
 
 #include "gc/reference_processor.h"
 #include "gc/third_party_heap.h"
+#include "handle_scope-inl.h"
 #include "mmtk-art/mmtk_gc_thread.h"
 #include "mmtk-art/mmtk_upcalls.h"
 #include "mmtk.h"
@@ -190,15 +191,23 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               bool non_moving,
                                               size_t* bytes_allocated,
                                               size_t* usable_size,
-                                              size_t* bytes_tl_bulk_allocated) {
+                                              size_t* bytes_tl_bulk_allocated,
+                                              ObjPtr<mirror::Class>* klass) {
+  // Preserve the klass as a root so that it gets updated properly after GC
+  StackHandleScope<1> hs(self);
+  HandleWrapperObjPtr<mirror::Class> h_klass(hs.NewHandleWrapper(klass));
+
   AllocationSemantics semantics = AllocatorDefault;
+  if (non_moving && !is_zygote_process_) {
+    semantics = AllocatorNonMoving;
+  }
   if (alloc_size >= Heap::kMinLargeObjectThreshold) {
     // Since LOS is non-moving anyway, we don't need to check if `non_moving` is true
     semantics = AllocatorLos;
   }
 
   MmtkMutator mmtk_mutator = self->GetMmtkMutator();
-  DCHECK(mmtk_mutator != nullptr) << "mmtk_mutator for thread " << self << " is nullptr!";
+  DCHECK(mmtk_mutator != nullptr) << "mmtk_mutator for thread " << *self << " is nullptr!";
 
   // XXX(kunals): We don't check if the semantics are `AllocatorDefault` since
   // the NoGC plan does not use a separate non-moving space and hence always

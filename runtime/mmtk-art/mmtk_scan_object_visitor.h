@@ -81,6 +81,7 @@ class MmtkScanObjectVisitor {
 
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
+    DCHECK(!root->IsNull());
     closure_.invoke(reinterpret_cast<void*>(root));
   }
 

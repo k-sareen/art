@@ -65,14 +65,18 @@ void AllocRecordObjectMap::VisitRoots(RootVisitor* visitor) {
     return;
   }
   CHECK_LE(recent_record_max_, alloc_record_max_);
-  BufferedRootVisitor<kDefaultBufferedRootCount> buffered_visitor(visitor, RootInfo(kRootDebugger));
+#if !ART_USE_MMTK
+  BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(visitor, RootInfo(kRootDebugger));
+#else
+  UnbufferedRootVisitor root_visitor(visitor, RootInfo(kRootDebugger));
+#endif  // !ART_USE_MMTK
   size_t count = recent_record_max_;
   // Only visit the last recent_record_max_ number of allocation records in entries_ and mark the
   // klass_ fields as strong roots.
   for (auto it = entries_.rbegin(), end = entries_.rend(); it != end; ++it) {
     AllocRecord& record = it->second;
     if (count > 0) {
-      buffered_visitor.VisitRootIfNonNull(record.GetClassGcRoot());
+      root_visitor.VisitRootIfNonNull(record.GetClassGcRoot());
       --count;
     }
     // Visit all of the stack frames to make sure no methods in the stack traces get unloaded by
@@ -80,7 +84,7 @@ void AllocRecordObjectMap::VisitRoots(RootVisitor* visitor) {
     for (size_t i = 0, depth = record.GetDepth(); i < depth; ++i) {
       const AllocRecordStackTraceElement& element = record.StackElement(i);
       DCHECK(element.GetMethod() != nullptr);
-      element.GetMethod()->VisitRoots(buffered_visitor, kRuntimePointerSize);
+      element.GetMethod()->VisitRoots(root_visitor, kRuntimePointerSize);
     }
   }
 }

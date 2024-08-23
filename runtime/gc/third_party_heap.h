@@ -117,7 +117,8 @@ class ThirdPartyHeap {
                                 bool non_moving,
                                 size_t* bytes_allocated,
                                 size_t* usable_size,
-                                size_t* bytes_tl_bulk_allocated)
+                                size_t* bytes_tl_bulk_allocated,
+                                ObjPtr<mirror::Class>* klass)
     REQUIRES(!Locks::thread_suspend_count_lock_, !*Heap::gc_complete_lock_,
              !*Heap::pending_task_lock_)
     REQUIRES(Roles::uninterruptible_)

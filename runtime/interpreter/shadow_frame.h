@@ -399,6 +399,22 @@ class ShadowFrame {
     }
   }
 
+  const StackReference<mirror::Object>* References() const {
+    const uint32_t* vreg_end = &vregs_[NumberOfVRegs()];
+    return reinterpret_cast<const StackReference<mirror::Object>*>(vreg_end);
+  }
+
+  StackReference<mirror::Object>* References() {
+    return const_cast<StackReference<mirror::Object>*>(
+        const_cast<const ShadowFrame*>(this)->References());
+  }
+
+#if ART_USE_MMTK
+  uint32_t* VRegs() {
+    return vregs_;
+  }
+#endif  // ART_USE_MMTK
+
  private:
   ShadowFrame(uint32_t num_vregs, ArtMethod* method, uint32_t dex_pc)
       : link_(nullptr),
@@ -424,16 +440,6 @@ class ShadowFrame {
 
   bool GetFrameFlag(FrameFlags flag) const {
     return (frame_flags_ & static_cast<uint32_t>(flag)) != 0;
-  }
-
-  const StackReference<mirror::Object>* References() const {
-    const uint32_t* vreg_end = &vregs_[NumberOfVRegs()];
-    return reinterpret_cast<const StackReference<mirror::Object>*>(vreg_end);
-  }
-
-  StackReference<mirror::Object>* References() {
-    return const_cast<StackReference<mirror::Object>*>(
-        const_cast<const ShadowFrame*>(this)->References());
   }
 
   // Link to previous shadow frame or null.

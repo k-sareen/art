@@ -382,11 +382,16 @@ void InternTable::Table::Insert(ObjPtr<mirror::String> s, uint32_t hash) {
 }
 
 void InternTable::Table::VisitRoots(RootVisitor* visitor) {
-  BufferedRootVisitor<kDefaultBufferedRootCount> buffered_visitor(
+#if !ART_USE_MMTK
+  BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(
       visitor, RootInfo(kRootInternedString));
+#else
+  UnbufferedRootVisitor root_visitor(
+      visitor, RootInfo(kRootInternedString));
+#endif  // !ART_USE_MMTK
   for (InternalTable& table : tables_) {
     for (auto& intern : table.set_) {
-      buffered_visitor.VisitRoot(intern);
+      root_visitor.VisitRoot(intern);
     }
   }
 }

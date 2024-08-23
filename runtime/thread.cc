@@ -2845,10 +2845,15 @@ bool Thread::IsJniTransitionReference(jobject obj) const {
 }
 
 void Thread::HandleScopeVisitRoots(RootVisitor* visitor, uint32_t thread_id) {
-  BufferedRootVisitor<kDefaultBufferedRootCount> buffered_visitor(
+#if !ART_USE_MMTK
+  BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(
       visitor, RootInfo(kRootNativeStack, thread_id));
+#else
+  UnbufferedRootVisitor root_visitor(
+      visitor, RootInfo(kRootNativeStack, thread_id));
+#endif  // !ART_USE_MMTK
   for (BaseHandleScope* cur = tlsPtr_.top_handle_scope; cur; cur = cur->GetLink()) {
-    cur->VisitRoots(buffered_visitor);
+    cur->VisitRoots(root_visitor);
   }
 }
 
@@ -2877,6 +2882,26 @@ ObjPtr<mirror::Object> Thread::DecodeGlobalJObject(jobject obj) const {
       << " " << static_cast<const void*>(obj);
   return result;
 }
+
+#if ART_USE_MMTK
+GcRoot<mirror::Object>* Thread::GetRootAddressForGlobalJObject(jobject obj) const {
+  DCHECK(obj != nullptr);
+  IndirectRef ref = reinterpret_cast<IndirectRef>(obj);
+  IndirectRefKind kind = IndirectReferenceTable::GetIndirectRefKind(ref);
+  DCHECK_NE(kind, kJniTransition);
+  DCHECK_NE(kind, kLocal);
+  GcRoot<mirror::Object>* root;
+  if (kind == kGlobal) {
+    root = tlsPtr_.jni_env->vm_->GetRootAddressForGlobal(ref);
+  } else {
+    DCHECK_EQ(kind, kWeakGlobal);
+    root = tlsPtr_.jni_env->vm_->GetRootAddressForWeakGlobal(const_cast<Thread*>(this), ref);
+    DCHECK(!Runtime::Current()->IsClearedJniWeakGlobal(root->Read<kWithoutReadBarrier>()));
+  }
+
+  return root;
+}
+#endif  // ART_USE_MMTK
 
 bool Thread::IsJWeakCleared(jweak obj) const {
   CHECK(obj != nullptr);
@@ -4122,18 +4147,25 @@ class ReferenceMapVisitor : public StackVisitor {
     for (size_t reg = 0; reg < num_regs; ++reg) {
       mirror::Object* ref = shadow_frame->GetVRegReference(reg);
       if (ref != nullptr) {
-#if ART_USE_MMTK
-      // XXX(kunals): Fix slot reuse for MMTk
-      // mirror::Object** slot = reinterpret_cast<mirror::Object**>(
-      //   &(shadow_frame->References()[reg])
-      // );
-      // visitor_(slot, reg, this);
-#endif  // ART_USE_MMTK
+#if !ART_USE_MMTK
         mirror::Object* new_ref = ref;
         visitor_(&new_ref, reg, this);
         if (new_ref != ref) {
           shadow_frame->SetVRegReference(reg, new_ref);
         }
+#else
+        // XXX(kunals): Fix slot reuse for MMTk
+        // XXX(kunals): Visit the object in both the references and vregs array
+        // TODO(kunals): Remove the extra load above (i.e. GetVRegReference)
+        mirror::Object** ref_slot = reinterpret_cast<mirror::Object**>(
+          &(shadow_frame->References()[reg])
+        );
+        mirror::Object** vreg_slot = reinterpret_cast<mirror::Object**>(
+          &(shadow_frame->VRegs()[reg])
+        );
+        visitor_(ref_slot, reg, this);
+        visitor_(vreg_slot, reg, this);
+#endif  // !ART_USE_MMTK
       }
     }
     // Mark lock count map required for structured locking checks.
@@ -4177,12 +4209,18 @@ class ReferenceMapVisitor : public StackVisitor {
           }
         }
       }
-      // TODO(kunals): Refactor to avoid reusing slot(s) for MMTk
+#if !ART_USE_MMTK
       mirror::Object* new_ref = klass.Ptr();
       visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kMethodDeclaringClass, this);
       if (new_ref != klass) {
         method->CASDeclaringClass(klass.Ptr(), new_ref->AsClass());
       }
+#else
+      // XXX(kunals): Fix slot reuse for MMTk
+      GcRoot<mirror::Class>* declaring_class_root = &(method->DeclaringClassRoot());
+      mirror::Object** root = reinterpret_cast<mirror::Object**>(declaring_class_root->AddressWithoutBarrier());
+      visitor_(root, /* vreg= */ JavaFrameRootInfo::kMethodDeclaringClass, this);
+#endif  // !ART_USE_MMTK
     }
   }
 
@@ -4201,6 +4239,7 @@ class ReferenceMapVisitor : public StackVisitor {
       StackReference<mirror::Object>* ref_addr = vreg_ref_base + reg;
       mirror::Object* ref = ref_addr->AsMirrorPtr();
       if (ref != nullptr) {
+#if !ART_USE_MMTK
         mirror::Object* new_ref = ref;
         visitor_(&new_ref, reg, this);
         if (new_ref != ref) {
@@ -4208,6 +4247,14 @@ class ReferenceMapVisitor : public StackVisitor {
           StackReference<mirror::Object>* int_addr = vreg_int_base + reg;
           int_addr->Assign(new_ref);
         }
+#else
+        // XXX(kunals): Fix slot reuse for MMTk
+        StackReference<mirror::Object>* int_addr = vreg_int_base + reg;
+        mirror::Object** ref_slot = reinterpret_cast<mirror::Object**>(ref_addr);
+        mirror::Object** int_slot = reinterpret_cast<mirror::Object**>(int_addr);
+        visitor_(ref_slot, reg, this);
+        visitor_(int_slot, reg, this);
+#endif  // !ART_USE_MMTK
       }
     }
   }
@@ -4249,11 +4296,17 @@ class ReferenceMapVisitor : public StackVisitor {
         auto* ref_addr = reinterpret_cast<StackReference<mirror::Object>*>(current_vreg);
         mirror::Object* ref = ref_addr->AsMirrorPtr();
         if (ref != nullptr) {
+#if !ART_USE_MMTK
           mirror::Object* new_ref = ref;
           visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kNativeReferenceArgument, this);
           if (ref != new_ref) {
             ref_addr->Assign(new_ref);
           }
+#else
+          // XXX(kunals): Fix slot reuse for MMTk
+          mirror::Object** slot = reinterpret_cast<mirror::Object**>(ref_addr);
+          visitor_(slot, /* vreg= */ JavaFrameRootInfo::kNativeReferenceArgument, this);
+#endif  // !ART_USE_MMTK
         }
       };
       const char* shorty = m->GetShorty();
@@ -4297,11 +4350,17 @@ class ReferenceMapVisitor : public StackVisitor {
           StackReference<mirror::Object>* ref_addr = vreg_base + i;
           mirror::Object* ref = ref_addr->AsMirrorPtr();
           if (ref != nullptr) {
+#if !ART_USE_MMTK
             mirror::Object* new_ref = ref;
             vreg_info.VisitStack(&new_ref, i, this);
             if (ref != new_ref) {
               ref_addr->Assign(new_ref);
             }
+#else
+            // XXX(kunals): Fix slot reuse for MMTk
+            mirror::Object** slot = reinterpret_cast<mirror::Object**>(ref_addr);
+            vreg_info.VisitStack(slot, i, this);
+#endif  // !ART_USE_MMTK
           }
         }
       }
@@ -4332,11 +4391,17 @@ class ReferenceMapVisitor : public StackVisitor {
       for (StackReference<mirror::Object>* ref_addr : ref_addrs) {
         mirror::Object* ref = ref_addr->AsMirrorPtr();
         if (ref != nullptr) {
+#if !ART_USE_MMTK
           mirror::Object* new_ref = ref;
           visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kProxyReferenceArgument, this);
           if (ref != new_ref) {
             ref_addr->Assign(new_ref);
           }
+#else
+          // XXX(kunals): Fix slot reuse for MMTk
+          mirror::Object** slot = reinterpret_cast<mirror::Object**>(ref_addr);
+          visitor_(slot, /* vreg= */ JavaFrameRootInfo::kProxyReferenceArgument, this);
+#endif  // !ART_USE_MMTK
         }
       }
     }

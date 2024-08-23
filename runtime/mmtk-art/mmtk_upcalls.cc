@@ -16,6 +16,7 @@
 
 #include "gc/gc_cause.h"
 #include "gc/reference_processor.h"
+#include "gc/task_processor.h"
 #include "gc/third_party_heap.h"
 #include "jni/java_vm_ext.h"
 #include "mmtk_gc_thread.h"
@@ -121,14 +122,13 @@ static void resume_mutators(void* tls) {
 
   tp_heap->FinishGC(self);
 
-  // Collect cleared references.
-  art::SelfDeletingTask* clear =
-    heap->GetReferenceProcessor()->CollectClearedReferences(self);
-  // Actually enqueue all cleared references. Do this after the GC has
-  // officially finished since otherwise we can deadlock.
-  clear->Run(self);
-  clear->Finalize();
-
+  // Collect cleared references and enqueue cleared references
+  // Do this after the GC has officially finished since otherwise
+  // we can deadlock.
+  // XXX(kunals): We don't need to use the return value of CollectClearedReferences
+  // as we directly enqueue the task into the HeapTaskDaemon thread.
+  // For more context read the comment for `kAsyncReferenceQueueAdd` inside reference_processor.cc
+  heap->GetReferenceProcessor()->CollectClearedReferences(self);
   // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
   // deadlocks in case the JNI_OnUnload function does allocations.
   {
@@ -181,7 +181,7 @@ static void for_all_mutators(MutatorClosure closure) {
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
-static void scan_all_roots(NodesClosure closure) {
+static void scan_all_roots(SlotsClosure closure) {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
   runtime->VisitRoots(&visitor, art::kVisitRootFlagAllRoots);

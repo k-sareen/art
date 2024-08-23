@@ -35,7 +35,7 @@ namespace third_party_heap {
 
 class MmtkRootVisitor : public ThirdPartyHeapRootVisitor, public ClassLoaderVisitor, public DexCacheVisitor {
  public:
-  MmtkRootVisitor(NodesClosure closure);
+  MmtkRootVisitor(SlotsClosure closure);
 
   ~MmtkRootVisitor();
 
@@ -62,13 +62,14 @@ class MmtkRootVisitor : public ThirdPartyHeapRootVisitor, public ClassLoaderVisi
 
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
+    DCHECK(!root->IsNull());
     const_cast<MmtkRootVisitor&>(*this).VisitRoots(&root, 1, RootInfo(kRootVMInternal));
   }
 
  private:
   void FlushBuffer();
 
-  NodesClosure closure_;
+  SlotsClosure closure_;
   void** buffer_;
   size_t capacity_;
   size_t cursor_;

@@ -32,7 +32,7 @@ namespace third_party_heap {
 //   return class_set.count(klass) != 0;
 // }
 
-MmtkRootVisitor::MmtkRootVisitor(NodesClosure closure) : closure_(closure), cursor_(0) {
+MmtkRootVisitor::MmtkRootVisitor(SlotsClosure closure) : closure_(closure), cursor_(0) {
   RustBuffer buf = closure_.invoke(NULL, 0, 0);
   buffer_ = buf.buf;
   capacity_ = buf.capacity;
@@ -53,10 +53,11 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
                 [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
-    auto ref = StackReference<mirror::Object>::FromMirrorPtr(*root);
+    // mirror::Object* obj = reinterpret_cast<StackReference<mirror::Object>*>(root)->AsMirrorPtr();
+    // auto ref = StackReference<mirror::Object>::FromMirrorPtr(obj);
 
     // std::cout << "Adding " << *root << "\n";
-    buffer_[cursor_++] = (void*) ref.AsMirrorPtr();
+    buffer_[cursor_++] = (void*) root; // ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
@@ -75,9 +76,9 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
                 size_t count,
                 [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
-    auto* root = roots[i]->AsMirrorPtr();
+    // auto* root = roots[i]->AsMirrorPtr();
     // std::cout << "Adding " << root << "\n";
-    buffer_[cursor_++] = (void*) root;
+    buffer_[cursor_++] = (void*) roots[i]; // root;
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }

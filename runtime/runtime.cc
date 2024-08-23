@@ -2697,21 +2697,25 @@ mirror::Throwable* Runtime::GetPreAllocatedNoClassDefFoundError() {
 void Runtime::VisitConstantRoots(RootVisitor* visitor) {
   // Visiting the roots of these ArtMethods is not currently required since all the GcRoots are
   // null.
-  BufferedRootVisitor<16> buffered_visitor(visitor, RootInfo(kRootVMInternal));
+#if !ART_USE_MMTK
+  BufferedRootVisitor<16> root_visitor(visitor, RootInfo(kRootVMInternal));
+#else
+  UnbufferedRootVisitor root_visitor(visitor, RootInfo(kRootVMInternal));
+#endif  // !ART_USE_MMTK
   const PointerSize pointer_size = GetClassLinker()->GetImagePointerSize();
   if (HasResolutionMethod()) {
-    resolution_method_->VisitRoots(buffered_visitor, pointer_size);
+    resolution_method_->VisitRoots(root_visitor, pointer_size);
   }
   if (HasImtConflictMethod()) {
-    imt_conflict_method_->VisitRoots(buffered_visitor, pointer_size);
+    imt_conflict_method_->VisitRoots(root_visitor, pointer_size);
   }
   if (imt_unimplemented_method_ != nullptr) {
-    imt_unimplemented_method_->VisitRoots(buffered_visitor, pointer_size);
+    imt_unimplemented_method_->VisitRoots(root_visitor, pointer_size);
   }
   for (uint32_t i = 0; i < kCalleeSaveSize; ++i) {
     auto* m = reinterpret_cast<ArtMethod*>(callee_save_methods_[i]);
     if (m != nullptr) {
-      m->VisitRoots(buffered_visitor, pointer_size);
+      m->VisitRoots(root_visitor, pointer_size);
     }
   }
 }
@@ -2804,12 +2808,11 @@ void Runtime::VisitImageRoots(RootVisitor* visitor) {
       auto* image_space = space->AsImageSpace();
       const auto& image_header = image_space->GetImageHeader();
       for (int32_t i = 0, size = image_header.GetImageRoots()->GetLength(); i != size; ++i) {
-        mirror::Object* obj =
-            image_header.GetImageRoot(static_cast<ImageHeader::ImageRoot>(i)).Ptr();
+        mirror::Object** root =
+            image_header.GetImageRootAddress(static_cast<ImageHeader::ImageRoot>(i));
+        mirror::Object* obj = reinterpret_cast<mirror::HeapReference<mirror::Object>*>(root)->AsMirrorPtr();
         if (obj != nullptr) {
-          mirror::Object* after_obj = obj;
-          visitor->VisitRoot(&after_obj, RootInfo(kRootStickyClass));
-          CHECK_EQ(after_obj, obj);
+          visitor->VisitRoot(root, RootInfo(kRootStickyClass));
         }
       }
     }

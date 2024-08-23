@@ -143,6 +143,13 @@ inline ObjPtr<mirror::Object> LocalReferenceTable::Get(IndirectRef iref) const {
   return ToLrtEntry(iref)->GetReference();
 }
 
+#if ART_USE_MMTK
+inline GcRoot<mirror::Object>* LocalReferenceTable::GetRootAddress(IndirectRef iref) const {
+  DCheckValidReference(iref);
+  return ToLrtEntry(iref)->GetRootAddress();
+}
+#endif  // ART_USE_MMTK
+
 inline void LocalReferenceTable::Update(IndirectRef iref, ObjPtr<mirror::Object> obj) {
   DCheckValidReference(iref);
   ToLrtEntry(iref)->SetReference(obj);

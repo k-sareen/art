@@ -2438,9 +2438,14 @@ void ClassLinker::VisitClassRoots(RootVisitor* visitor, VisitRootFlags flags) {
     // If tracing is enabled, then mark all the class loaders to prevent unloading.
     if ((flags & kVisitRootFlagClassLoader) != 0 || tracing_enabled) {
       for (const ClassLoaderData& data : class_loaders_) {
-        // TODO(kunals): Fix slot reuse here
+#if !ART_USE_MMTK
         GcRoot<mirror::Object> root(GcRoot<mirror::Object>(self->DecodeJObject(data.weak_root)));
         root.VisitRootIfNonNull(visitor, RootInfo(kRootVMInternal));
+#else
+        // XXX(kunals): Fix slot reuse for MMTk
+        GcRoot<mirror::Object>* root = self->GetRootAddressForGlobalJObject(data.weak_root);
+        root->VisitRootIfNonNull(visitor, RootInfo(kRootVMInternal));
+#endif  // !ART_USE_MMTK
       }
     }
   } else if (!gUseReadBarrier && (flags & kVisitRootFlagNewRoots) != 0) {

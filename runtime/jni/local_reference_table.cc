@@ -675,7 +675,11 @@ void LocalReferenceTable::VisitRootsInternal(Visitor&& visitor) const {
 }
 
 void LocalReferenceTable::VisitRoots(RootVisitor* visitor, const RootInfo& root_info) {
+#if !ART_USE_MMTK
   BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(visitor, root_info);
+#else
+  UnbufferedRootVisitor root_visitor(visitor, root_info);
+#endif  // !ART_USE_MMTK
   VisitRootsInternal([&](GcRoot<mirror::Object>* root) REQUIRES_SHARED(Locks::mutator_lock_) {
                        root_visitor.VisitRoot(*root);
                      });

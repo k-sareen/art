@@ -24,6 +24,9 @@
 #include "imtable.h"
 #include "mirror/object_array-inl.h"
 #include "obj_ptr-inl.h"
+#if ART_USE_MMTK
+#include "offsets.h"
+#endif  // ART_USE_MMTK
 #include "read_barrier-inl.h"
 
 namespace art HIDDEN {
@@ -34,8 +37,18 @@ inline ObjPtr<mirror::Object> ImageHeader::GetImageRoot(ImageRoot image_root) co
   return image_roots->Get<kVerifyNone, kReadBarrierOption>(static_cast<int32_t>(image_root));
 }
 
+#if ART_USE_MMTK
+inline mirror::Object** ImageHeader::GetImageRootAddress(ImageRoot image_root) const {
+  ObjPtr<mirror::ObjectArray<mirror::Object>> image_roots = GetImageRoots<kWithoutReadBarrier>();
+  MemberOffset field_offset = image_roots->OffsetOfElement(static_cast<int32_t>(image_root));
+  uint8_t* raw_addr = reinterpret_cast<uint8_t*>(image_roots.Ptr()) + field_offset.Int32Value();
+  return reinterpret_cast<mirror::Object**>(raw_addr);
+}
+#endif  // ART_USE_MMTK
+
 template <ReadBarrierOption kReadBarrierOption>
 inline ObjPtr<mirror::ObjectArray<mirror::Object>> ImageHeader::GetImageRoots() const {
+#if !ART_USE_MMTK
   // Need a read barrier as it's not visited during root scan.
   // Pass in the address of the local variable to the read barrier
   // rather than image_roots_ because it won't move (asserted below)
@@ -47,6 +60,12 @@ inline ObjPtr<mirror::ObjectArray<mirror::Object>> ImageHeader::GetImageRoots() 
           &image_roots);
   DCHECK_EQ(image_roots, result);
   return image_roots;
+#else
+  // XXX(kunals): We don't need a read barrier for MMTk
+  mirror::ObjectArray<mirror::Object>* image_roots =
+      reinterpret_cast<mirror::ObjectArray<mirror::Object>*>(image_roots_);
+  return image_roots;
+#endif  // !ART_USE_MMTK
 }
 
 template <typename Visitor>

@@ -1189,6 +1189,12 @@ class EXPORT Thread {
   ObjPtr<mirror::Object> DecodeGlobalJObject(jobject obj) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  // Get the address of the root slot containing a given global (or weak global) jobject
+  GcRoot<mirror::Object>* GetRootAddressForGlobalJObject(jobject obj) const
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
+
   void HandleScopeVisitRoots(RootVisitor* visitor, uint32_t thread_id)
       REQUIRES_SHARED(Locks::mutator_lock_);
 

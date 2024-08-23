@@ -43,7 +43,16 @@
 namespace art HIDDEN {
 namespace gc {
 
+#if !ART_USE_MMTK
 static constexpr bool kAsyncReferenceQueueAdd = false;
+#else
+// XXX(kunals): For MMTk, since GC worker threads are not registered with the thread list,
+// we cannot make them run Java functions as otherwise they would cache stale objects in
+// the interpreter cache. Since we don't update the caches of GC worker (as we don't expect
+// them to have any in the first place), we just enqueue the task directly into the
+// HeapTaskDaemon thread which is a Java thread.
+static constexpr bool kAsyncReferenceQueueAdd = true;
+#endif  // !ART_USE_MMTK
 
 ReferenceProcessor::ReferenceProcessor()
     : collector_(nullptr),

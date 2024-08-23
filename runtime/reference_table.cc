@@ -354,9 +354,13 @@ void ReferenceTable::Dump(std::ostream& os, Table& entries) {
 }
 
 void ReferenceTable::VisitRoots(RootVisitor* visitor, const RootInfo& root_info) {
-  BufferedRootVisitor<kDefaultBufferedRootCount> buffered_visitor(visitor, root_info);
+#if !ART_USE_MMTK
+  BufferedRootVisitor<kDefaultBufferedRootCount> root_visitor(visitor, root_info);
+#else
+  UnbufferedRootVisitor root_visitor(visitor, root_info);
+#endif  // !ART_USE_MMTK
   for (GcRoot<mirror::Object>& root : entries_) {
-    buffered_visitor.VisitRoot(root);
+    root_visitor.VisitRoot(root);
   }
 }
 

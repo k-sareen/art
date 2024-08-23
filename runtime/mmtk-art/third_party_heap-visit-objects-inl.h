@@ -19,8 +19,11 @@
 
 #include <sstream>
 
+#include "android-base/unique_fd.h"
 #include "gc/third_party_heap.h"
+#include "mirror/class.h"
 #include "mmtk.h"
+#include "read_barrier_option.h"
 
 namespace art {
 namespace gc {
@@ -57,11 +60,45 @@ namespace third_party_heap {
   return oss.str();
 }
 
+REQUIRES_SHARED(Locks::mutator_lock_)
+static inline bool IsValidHeapObjectAddress(ThirdPartyHeap* tp_heap, const void* addr) {
+  return IsAligned<kObjectAlignment>(addr) && tp_heap->IsObjectInHeapSpace(addr);
+}
+
+template <ReadBarrierOption kReadBarrierOption>
+static bool IsValidClassUnchecked(ThirdPartyHeap* tp_heap, mirror::Class* klass) REQUIRES_SHARED(Locks::mutator_lock_) {
+  mirror::Class* k1 = klass->GetClass<kVerifyNone, kReadBarrierOption>();
+  if (!IsValidHeapObjectAddress(tp_heap, k1)) {
+    return false;
+  }
+  // `k1` should be class class, take the class again to verify.
+  // Note that this check may not be valid for the no image space
+  // since the class class might move around from moving GC.
+  mirror::Class* k2 = k1->GetClass<kVerifyNone, kReadBarrierOption>();
+  if (!IsValidHeapObjectAddress(tp_heap, k2)) {
+    return false;
+  }
+  return k1 == k2;
+}
+
+template <ReadBarrierOption kReadBarrierOption>
+static bool IsValidClass(ThirdPartyHeap* tp_heap, mirror::Class* klass) REQUIRES_SHARED(Locks::mutator_lock_) {
+  if (!IsValidHeapObjectAddress(tp_heap, klass)) {
+    return false;
+  }
+  return IsValidClassUnchecked<kReadBarrierOption>(tp_heap, klass);
+}
+
 template <typename Visitor>
 inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
   // TODO(kunals): Investigate performance of visiting objects like this
   void* heap_start = mmtk_get_heap_start();
   void* heap_end = mmtk_get_heap_end();
+
+  // FIXME(kunals): This is completely broken for release builds since we don't poison
+  // unallocated regions. What we need to do is to only iterate through every spaces'
+  // actually allocated regions. Further, for large object space, we can just return
+  // a list of live large objects directly instead of messing around with a linear scan.
 
   // Linear scan through all live objects and call the visitor for each one
   uint8_t* cursor = reinterpret_cast<uint8_t*>(heap_start);
@@ -73,6 +110,11 @@ inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
         mmtk_is_object_marked(cursor) &&
         !mmtk_is_object_forwarded(cursor)) {
       mirror::Object* object = reinterpret_cast<mirror::Object*>(cursor);
+      mirror::Class* klass = object->GetClass();
+      if (klass == nullptr || !IsValidClass<kWithoutReadBarrier>(this, klass)) {
+        cursor += kObjectAlignment;
+        continue;
+      }
       visitor(object);
       cursor += RoundUp(object->SizeOf(), kObjectAlignment);
     } else {

@@ -170,6 +170,11 @@ class JavaVMExt : public JavaVM {
   ObjPtr<mirror::Object> DecodeGlobal(IndirectRef ref)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  GcRoot<mirror::Object>* GetRootAddressForGlobal(IndirectRef ref)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
+
   void UpdateGlobal(Thread* self, IndirectRef ref, ObjPtr<mirror::Object> result)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jni_globals_lock_);
@@ -192,6 +197,16 @@ class JavaVMExt : public JavaVM {
   ObjPtr<mirror::Object> DecodeWeakGlobalDuringShutdown(Thread* self, IndirectRef ref)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jni_weak_globals_lock_);
+
+#if ART_USE_MMTK
+  GcRoot<mirror::Object>* GetRootAddressForWeakGlobal(Thread* self, IndirectRef ref)
+      REQUIRES_SHARED(Locks::mutator_lock_)
+      REQUIRES(!Locks::jni_weak_globals_lock_);
+
+  GcRoot<mirror::Object>* GetRootAddressForWeakGlobalLocked(Thread* self, IndirectRef ref)
+      REQUIRES_SHARED(Locks::mutator_lock_)
+      REQUIRES(Locks::jni_weak_globals_lock_);
+#endif  // ART_USE_MMTK
 
   // Checks if the weak global ref has been cleared by the GC without decode (read barrier.)
   bool IsWeakGlobalCleared(Thread* self, IndirectRef ref)
