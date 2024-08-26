@@ -921,6 +921,14 @@ void Runtime::CallExitHook(jint status) {
   }
 }
 
+#if ART_USE_MMTK
+void Runtime::UpdateTransactionMovingRoots(IsMarkedVisitor* visitor) {
+  for (Transaction& transaction : preinitialization_transactions_) {
+    transaction.UpdateMovingRoots(visitor);
+  }
+}
+#endif // ART_USE_MMTK
+
 void Runtime::SweepSystemWeaks(IsMarkedVisitor* visitor) {
   // Userfaultfd compaction updates weak intern-table page-by-page via
   // LinearAlloc.

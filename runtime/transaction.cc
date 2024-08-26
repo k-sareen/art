@@ -31,9 +31,11 @@
 #include "mirror/object_array-inl.h"
 #include "oat/aot_class_linker.h"
 #include "obj_ptr-inl.h"
+#include "object_callbacks.h"
 #include "runtime.h"
 
 #include <list>
+#include <utility>
 
 namespace art {
 
@@ -350,11 +352,17 @@ void Transaction::UndoResolveMethodTypeModifications() {
 }
 
 void Transaction::VisitRoots(RootVisitor* visitor) {
+  // XXX(kunals): This is not true for MMTk
+#if !ART_USE_MMTK
   // Transactions are used for single-threaded initialization.
   // This is the only function that should be called from a different thread,
   // namely the GC thread, and it is called with the mutator lock held exclusively,
   // so the data structures in the `Transaction` are protected from concurrent use.
   DCHECK(Locks::mutator_lock_->IsExclusiveHeld(Thread::Current()));
+#else
+  object_logs_tmp_roots_.clear();
+  array_logs_tmp_roots_.clear();
+#endif  // !ART_USE_MMTK
 
   visitor->VisitRoot(reinterpret_cast<mirror::Object**>(&root_), RootInfo(kRootUnknown));
   {
@@ -366,6 +374,13 @@ void Transaction::VisitRoots(RootVisitor* visitor) {
   VisitInternStringLogs(visitor);
   VisitResolveStringLogs(visitor);
   VisitResolveMethodTypeLogs(visitor);
+}
+
+void Transaction::UpdateMovingRoots(IsMarkedVisitor* visitor) {
+  // Create a separate `ArenaStack` for this thread.
+  ArenaStack arena_stack(Runtime::Current()->GetArenaPool());
+  UpdateObjectLogRoots(visitor, &arena_stack);
+  UpdateArrayLogRoots(visitor, &arena_stack);
 }
 
 template <typename MovingRoots, typename Container>
@@ -382,6 +397,7 @@ void UpdateKeys(const MovingRoots& moving_roots, Container& container) {
 }
 
 void Transaction::VisitObjectLogs(RootVisitor* visitor, ArenaStack* arena_stack) {
+#if !ART_USE_MMTK
   // List of moving roots.
   ScopedArenaAllocator allocator(arena_stack);
   using ObjectPair = std::pair<mirror::Object*, mirror::Object*>;
@@ -400,9 +416,23 @@ void Transaction::VisitObjectLogs(RootVisitor* visitor, ArenaStack* arena_stack)
 
   // Update object logs with moving roots.
   UpdateKeys(moving_roots, object_logs_);
+#else
+  UNUSED(arena_stack);
+  // XXX(kunals): Fix slot reuse for MMTk
+  // Note that we update the keys for the moving roots after the transitive closure
+  for (auto& it : object_logs_) {
+    it.second.VisitRoots(visitor);
+    object_logs_tmp_roots_.push_back(std::make_pair(it.first, it.first));
+  }
+
+  for (auto& it : object_logs_tmp_roots_) {
+    visitor->VisitRoot(const_cast<mirror::Object**>(&it.first), RootInfo(kRootUnknown));
+  }
+#endif  // !ART_USE_MMTK
 }
 
 void Transaction::VisitArrayLogs(RootVisitor* visitor, ArenaStack* arena_stack) {
+#if !ART_USE_MMTK
   // List of moving roots.
   ScopedArenaAllocator allocator(arena_stack);
   using ArrayPair = std::pair<mirror::Array*, mirror::Array*>;
@@ -419,7 +449,60 @@ void Transaction::VisitArrayLogs(RootVisitor* visitor, ArenaStack* arena_stack) 
 
   // Update array logs with moving roots.
   UpdateKeys(moving_roots, array_logs_);
+#else
+  UNUSED(arena_stack);
+  // XXX(kunals): Fix slot reuse for MMTk
+  // Note that we update the keys for the moving roots after the transitive closure
+  for (auto& it : array_logs_) {
+    array_logs_tmp_roots_.push_back(std::make_pair(it.first, it.first));
+  }
+
+  for (auto& it : array_logs_tmp_roots_) {
+    visitor->VisitRoot(reinterpret_cast<mirror::Object**>(const_cast<mirror::Array**>(&it.first)),
+                       RootInfo(kRootUnknown));
+  }
+#endif  // !ART_USE_MMTK
 }
+
+#if ART_USE_MMTK
+void Transaction::UpdateObjectLogRoots(IsMarkedVisitor* visitor, ArenaStack* arena_stack) {
+  // List of moving roots.
+  ScopedArenaAllocator allocator(arena_stack);
+  using ObjectPair = std::pair<mirror::Object*, mirror::Object*>;
+  ScopedArenaForwardList<ObjectPair> moving_roots(allocator.Adapter(kArenaAllocTransaction));
+
+  for (auto& it : object_logs_tmp_roots_) {
+    mirror::Object* old_root = it.second;
+    mirror::Object* new_root = visitor->IsMarked(old_root);
+    if (new_root != old_root) {
+      DCHECK_EQ(new_root, it.first);
+      moving_roots.push_front(std::make_pair(old_root, new_root));
+    }
+  }
+
+  // Update object logs with moving roots.
+  UpdateKeys(moving_roots, object_logs_);
+}
+
+void Transaction::UpdateArrayLogRoots(IsMarkedVisitor* visitor, ArenaStack* arena_stack) {
+  // List of moving roots.
+  ScopedArenaAllocator allocator(arena_stack);
+  using ArrayPair = std::pair<mirror::Array*, mirror::Array*>;
+  ScopedArenaForwardList<ArrayPair> moving_roots(allocator.Adapter(kArenaAllocTransaction));
+
+  for (auto& it : array_logs_tmp_roots_) {
+    mirror::Array* old_root = it.second;
+    mirror::Array* new_root = reinterpret_cast<mirror::Array*>(visitor->IsMarked(old_root));
+    if (new_root != old_root) {
+      DCHECK_EQ(new_root, it.first);
+      moving_roots.push_front(std::make_pair(old_root, new_root));
+    }
+  }
+
+  // Update array logs with moving roots.
+  UpdateKeys(moving_roots, array_logs_);
+}
+#endif  // ART_USE_MMTK
 
 void Transaction::VisitInternStringLogs(RootVisitor* visitor) {
   for (InternStringLog& log : intern_string_logs_) {

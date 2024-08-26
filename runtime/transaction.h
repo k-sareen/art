@@ -25,10 +25,12 @@
 #include "dex/dex_file_types.h"
 #include "dex/primitive.h"
 #include "gc_root.h"
+#include "object_callbacks.h"
 #include "offsets.h"
 
 #include <list>
 #include <map>
+#include <vector>
 
 namespace art {
 namespace gc {
@@ -134,6 +136,12 @@ class Transaction final {
 
   void VisitRoots(RootVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_);
+
+#if ART_USE_MMTK
+  // Update object/array log roots
+  void UpdateMovingRoots(IsMarkedVisitor* visitor)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
 
   bool ReadConstraint(ObjPtr<mirror::Object> obj) const
       REQUIRES_SHARED(Locks::mutator_lock_);
@@ -314,6 +322,14 @@ class Transaction final {
   void VisitResolveMethodTypeLogs(RootVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  void UpdateObjectLogRoots(IsMarkedVisitor* visitor, ArenaStack* arena_stack)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  void UpdateArrayLogRoots(IsMarkedVisitor* visitor, ArenaStack* arena_stack)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // ART_USE_MMTK
+
   const std::string& GetAbortMessage() const;
 
   ObjectLog& GetOrCreateObjectLog(mirror::Object* obj);
@@ -329,6 +345,15 @@ class Transaction final {
   ScopedArenaForwardList<InternStringLog> intern_string_logs_;
   ScopedArenaForwardList<ResolveStringLog> resolve_string_logs_;
   ScopedArenaForwardList<ResolveMethodTypeLog> resolve_method_type_logs_;
+
+#if ART_USE_MMTK
+  // XXX(kunals): We use these vectors to fix root slot reuse for MMTk as well
+  // as to save the old root value so that we can update the respective node keys
+  // after a moving GC in the logs above
+  std::vector<std::pair<mirror::Object*, mirror::Object*>> object_logs_tmp_roots_;
+  std::vector<std::pair<mirror::Array*, mirror::Array*>> array_logs_tmp_roots_;
+#endif  // ART_USE_MMTK
+
   bool aborted_;
   bool rolling_back_;  // Single thread, no race.
   gc::Heap* const heap_;

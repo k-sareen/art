@@ -482,6 +482,12 @@ class Runtime {
   void VisitTransactionRoots(RootVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+#if ART_USE_MMTK
+  // Update object/array log roots inside active transactions
+  void UpdateTransactionMovingRoots(IsMarkedVisitor* visitor)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif // ART_USE_MMTK
+
   // Sweep system weaks, the system weak is deleted if the visitor return null. Otherwise, the
   // system weak is updated to be the visitor's returned value.
 #if ART_USE_MMTK
