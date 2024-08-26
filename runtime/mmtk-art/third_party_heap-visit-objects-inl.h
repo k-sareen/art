@@ -92,35 +92,39 @@ static bool IsValidClass(ThirdPartyHeap* tp_heap, mirror::Class* klass) REQUIRES
 template <typename Visitor>
 inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
   // TODO(kunals): Investigate performance of visiting objects like this
-  void* heap_start = mmtk_get_heap_start();
-  void* heap_end = mmtk_get_heap_end();
-
-  // FIXME(kunals): This is completely broken for release builds since we don't poison
-  // unallocated regions. What we need to do is to only iterate through every spaces'
-  // actually allocated regions. Further, for large object space, we can just return
-  // a list of live large objects directly instead of messing around with a linear scan.
-
-  // Linear scan through all live objects and call the visitor for each one
-  uint8_t* cursor = reinterpret_cast<uint8_t*>(heap_start);
-  while (cursor < heap_end) {
-    // Skip forwarded objects. We'll find the actual object later in the linear
-    // scan. MMTk will return the correct value for `mmtk_is_object_marked` even
-    // for freshly moved objects
-    if (IsAligned<kObjectAlignment>(cursor) &&
-        mmtk_is_object_marked(cursor) &&
-        !mmtk_is_object_forwarded(cursor)) {
-      mirror::Object* object = reinterpret_cast<mirror::Object*>(cursor);
-      mirror::Class* klass = object->GetClass();
-      if (klass == nullptr || !IsValidClass<kWithoutReadBarrier>(this, klass)) {
+  // Visit objects by doing a linear scan through allocated regions
+  RustAllocatedRegionBuffer regions = mmtk_iterate_allocated_regions();
+  for (size_t i = 0; i < regions.len; i++) {
+    AllocatedRegion region = regions.buf[i];
+    uint8_t* cursor = reinterpret_cast<uint8_t*>(region.start);
+    uint8_t* region_end = reinterpret_cast<uint8_t*>(((size_t)region.start) + region.size);
+    while (cursor < region_end) {
+      if (IsAligned<kObjectAlignment>(cursor) &&
+          mmtk_is_object_marked(cursor) &&
+          !mmtk_is_object_forwarded(cursor)) {
+        mirror::Object* object = reinterpret_cast<mirror::Object*>(cursor);
+        mirror::Class* klass = object->GetClass();
+        if (klass == nullptr || !IsValidClass<kWithoutReadBarrier>(this, klass)) {
+          cursor += kObjectAlignment;
+          continue;
+        }
+        visitor(object);
+        cursor += RoundUp(object->SizeOf(), kObjectAlignment);
+      } else {
         cursor += kObjectAlignment;
-        continue;
       }
-      visitor(object);
-      cursor += RoundUp(object->SizeOf(), kObjectAlignment);
-    } else {
-      cursor += kObjectAlignment;
     }
   }
+
+  // Visit large objects
+  RustObjectReferenceBuffer large_objects = mmtk_enumerate_large_objects();
+  for (size_t i = 0; i < large_objects.len; i++) {
+    mirror::Object* object = reinterpret_cast<mirror::Object*>(large_objects.buf[i]);
+    visitor(object);
+  }
+
+  mmtk_release_rust_allocated_region_buffer(regions.buf, regions.len, regions.capacity);
+  mmtk_release_rust_object_reference_buffer(large_objects.buf, large_objects.len, large_objects.capacity);
 
   {
     // Visit objects inside image space
