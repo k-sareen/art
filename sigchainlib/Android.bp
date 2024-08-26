@@ -91,6 +91,13 @@ cc_library_static {
 art_cc_defaults {
     name: "art_sigchain_tests_defaults",
     srcs: ["sigchain_test.cc"],
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
+    // XXX(kunals): Disable linker fatal warnings due to incompatible
+    // DWARF versions between Rust and C++ when using LTO
+    ldflags: [
+        "-Wl,--allow-multiple-definition",
+        "-Wl,--no-fatal-warnings",
+    ],
 }
 
 // Version of ART gtest `art_sigchain_tests` bundled with the ART APEX on target.

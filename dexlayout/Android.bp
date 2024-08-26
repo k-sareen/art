@@ -255,6 +255,13 @@ art_cc_test {
             ],
         },
     },
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
+    // XXX(kunals): Disable linker fatal warnings due to incompatible
+    // DWARF versions between Rust and C++ when using LTO
+    ldflags: [
+        "-Wl,--allow-multiple-definition",
+        "-Wl,--no-fatal-warnings",
+    ],
 }
 
 art_cc_binary {
@@ -295,4 +302,11 @@ art_cc_test {
             required: ["dexdiag"],
         },
     },
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
+    // XXX(kunals): Disable linker fatal warnings due to incompatible
+    // DWARF versions between Rust and C++ when using LTO
+    ldflags: [
+        "-Wl,--allow-multiple-definition",
+        "-Wl,--no-fatal-warnings",
+    ],
 }

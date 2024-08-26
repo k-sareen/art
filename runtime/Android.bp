@@ -1117,6 +1117,13 @@ art_cc_defaults {
     header_libs: [
         "art_cmdlineparser_headers", // For parsed_options_test.
     ],
+    // XXX(kunals): Workaround multiple definitions of Rust std library functions
+    // XXX(kunals): Disable linker fatal warnings due to incompatible
+    // DWARF versions between Rust and C++ when using LTO
+    ldflags: [
+        "-Wl,--allow-multiple-definition",
+        "-Wl,--no-fatal-warnings",
+    ],
 }
 
 // Version of ART gtest `art_runtime_tests` bundled with the ART APEX on target.
