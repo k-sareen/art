@@ -64,10 +64,10 @@ class Verification {
       REQUIRES_SHARED(Locks::mutator_lock_);
   // Return true if the klass is likely to be a valid mirror::Class.
   template <ReadBarrierOption kReadBarrierOption = kWithoutReadBarrier>
-  bool IsValidClass(mirror::Class* klass) const REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT bool IsValidClass(mirror::Class* klass) const REQUIRES_SHARED(Locks::mutator_lock_);
   // Return true if the obj is likely to be a valid obj with valid mirror::Class.
   template <ReadBarrierOption kReadBarrierOption = kWithoutReadBarrier>
-  bool IsValidObject(mirror::Object* obj) const REQUIRES_SHARED(Locks::mutator_lock_);
+  EXPORT bool IsValidObject(mirror::Object* obj) const REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Does not allow null, checks alignment.
   bool IsValidHeapObjectAddress(const void* addr, space::Space** out_space = nullptr) const

@@ -18,6 +18,8 @@
 #include "gc/reference_processor.h"
 #include "gc/task_processor.h"
 #include "gc/third_party_heap.h"
+#include "gc/verification.h"
+#include "gc/verification-inl.h"
 #include "jni/java_vm_ext.h"
 #include "mmtk_gc_thread.h"
 #include "mmtk_is_marked_visitor.h"
@@ -38,14 +40,36 @@ REQUIRES_SHARED(art::Locks::mutator_lock_)
 static size_t size_of(void* object) {
   DCHECK(object != nullptr);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  if (art::kIsDebugBuild) {
+    const art::gc::Verification* verification = art::Runtime::Current()->GetHeap()->GetVerification();
+    CHECK(verification->IsValidObject(obj))
+      << "SizeOf "
+      << obj
+      << " is not a valid object!";
+  }
   return obj->SizeOf();
 }
 
+REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void scan_object(void* object, ScanObjectClosure closure) {
   DCHECK(object != nullptr);
   art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  if (art::kIsDebugBuild) {
+    const art::gc::Verification* verification = art::Runtime::Current()->GetHeap()->GetVerification();
+    CHECK(verification->IsValidObject(obj))
+      << "ScanObject "
+      << obj
+      << " is not a valid object!";
+  }
   obj->VisitReferences</* kVisitNativeRoots= */ true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
+}
+
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static bool is_valid_object(void* object) {
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  const art::gc::Verification* verification = art::Runtime::Current()->GetHeap()->GetVerification();
+  return verification->IsValidObject(obj);
 }
 
 REQUIRES(art::Roles::uninterruptible_)
@@ -270,6 +294,7 @@ static void throw_out_of_memory(void* tls, MmtkAllocationError err_kind) {
 ArtUpcalls art_upcalls = {
   size_of,
   scan_object,
+  is_valid_object,
   block_for_gc,
   spawn_gc_thread,
   suspend_mutators,

@@ -142,7 +142,9 @@ bool Verification::IsAddressInHeapSpace(const void* addr, space::Space** out_spa
   return false;
 #else
   UNUSED(out_space);
-  return heap_->GetThirdPartyHeap()->IsObjectInHeapSpace(addr);
+  // Check in case the object address is in the boot image
+  space::Space* const space = heap_->FindSpaceFromAddress(addr);
+  return (space != nullptr) || heap_->GetThirdPartyHeap()->IsObjectInHeapSpace(addr);
 #endif  // !ART_USE_MMTK
 }
 

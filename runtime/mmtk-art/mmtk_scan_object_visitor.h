@@ -18,6 +18,8 @@
 #define MMTK_ART_MMTK_SCAN_OBJECT_VISITOR_H
 
 #include "gc/third_party_heap.h"
+#include "gc/verification.h"
+#include "gc/verification-inl.h"
 #include "mirror/class.h"
 #include "mirror/reference.h"
 #include "mmtk.h"
@@ -47,6 +49,13 @@ class MmtkScanObjectVisitor {
     // Don't enqueue null references. We do this here since the object is in the
     // cache line, so this allows for better locality
     if (!field->IsNull()) {
+      if (kIsDebugBuild) {
+        const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
+        CHECK(verification->IsValidObject(field->AsMirrorPtr()))
+          << "ScanObject "
+          << field->AsMirrorPtr()
+          << " is not a valid object!";
+      }
       closure_.invoke(slot);
     }
   }
@@ -82,6 +91,13 @@ class MmtkScanObjectVisitor {
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
     DCHECK(!root->IsNull());
+    if (kIsDebugBuild) {
+      const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
+      CHECK(verification->IsValidObject(root->AsMirrorPtr()))
+        << "ScanObject "
+        << root->AsMirrorPtr()
+        << " is not a valid object!";
+    }
     closure_.invoke(reinterpret_cast<void*>(root));
   }
 
