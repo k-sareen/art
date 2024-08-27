@@ -1642,21 +1642,17 @@ void CodeGenerator::EmitParallelMoves(Location from1,
 bool CodeGenerator::StoreNeedsWriteBarrier(DataType::Type type,
                                            HInstruction* value,
                                            WriteBarrierKind write_barrier_kind) const {
-  if (gUseWriteBarrier) {
-    // Check that null value is not represented as an integer constant.
-    DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
-    // Branch profiling currently doesn't support running optimizations.
+  // Check that null value is not represented as an integer constant.
+  DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
+  // Branch profiling currently doesn't support running optimizations.
 #if !ART_USE_MMTK
-    return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
-              ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
-              : write_barrier_kind != WriteBarrierKind::kDontEmit;
+  return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
+            ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
+            : write_barrier_kind != WriteBarrierKind::kDontEmit;
 #else
-    UNUSED(write_barrier_kind);
-    return CodeGenerator::StoreNeedsWriteBarrier(type, value);
+  UNUSED(write_barrier_kind);
+  return CodeGenerator::StoreNeedsWriteBarrier(type, value);
 #endif  // !ART_USE_MMTK
-  } else {
-    return false;
-  }
 }
 
 void CodeGenerator::ValidateInvokeRuntime(QuickEntrypointEnum entrypoint,

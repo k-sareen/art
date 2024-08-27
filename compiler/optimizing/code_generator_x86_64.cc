@@ -5700,41 +5700,43 @@ void InstructionCodeGeneratorX86_64::HandleFieldSet(HInstruction* instruction,
 
   bool needs_write_barrier =
       codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
+  if (gUseWriteBarrier) {
 #if !ART_USE_MMTK
-  if (needs_write_barrier) {
-    if (value.IsConstant()) {
-      DCHECK(value.GetConstant()->IsNullConstant());
-      if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+    if (needs_write_barrier) {
+      if (value.IsConstant()) {
+        DCHECK(value.GetConstant()->IsNullConstant());
+        if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+          DCHECK_NE(extra_temp_index, 0u);
+          CpuRegister temp = locations->GetTemp(0).AsRegister<CpuRegister>();
+          CpuRegister card = locations->GetTemp(extra_temp_index).AsRegister<CpuRegister>();
+          codegen_->MarkGCCard(temp, card, base);
+        }
+      } else {
         DCHECK_NE(extra_temp_index, 0u);
         CpuRegister temp = locations->GetTemp(0).AsRegister<CpuRegister>();
         CpuRegister card = locations->GetTemp(extra_temp_index).AsRegister<CpuRegister>();
-        codegen_->MarkGCCard(temp, card, base);
+        codegen_->MaybeMarkGCCard(
+            temp,
+            card,
+            base,
+            value.AsRegister<CpuRegister>(),
+            value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
       }
-    } else {
+    } else if (codegen_->ShouldCheckGCCard(
+                   field_type, instruction->InputAt(value_index), write_barrier_kind)) {
       DCHECK_NE(extra_temp_index, 0u);
+      DCHECK(value.IsRegister());
       CpuRegister temp = locations->GetTemp(0).AsRegister<CpuRegister>();
       CpuRegister card = locations->GetTemp(extra_temp_index).AsRegister<CpuRegister>();
-      codegen_->MaybeMarkGCCard(
-          temp,
-          card,
-          base,
-          value.AsRegister<CpuRegister>(),
-          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn);
+      codegen_->CheckGCCardIsValid(temp, card, base);
     }
-  } else if (codegen_->ShouldCheckGCCard(
-                 field_type, instruction->InputAt(value_index), write_barrier_kind)) {
-    DCHECK_NE(extra_temp_index, 0u);
-    DCHECK(value.IsRegister());
-    CpuRegister temp = locations->GetTemp(0).AsRegister<CpuRegister>();
-    CpuRegister card = locations->GetTemp(extra_temp_index).AsRegister<CpuRegister>();
-    codegen_->CheckGCCardIsValid(temp, card, base);
-  }
 #else
-  if (needs_write_barrier) {
-    codegen_->GenerateWriteBarrierPost(instruction,
-        Location::RegisterLocation(base.AsRegister()), field_addr, value);
-  }
+    if (needs_write_barrier) {
+      codegen_->GenerateWriteBarrierPost(instruction,
+          Location::RegisterLocation(base.AsRegister()), field_addr, value);
+    }
 #endif  // !ART_USE_MMTK
+  }
 
   if (is_volatile) {
     codegen_->GenerateMemoryBarrier(MemBarrierKind::kAnyAny);
@@ -6213,8 +6215,10 @@ void InstructionCodeGeneratorX86_64::VisitArraySet(HArraySet* instruction) {
       __ movl(address, source.AsRegister<CpuRegister>());
 
 #if ART_USE_MMTK
-      if (needs_write_barrier) {
-        codegen_->GenerateWriteBarrierPost(instruction, array_loc, address, value);
+      if (gUseWriteBarrier) {
+        if (needs_write_barrier) {
+          codegen_->GenerateWriteBarrierPost(instruction, array_loc, address, value);
+        }
       }
 #endif  // ART_USE_MMTK
 

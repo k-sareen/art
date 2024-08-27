@@ -6207,16 +6207,20 @@ void InstructionCodeGeneratorX86::HandleFieldSet(HInstruction* instruction,
     codegen_->MaybeRecordImplicitNullCheck(instruction);
   }
 
-  if (needs_write_barrier) {
+  if (gUseWriteBarrier) {
 #if !ART_USE_MMTK
-    Register temp = locations->GetTemp(0).AsRegister<Register>();
-    Register card = locations->GetTemp(1).AsRegister<Register>();
-    codegen_->MarkGCCard(
-        temp,
-        card,
-        base,
-        value.AsRegister<Register>(),
-        value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+    if (needs_write_barrier) {
+      Register temp = locations->GetTemp(0).AsRegister<Register>();
+      Register card = locations->GetTemp(1).AsRegister<Register>();
+      codegen_->MarkGCCard(
+          temp,
+          card,
+          base,
+          value.AsRegister<Register>(),
+          value_can_be_null && write_barrier_kind == WriteBarrierKind::kEmitWithNullCheck);
+    }
+#else
+    UNUSED(needs_write_barrier);
 #endif  // !ART_USE_MMTK
   }
 
