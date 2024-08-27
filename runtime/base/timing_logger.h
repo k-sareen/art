@@ -172,7 +172,7 @@ class TimingLogger {
     StartTiming(new_split_label);
   }
   // Returns the total duration of the timings (sum of total times).
-  uint64_t GetTotalNs() const;
+  EXPORT uint64_t GetTotalNs() const;
   // Find the index of a timing by name.
   size_t FindTimingIndex(const char* name, size_t start_idx) const;
   EXPORT void Dump(std::ostream& os, const char* indent_string = "  ") const;

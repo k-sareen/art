@@ -237,7 +237,7 @@ class InternTable {
     };
 
     Table();
-    ObjPtr<mirror::String> Find(ObjPtr<mirror::String> s,
+    EXPORT ObjPtr<mirror::String> Find(ObjPtr<mirror::String> s,
                                 uint32_t hash,
                                 size_t num_searched_frozen_tables = 0u)
         REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::intern_table_lock_);

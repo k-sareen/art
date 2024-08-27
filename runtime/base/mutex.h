@@ -172,7 +172,7 @@ class BaseMutex {
 // Some mutexes, including those associated with Java monitors may be accessed (in particular
 // acquired) by a thread in suspended state. Suspending all threads does NOT prevent mutex state
 // from changing.
-std::ostream& operator<<(std::ostream& os, const Mutex& mu);
+EXPORT std::ostream& operator<<(std::ostream& os, const Mutex& mu);
 class EXPORT LOCKABLE Mutex : public BaseMutex {
  public:
   explicit Mutex(const char* name, LockLevel level = kDefaultMutexLevel, bool recursive = false);
@@ -438,7 +438,7 @@ class EXPORT SHARED_LOCKABLE ReaderWriterMutex : public BaseMutex {
 // *) The most important consequence of this behaviour is that all threads must be in one of the
 // suspended states before exclusive ownership of the mutator mutex is sought.
 //
-std::ostream& operator<<(std::ostream& os, const MutatorMutex& mu);
+EXPORT std::ostream& operator<<(std::ostream& os, const MutatorMutex& mu);
 class SHARED_LOCKABLE MutatorMutex : public ReaderWriterMutex {
  public:
   explicit MutatorMutex(const char* name, LockLevel level = kDefaultMutexLevel)

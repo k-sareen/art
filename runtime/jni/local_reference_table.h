@@ -299,7 +299,7 @@ class LocalReferenceTable {
   bool Remove(IndirectRef iref)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  void AssertEmpty();
+  EXPORT void AssertEmpty();
 
   void Dump(std::ostream& os) const
       REQUIRES_SHARED(Locks::mutator_lock_)

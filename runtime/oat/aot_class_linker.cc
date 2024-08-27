@@ -16,6 +16,7 @@
 
 #include "aot_class_linker.h"
 
+#include "art_method-inl.h"
 #include "class_status.h"
 #include "compiler_callbacks.h"
 #include "dex/class_reference.h"

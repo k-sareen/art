@@ -375,7 +375,7 @@ class Heap {
   void VisitReflectiveTargets(ReflectiveValueVisitor* visitor)
       REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !*gc_complete_lock_);
 
-  void CheckPreconditionsForAllocObject(ObjPtr<mirror::Class> c, size_t byte_count)
+  EXPORT void CheckPreconditionsForAllocObject(ObjPtr<mirror::Class> c, size_t byte_count)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Inform the garbage collector of a non-malloc allocated native memory that might become

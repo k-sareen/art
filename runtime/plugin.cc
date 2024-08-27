@@ -21,6 +21,7 @@
 #include "android-base/stringprintf.h"
 #include "base/locks.h"
 #include "base/mutex.h"
+#include "base/mutex-inl.h"
 #include "thread-current-inl.h"
 
 namespace art HIDDEN {
