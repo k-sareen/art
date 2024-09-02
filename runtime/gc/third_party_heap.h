@@ -132,7 +132,7 @@ class ThirdPartyHeap {
       REQUIRES(!Locks::heap_bitmap_lock_, !*Heap::gc_complete_lock_);
 
   // Collect dead objects in heap
-  collector::GcType CollectGarbage(Thread* self, GcCause gc_cause)
+  EXPORT collector::GcType CollectGarbage(Thread* self, GcCause gc_cause)
       REQUIRES(!*Heap::gc_complete_lock_);
 
   // Delay visiting the referent of a weak reference by enqueuing it to the

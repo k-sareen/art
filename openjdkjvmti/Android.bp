@@ -103,11 +103,11 @@ cc_defaults {
     ],
     shared_libs: [
         "libbase",
-        // "libmmtk_art",
-    ],
-    static_libs: [
         "libmmtk_art",
     ],
+    // static_libs: [
+    //     "libmmtk_art",
+    // ],
     // XXX(kunals): Disable linker fatal warnings due to incompatible
     // DWARF versions between Rust and C++ when using LTO
     ldflags: ["-Wl,--no-fatal-warnings"],

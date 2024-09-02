@@ -160,6 +160,7 @@ cc_defaults {
         "libnativeloader",
         "libsigchain",
         "libunwindstack",
+        "libmmtk_art",
     ],
     static_libs: ["libodrstatslog"],
 }
@@ -190,6 +191,7 @@ cc_defaults {
         "libartbased",
         "libdexfiled",
         "libprofiled",
+        "libmmtk_art",
     ],
     export_shared_lib_headers: [
         "libdexfiled",
@@ -231,9 +233,9 @@ cc_defaults {
         //   manifest-art.json.
         "libjavacore",
     ],
-    static_libs: [
-        "libmmtk_art",
-    ]
+    // static_libs: [
+    //     "libmmtk_art",
+    // ]
 }
 
 // Common defaults for `libart-runtime_defaults` and `libartd-runtime_defaults`.
@@ -638,7 +640,7 @@ cc_defaults {
         "liblog",
         "liblz4",
         "liblzma", // libelffile dependency; must be repeated here since it's a static lib.
-        "libmmtk_art",
+        // "libmmtk_art",
         "libnativebridge",
         "libodrstatslog",
         "libunwindstack",

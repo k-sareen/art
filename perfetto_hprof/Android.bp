@@ -53,6 +53,7 @@ cc_defaults {
         "libartpalette",
         "libbase",
         "liblog",
+        "libmmtk_art",
     ],
     static_libs: [
         "libperfetto_client_experimental",

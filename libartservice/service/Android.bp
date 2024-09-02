@@ -37,6 +37,7 @@ cc_defaults {
     shared_libs: [
         "libarttools", // Contains "libc++fs".
         "libbase",
+        "libmmtk_art",
         "libnativehelper",
     ],
 }

@@ -39,6 +39,7 @@ cc_defaults {
 
     shared_libs: [
         "libbase",
+        "libmmtk_art",
     ],
 
     header_libs: [

@@ -74,15 +74,15 @@ art_cc_defaults {
     },
 
     generated_sources: ["art_dex2oat_operator_srcs"],
-    // header_libs: [
-    //     "libmmtk_art_headers",
-    // ],
+    header_libs: [
+        "libmmtk_art_headers",
+    ],
     shared_libs: [
         "libbase",
         "libcrypto", // For SHA-1 checksumming of build ID
         "liblog",
         "liblz4",
-        // "libmmtk_art",
+        "libmmtk_art",
         "libz",
     ],
     export_include_dirs: ["."],
@@ -95,7 +95,7 @@ cc_defaults {
         "libcrypto",
         "liblog",
         "liblz4",
-        "libmmtk_art",
+        // "libmmtk_art",
         "libz",
     ],
 }
@@ -118,10 +118,11 @@ art_cc_library_static {
         "libart",
         "libartpalette",
         "libprofile",
+        "libmmtk_art",
     ],
     static_libs: [
         "libelffile",
-        "libmmtk_art",
+        // "libmmtk_art",
     ],
     apex_available: [
         "com.android.art",
@@ -170,10 +171,11 @@ art_cc_library_static {
         "libartd",
         "libartpalette",
         "libprofiled",
+        "libmmtk_art",
     ],
     static_libs: [
         "libelffiled",
-        "libmmtk_art",
+        // "libmmtk_art",
     ],
     apex_available: [
         "com.android.art.debug",
@@ -219,7 +221,7 @@ cc_defaults {
     ],
     header_libs: [
         "art_cmdlineparser_headers",
-        // "libmmtk_art_headers",
+        "libmmtk_art_headers",
     ],
 
     target: {
@@ -265,17 +267,21 @@ art_cc_binary {
                 "libartbase",
                 "libdexfile",
                 "libprofile",
+                "libmmtk_art",
             ],
             static_libs: [
                 "libart-dex2oat",
                 "libelffile",
-                "libmmtk_art",
+                // "libmmtk_art",
             ],
             lto: {
                 thin: true,
             },
         },
         host: {
+            shared_libs: [
+                "libmmtk_art",
+            ],
             // Make the host binary static, except for system libraries. This
             // avoids having to bundle host dynamic libs in prebuilts.
             static_libs: [
@@ -337,14 +343,18 @@ art_cc_binary {
                 "libartd-dexlayout",
                 "libdexfiled",
                 "libprofiled",
+                "libmmtk_art",
             ],
             static_libs: [
                 "libartd-dex2oat",
                 "libelffiled",
-                "libmmtk_art",
+                // "libmmtk_art",
             ],
         },
         host: {
+            shared_libs: [
+                "libmmtk_art",
+            ],
             // Make the host binary static, except for system libraries. This
             // avoids having to bundle host dynamic libs in prebuilts.
             static_libs: [

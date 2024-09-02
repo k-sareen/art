@@ -41,6 +41,7 @@ cc_defaults {
         "libbase",
         "libbinder_ndk",
         "libdexfile",
+        "libmmtk_art",
         "libselinux",
     ],
     static_libs: [

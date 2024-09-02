@@ -1211,7 +1211,7 @@ def main():
   if build:
     build_targets = []
     # Build only the needed shards (depending on the selected tests).
-    shards = set(re.search("(\d\d)-", t).group(1) for t in tests)
+    shards = set(re.search(r"(\d\d)-", t).group(1) for t in tests)
     if any("hiddenapi" in t for t in tests):
       shards.add("HiddenApi")  # Include special HiddenApi shard.
     for mode in ['host', 'target', 'jvm']:

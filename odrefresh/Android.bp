@@ -47,6 +47,7 @@ cc_defaults {
         "libartpalette",
         "libarttools", // Contains "libc++fs".
         "libbase",
+        "libmmtk_art",
         "liblog",
     ],
     static_libs: [

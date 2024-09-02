@@ -1107,7 +1107,7 @@ class Heap {
   EXPORT bool IsTargetApp(std::string package_name);
   EXPORT bool RequiresHeapSizeSpoofing(std::string package_name);
 
-  third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
+  EXPORT third_party_heap::ThirdPartyHeap* GetThirdPartyHeap();
 
  private:
   class ConcurrentGCTask;

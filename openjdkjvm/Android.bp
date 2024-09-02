@@ -50,6 +50,7 @@ cc_defaults {
     srcs: ["OpenjdkJvm.cc"],
     shared_libs: [
         "libbase",
+        "libmmtk_art",
     ],
     header_libs: [
         "libnativehelper_header_only",

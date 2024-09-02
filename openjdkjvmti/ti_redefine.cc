@@ -76,6 +76,7 @@
 #include "events-inl.h"
 #include "events.h"
 #include "gc/allocation_listener.h"
+#include "gc/gc_cause.h"
 #include "gc/heap.h"
 #include "gc/heap-inl.h"
 #include "gc/heap-visit-objects-inl.h"
@@ -1904,6 +1905,11 @@ bool Redefiner::ClassRedefinition::FinishNewClassAllocations(RedefinitionDataHol
       return obj->IsClass() && obj->AsClass()->IsResolved() &&
             old_klass->IsAssignableFrom(obj->AsClass());
     };
+#if ART_USE_MMTK
+    {
+      heap->GetThirdPartyHeap()->CollectGarbage(art::Thread::Current(), art::gc::kGcCauseExplicit);
+    }
+#endif  // ART_USE_MMTK
     heap->VisitObjects([&](art::mirror::Object* obj) REQUIRES_SHARED(art::Locks::mutator_lock_) {
       if (is_subtype(obj)) {
         old_types.push_back(hs.NewHandle(obj->AsClass()));
