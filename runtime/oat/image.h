@@ -594,7 +594,7 @@ class ImageFileGuard {
 using AppImageReferenceOffsetInfo = std::pair<uint32_t, uint32_t>;
 
 std::ostream& operator<<(std::ostream& os, ImageHeader::ImageMethod method);
-std::ostream& operator<<(std::ostream& os, ImageHeader::ImageRoot root);
+EXPORT std::ostream& operator<<(std::ostream& os, ImageHeader::ImageRoot root);
 EXPORT std::ostream& operator<<(std::ostream& os, ImageHeader::ImageSections section);
 EXPORT std::ostream& operator<<(std::ostream& os, ImageHeader::StorageMode mode);
 

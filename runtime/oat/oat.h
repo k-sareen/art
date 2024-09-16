@@ -39,7 +39,7 @@ enum class StubType {
   kNterpTrampoline,
   kLast = kNterpTrampoline,
 };
-std::ostream& operator<<(std::ostream& stream, StubType stub_type);
+EXPORT std::ostream& operator<<(std::ostream& stream, StubType stub_type);
 
 class EXPORT PACKED(4) OatHeader {
  public:

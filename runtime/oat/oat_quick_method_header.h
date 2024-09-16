@@ -79,7 +79,7 @@ class PACKED(4) OatQuickMethodHeader {
 
   // Check if this is hard-written assembly (i.e. inside libart.so).
   // Returns std::nullop on Mac.
-  static std::optional<bool> IsStub(const uint8_t* pc);
+  EXPORT static std::optional<bool> IsStub(const uint8_t* pc);
 
   ALWAYS_INLINE bool IsOptimized() const {
     if (code_ == NterpWithClinitImpl.data() || code_ == NterpImpl.data()) {
