@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "base/locks.h"
 #include "gc/gc_cause.h"
 #include "gc/reference_processor.h"
 #include "gc/task_processor.h"
@@ -75,9 +76,13 @@ static bool is_valid_object(void* object) {
 REQUIRES(art::Roles::uninterruptible_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void block_for_gc(void* tls) {
+  // Check if we currently hold the Zygote creation lock before we actually allow thread suspension
+  // If we do, then technically the thread suspension count has not been increased, so we will
+  // trigger an assertion failure inside `ScopedAllowThreadSuspension`.
 #define PERFORM_SUSPENDING_OPERATION(self, op)                                              \
   [&]() REQUIRES(art::Roles::uninterruptible_) REQUIRES_SHARED(art::Locks::mutator_lock_) { \
-    if (!self->IsThreadSuspensionAllowable()) {                                             \
+    if (!self->IsThreadSuspensionAllowable()                                                \
+        && !self->GetHeldMutex(static_cast<art::LockLevel>(art::kZygoteCreationLock))) {    \
       art::ScopedAllowThreadSuspension ats;                                                 \
       return (op);                                                                          \
     } else {                                                                                \
