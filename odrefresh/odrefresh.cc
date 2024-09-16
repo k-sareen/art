@@ -1045,7 +1045,11 @@ WARN_UNUSED bool OnDeviceRefresh::CheckSystemPropertiesAreDefault() const {
 
   for (const SystemPropertyConfig& system_property_config : *kSystemProperties.get()) {
     std::string property = system_properties.GetOrEmpty(system_property_config.name);
-    DCHECK_NE(property, "");
+    // XXX(kunals): The default property for "persist.device_config.runtime_native_boot.systemservercompilerfilter_override" is actually empty
+    // [1]: odrefresh/odr_config.h:L80
+    DCHECK(property != ""
+           || (property == ""
+                && system_property_config.name == std::string_view(kSystemPropertySystemServerCompilerFilterOverride)));
 
     if (property != system_property_config.default_value) {
       LOG(INFO) << "System property " << system_property_config.name << " has a non-default value ("
