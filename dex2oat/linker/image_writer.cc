@@ -3715,6 +3715,7 @@ ImageWriter::ImageWriter(const CompilerOptions& compiler_options,
       << "Compiling a boot image should occur iff there are no boot image spaces loaded";
   if (compiler_options_.IsAppImage()) {
     // Make sure objects are not crossing region boundaries for app images.
+    // TODO(kunals): Fix region size for MMTk
     region_size_ = gc::space::RegionSpace::kRegionSize;
   }
 }
