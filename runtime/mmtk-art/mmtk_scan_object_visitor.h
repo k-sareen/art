@@ -49,17 +49,20 @@ class MmtkScanObjectVisitor {
     // Don't enqueue null references. We do this here since the object is in the
     // cache line, so this allows for better locality
     if (!field->IsNull()) {
-      if (kIsDebugBuild) {
-        const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
-        CHECK(verification->IsValidObject(field->AsMirrorPtr()))
-          << "ScanObject "
-          << obj
-          << ": slot "
-          << slot
-          << " "
-          << field->AsMirrorPtr()
-          << " is not a valid object!\n";
-      }
+      // XXX(kunals): Disabling this check temporarily because we can fail this check if we load
+      // the class word and we were trying to forward an object at the same time.
+      // TODO(kunals): Update the assertion to check if it object is getting forwarded at the same time
+      // if (kIsDebugBuild) {
+      //   const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
+      //   CHECK(verification->IsValidObject(field->AsMirrorPtr()))
+      //     << "ScanObject "
+      //     << obj
+      //     << ": slot "
+      //     << slot
+      //     << " "
+      //     << field->AsMirrorPtr()
+      //     << " is not a valid object!\n";
+      // }
       closure_.invoke(slot);
     }
   }
@@ -95,13 +98,14 @@ class MmtkScanObjectVisitor {
   void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
       NO_THREAD_SAFETY_ANALYSIS {
     DCHECK(!root->IsNull());
-    if (kIsDebugBuild) {
-      const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
-      CHECK(verification->IsValidObject(root->AsMirrorPtr()))
-        << "ScanObject root "
-        << root->AsMirrorPtr()
-        << " is not a valid object!";
-    }
+    // TODO(kunals): See above TODO
+    // if (kIsDebugBuild) {
+    //   const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
+    //   CHECK(verification->IsValidObject(root->AsMirrorPtr()))
+    //     << "ScanObject root "
+    //     << root->AsMirrorPtr()
+    //     << " is not a valid object!";
+    // }
     closure_.invoke(reinterpret_cast<void*>(root));
   }
 
