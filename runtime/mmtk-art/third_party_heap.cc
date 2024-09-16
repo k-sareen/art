@@ -198,7 +198,10 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   HandleWrapperObjPtr<mirror::Class> h_klass(hs.NewHandleWrapper(klass));
 
   AllocationSemantics semantics = AllocatorDefault;
-  if (non_moving && !is_zygote_process_) {
+  // TODO(kunals): Pin objects for Immix-based plans instead of using the non-moving allocator
+  if (non_moving
+      && (!is_zygote_process_
+          || (is_zygote_process_ && has_zygote_space_))) {
     semantics = AllocatorNonMoving;
   }
   if (alloc_size >= Heap::kMinLargeObjectThreshold) {
