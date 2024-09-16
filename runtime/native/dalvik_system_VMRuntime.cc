@@ -356,7 +356,9 @@ static void VMRuntime_requestConcurrentGC(JNIEnv* env, jobject) {
 #else
   // TODO(kunals): Concurrent GC with MMTk
   UNUSED(env);
-  LOG(WARNING) << "Cannot currently request concurrent GC with MMTk!";
+  LOG(WARNING) << "Cannot currently request concurrent GC with MMTk! Performing full heap GC.";
+  gc::Heap *heap = Runtime::Current()->GetHeap();
+  heap->GetThirdPartyHeap()->CollectGarbage(Thread::ForEnv(env), gc::kGcCauseBackground);
 #endif  // !ART_USE_MMTK
 }
 
