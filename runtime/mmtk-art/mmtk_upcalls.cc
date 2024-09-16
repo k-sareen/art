@@ -126,6 +126,20 @@ static void suspend_mutators(void* tls) {
   VLOG(threads) << "Suspend request sent to first mutator thread.";
 }
 
+// Unload native libraries after a GC. This needs to be ran by the `HeapTaskDaemon` thread as
+// otherwise we may end up allocating inside an MMTk GC thread which is not registered with
+// the runtime causing problems down the line.
+class UnloadNativeLibrariesTask : public art::gc::HeapTask {
+ public:
+  explicit UnloadNativeLibrariesTask()
+      : HeapTask(art::NanoTime()) {
+  }
+  void Run(art::Thread* thread) override {
+    art::ScopedObjectAccess soa(thread);
+    soa.Vm()->UnloadNativeLibraries();
+  }
+};
+
 REQUIRES(!art::Locks::thread_list_lock_)
 static void resume_mutators(void* tls) {
   DCHECK(tls != nullptr);
@@ -160,10 +174,7 @@ static void resume_mutators(void* tls) {
   heap->GetReferenceProcessor()->CollectClearedReferences(self);
   // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
   // deadlocks in case the JNI_OnUnload function does allocations.
-  {
-    art::ScopedObjectAccess soa(self);
-    soa.Vm()->UnloadNativeLibraries();
-  }
+  heap->AddHeapTask(new UnloadNativeLibrariesTask());
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
