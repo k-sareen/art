@@ -60,7 +60,7 @@ class Verification {
   // Return true if the klass is likely to be a valid mirror::Class.
   // Returns true if the class is a valid mirror::Class or possibly spuriously.
   template <ReadBarrierOption kReadBarrierOption = kWithoutReadBarrier>
-  bool IsValidClassUnchecked(mirror::Class* klass) const
+  EXPORT bool IsValidClassUnchecked(mirror::Class* klass) const
       REQUIRES_SHARED(Locks::mutator_lock_);
   // Return true if the klass is likely to be a valid mirror::Class.
   template <ReadBarrierOption kReadBarrierOption = kWithoutReadBarrier>
@@ -70,7 +70,7 @@ class Verification {
   EXPORT bool IsValidObject(mirror::Object* obj) const REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Does not allow null, checks alignment.
-  bool IsValidHeapObjectAddress(const void* addr, space::Space** out_space = nullptr) const
+  EXPORT bool IsValidHeapObjectAddress(const void* addr, space::Space** out_space = nullptr) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Find the first path to the target from the root set. Should be called while paused since
@@ -83,7 +83,7 @@ class Verification {
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Dump bytes of RAM before and after an address.
-  std::string DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) const
+  EXPORT std::string DumpRAMAroundAddress(uintptr_t addr, uintptr_t bytes) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Find the first path to the target from the root set. Should be called while paused since

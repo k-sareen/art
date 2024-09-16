@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
+#include "base/globals.h"
 #include "class_table.h"
 #include "gc/third_party_heap.h"
+#include "gc/verification.h"
+#include "gc/verification-inl.h"
 #include "mirror/class-refvisitor-inl.h"
 #include "mirror/object-inl.h"
 #include "mmtk_root_visitor.h"
 #include "mmtk.h"
 
-// #include <iostream>
-
 namespace art {
 namespace gc {
 namespace third_party_heap {
-
-// static bool class_in_class_set(std::unordered_set<mirror::Object*> class_set,
-//                                mirror::Object* klass) {
-//   return class_set.count(klass) != 0;
-// }
 
 MmtkRootVisitor::MmtkRootVisitor(SlotsClosure closure) : closure_(closure), cursor_(0) {
   RustBuffer buf = closure_.invoke(NULL, 0, 0);
@@ -53,22 +49,22 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
                 [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
     auto* root = roots[i];
-    // mirror::Object* obj = reinterpret_cast<StackReference<mirror::Object>*>(root)->AsMirrorPtr();
-    // auto ref = StackReference<mirror::Object>::FromMirrorPtr(obj);
-
-    // std::cout << "Adding " << *root << "\n";
+    if (kIsDebugBuild) {
+      mirror::Object* obj = reinterpret_cast<StackReference<mirror::Object>*>(root)->AsMirrorPtr();
+      auto ref = StackReference<mirror::Object>::FromMirrorPtr(obj);
+      const art::gc::Verification* verification = art::Runtime::Current()->GetHeap()->GetVerification();
+      CHECK(verification->IsValidObject(ref.AsMirrorPtr()))
+        << "MmtkRootVisitor "
+        << ref.AsMirrorPtr()
+        << " "
+        << info.ToString()
+        << " is not a valid object!"
+        << verification->DumpRAMAroundAddress((uintptr_t)ref.AsMirrorPtr(), 128);
+    }
     buffer_[cursor_++] = (void*) root; // ref.AsMirrorPtr();
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
-
-    // if ((*root)->IsClass() && !class_in_class_set(class_set_, *root)) {
-    //   // std::cout << " Adding class " << *root << "\n";
-    //   class_set_.insert(*root);
-    //   ObjPtr<mirror::Class> klass = (*root)->AsClass();
-    //   klass->VisitNativeRoots</* kReadBarrierOption= */ kWithoutReadBarrier>(
-    //       *this, Runtime::Current()->GetClassLinker()->GetImagePointerSize());
-    // }
   }
 }
 
@@ -76,20 +72,21 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
                 size_t count,
                 [[maybe_unused]] const RootInfo& info) {
   for (size_t i = 0; i < count; ++i) {
-    // auto* root = roots[i]->AsMirrorPtr();
-    // std::cout << "Adding " << root << "\n";
+    if (kIsDebugBuild) {
+      auto* obj = roots[i]->AsMirrorPtr();
+      const art::gc::Verification* verification = art::Runtime::Current()->GetHeap()->GetVerification();
+      CHECK(verification->IsValidObject(obj))
+        << "MmtkRootVisitor "
+        << obj
+        << " "
+        << info.ToString()
+        << " is not a valid object!"
+        << verification->DumpRAMAroundAddress((uintptr_t)obj, 128);
+    }
     buffer_[cursor_++] = (void*) roots[i]; // root;
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
-
-    // if (root->IsClass() && !class_in_class_set(class_set_, root)) {
-    //   // std::cout << " Adding class " << root << "\n";
-    //   class_set_.insert(root);
-    //   ObjPtr<mirror::Class> klass = root->AsClass();
-    //   klass->VisitNativeRoots</* kReadBarrierOption= */ kWithoutReadBarrier>(
-    //       *this, Runtime::Current()->GetClassLinker()->GetImagePointerSize());
-    // }
   }
 }
 

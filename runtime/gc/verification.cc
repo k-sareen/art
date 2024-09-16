@@ -200,7 +200,7 @@ class Verification::CollectRootVisitor : public SingleRootVisitor {
       override REQUIRES_SHARED(Locks::mutator_lock_) {
     if (obj != nullptr && visited_->insert(obj).second) {
       std::ostringstream oss;
-      oss << info.ToString() << " = " << obj << "(" << obj->PrettyTypeOf() << ")";
+      oss << info.ToString() << " = " << obj << "(" << mirror::Object::PrettyTypeOf(obj) << ")";
       work_->emplace_back(obj, oss.str());
     }
   }
@@ -226,7 +226,7 @@ class CollectRootVectorVisitor : public SingleRootVisitor {
     if (obj != nullptr && visited_->insert(obj).second) {
       std::vector v = {obj};
       std::ostringstream oss;
-      oss << info.ToString() << " = " << obj << "(" << obj->PrettyTypeOf() << ")";
+      oss << info.ToString() << " = " << obj << "(" << mirror::Object::PrettyTypeOf(obj) << ")";
       work_->emplace_back(obj, oss.str(), v);
     }
   }
@@ -255,7 +255,7 @@ std::string Verification::FirstPathFromRootSet(ObjPtr<mirror::Object> target) co
     for (auto&& pair2 : visitor.NewlyVisited()) {
       std::ostringstream oss;
       mirror::Object* obj = pair2.first;
-      oss << pair.second << " -> " << obj << "(" << obj->PrettyTypeOf() << ")." << pair2.second;
+      oss << pair.second << " -> " << obj << "(" << mirror::Object::PrettyTypeOf(obj) << ")." << pair2.second;
       work.emplace_back(obj, oss.str());
     }
   }
@@ -283,7 +283,7 @@ std::pair<std::vector<mirror::Object*>, std::string> Verification::FirstPathFrom
     for (auto&& pair2 : visitor.NewlyVisited()) {
       std::ostringstream oss;
       mirror::Object* obj = pair2.first;
-      oss << path << " -> " << obj << "(" << obj->PrettyTypeOf() << ")." << pair2.second;
+      oss << path << " -> " << obj << "(" << mirror::Object::PrettyTypeOf(obj) << ")." << pair2.second;
       work.emplace_back(obj, oss.str(), vec);
     }
   }
@@ -315,7 +315,7 @@ void Verification::SanityPreGC() const {
     for (auto&& pair2 : visitor.NewlyVisited()) {
       std::ostringstream oss;
       mirror::Object* obj = pair2.first;
-      oss << pair.second << " -> " << obj << "(" << obj->PrettyTypeOf() << ")." << pair2.second;
+      oss << pair.second << " -> " << obj << "(" << mirror::Object::PrettyTypeOf(obj) << ")." << pair2.second;
       queue_->emplace_back(obj, oss.str());
     }
   }

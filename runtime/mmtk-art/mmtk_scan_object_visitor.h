@@ -53,8 +53,12 @@ class MmtkScanObjectVisitor {
         const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
         CHECK(verification->IsValidObject(field->AsMirrorPtr()))
           << "ScanObject "
+          << obj
+          << ": slot "
+          << slot
+          << " "
           << field->AsMirrorPtr()
-          << " is not a valid object!";
+          << " is not a valid object!\n";
       }
       closure_.invoke(slot);
     }
@@ -94,7 +98,7 @@ class MmtkScanObjectVisitor {
     if (kIsDebugBuild) {
       const Verification* verification = Runtime::Current()->GetHeap()->GetVerification();
       CHECK(verification->IsValidObject(root->AsMirrorPtr()))
-        << "ScanObject "
+        << "ScanObject root "
         << root->AsMirrorPtr()
         << " is not a valid object!";
     }

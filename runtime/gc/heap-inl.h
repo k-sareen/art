@@ -149,6 +149,24 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       }
       return nullptr;
     }
+    if (kIsDebugBuild) {
+      for (uint8_t* ptr = (uint8_t*)obj.Ptr(); ptr < ((uint8_t*)obj.Ptr()) + usable_size; ptr++) {
+        CHECK(*((uint8_t*)ptr) == 0x0)
+          << "MMTk did not return zeroed memory for object "
+          << obj
+          << " size "
+          << usable_size
+          << " byte "
+          << (void*)ptr
+          << "= "
+          << (size_t)*ptr
+          << " for "
+          << klass->PrettyClass()
+          << "\n  Dumping RAM around broken object "
+          << GetVerification()->DumpRAMAroundAddress((uintptr_t)obj.Ptr(), usable_size)
+          << "\n";
+      }
+    }
     obj->SetClass(klass);
     no_suspend_pre_fence_visitor(obj, usable_size);
     QuasiAtomic::ThreadFenceForConstructor();
