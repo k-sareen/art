@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "gc/collector/gc_type.h"
+#include "gc/collector_type.h"
 #include "gc/reference_processor.h"
 #include "gc/third_party_heap.h"
 #include "handle_scope-inl.h"
@@ -279,12 +281,23 @@ collector::GcType ThirdPartyHeap::CollectGarbage(Thread* self, GcCause cause) {
       heap->last_gc_cause_ = cause;
     }
   }
-  mmtk_handle_user_collection_request(
+  bool ran_gc = mmtk_handle_user_collection_request(
     reinterpret_cast<void*>(self),
     /* force= */ true,
     /* exhaustive= */ true
   );
-  return collector::kGcTypeFull;
+  if (ran_gc) {
+    return collector::kGcTypeFull;
+  } else {
+    // If we didn't run a GC (for example NoGC) then we reset the running collector and return
+    // that no GC was ran
+    {
+      MutexLock mu(self, *heap->gc_complete_lock_);
+      DCHECK_EQ(heap->collector_type_running_, kCollectorTypeThirdPartyHeap);
+      heap->collector_type_running_ = kCollectorTypeNone;
+    }
+    return collector::kGcTypeNone;
+  }
 }
 
 void ThirdPartyHeap::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
