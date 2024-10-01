@@ -274,6 +274,42 @@ static void VerifyBootImagesContiguity(const std::vector<gc::space::ImageSpace*>
   }
 }
 
+static int CheckIfSingleThreaded() {
+#if defined(__linux__)
+  // Read num_threads field from /proc/self/stat, avoiding higher-level IO libraries that may
+  // break atomicity of the read.
+  static constexpr size_t kNumThreadsIndex = 20;
+  static constexpr ssize_t BUF_SIZE = 500;
+  static constexpr ssize_t BUF_PRINT_SIZE = 150;  // Only log this much on failure to limit length.
+  static_assert(BUF_SIZE > BUF_PRINT_SIZE);
+  char buf[BUF_SIZE];
+  ssize_t bytes_read = -1;
+  int stat_fd = open("/proc/self/stat", O_RDONLY | O_CLOEXEC);
+  CHECK(stat_fd >= 0) << strerror(errno);
+  bytes_read = TEMP_FAILURE_RETRY(read(stat_fd, buf, BUF_SIZE));
+  CHECK(bytes_read >= 0) << strerror(errno);
+  int ret = close(stat_fd);
+  DCHECK(ret == 0) << strerror(errno);
+  ssize_t pos = 0;
+  while (pos < bytes_read && buf[pos++] != ')') {}
+  ++pos;
+  // We're now positioned at the beginning of the third field. Don't count blanks embedded in
+  // second (command) field.
+  size_t blanks_seen = 2;
+  while (pos < bytes_read && blanks_seen < kNumThreadsIndex - 1) {
+    if (buf[pos++] == ' ') {
+      ++blanks_seen;
+    }
+  }
+  CHECK(pos < bytes_read - 2);
+  // pos is first character of num_threads field.
+  CHECK_EQ(buf[pos + 1], ' ');  // We never have more than single-digit threads here.
+  return std::stoi(std::string(&buf[pos]));
+#else
+  return 1;
+#endif
+}
+
 PerfCounter::PerfCounter(std::string perf_event_name)
     : name_(perf_event_name),
       initial_value_(0),
@@ -338,6 +374,12 @@ PerfCounter::PerfCounter(std::string perf_event_name)
   pe.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
   pe.disabled = 1;
   pe.inherit = 1;
+
+  int threads = CheckIfSingleThreaded();
+  if (threads != 1) {
+    LOG(WARNING) << "Current process has " << threads
+                 << " threads, process-wide perf event measurement will only include child threads spawned from this thread";
+  }
 
   int fd = perf_event_open(&pe, 0 /* pid */, -1 /* cpu */, -1 /* group_fd */, 0 /* flags */);
   if (fd == -1) {
@@ -989,6 +1031,17 @@ Heap::Heap(size_t initial_size,
   }
 
   perf_counters_.clear();
+  if (!is_zygote) {
+    CHECK(!perf_counters_created_.load());
+    PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
+    PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
+    PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
+    // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CACHE_MISSES");
+    // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+    // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
+    PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
+    perf_counters_created_.store(true);
+  }
 
   // If we are using NoGC then clear and don't release the entire bump pointer
   // space. This means that each page in the heap has been touched at least

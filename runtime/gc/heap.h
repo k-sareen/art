@@ -1093,6 +1093,9 @@ class Heap {
   }
 
   void PerfCounterCreate(std::string perf_event_name);
+  bool PerfCountersCreated() {
+    return perf_counters_created_.load();
+  }
 
   std::vector<PerfCounter*> GetPerfCounters() {
     return perf_counters_;
@@ -1822,6 +1825,8 @@ class Heap {
   uint64_t harness_begin_start_time_ns_;
 
   std::vector<PerfCounter*> perf_counters_;
+  // Have the perf counters been created?
+  std::atomic<bool> perf_counters_created_;
 
   // Boot image spaces.
   std::vector<space::ImageSpace*> boot_image_spaces_;
