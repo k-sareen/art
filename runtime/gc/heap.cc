@@ -4646,11 +4646,13 @@ inline void Heap::CheckGCForNative(Thread* self) {
   // VMCollection::vm_live_bytes function to allow for more prompt reclamation
   size_t current_native_bytes = GetNativeBytes();
 #if ART_USE_MMTK
-  if (current_native_bytes + tp_heap_->GetBytesAllocated() >= capacity_) {
-    // std::cout << "CheckGCForNative " << current_native_bytes + tp_heap_->GetBytesAllocated()
-    //   << " >= " << capacity_ << "\n";
-    tp_heap_->CollectGarbage(self, kGcCauseForNativeAlloc);
-  }
+  UNUSED(self);
+  UNUSED(current_native_bytes);
+  // if (current_native_bytes + tp_heap_->GetBytesAllocated() >= capacity_) {
+  //   // LOG(INFO) << "CheckGCForNative " << current_native_bytes + tp_heap_->GetBytesAllocated()
+  //   //   << " >= " << capacity_ << "\n";
+  //   tp_heap_->CollectGarbage(self, kGcCauseForNativeAlloc);
+  // }
 #else
   bool is_gc_concurrent = IsGcConcurrent();
   uint32_t starting_gc_num = GetCurrentGcNum();
