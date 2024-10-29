@@ -37,6 +37,9 @@
 #include "class_loader_utils.h"
 #include "class_root-inl.h"
 #include "dex/class_accessor-inl.h"
+#if ART_USE_MMTK
+#include "gc/scoped_gc_critical_section.h"
+#endif  // ART_USE_MMTK
 #include "gc/space/image_space.h"
 #include "mirror/object-inl.h"
 #include "mirror/object-refvisitor-inl.h"
@@ -1865,10 +1868,25 @@ bool RuntimeImage::WriteImageToDisk(std::string* error_msg) {
 
   ScopedTrace generate_image_trace("Generating runtime image");
   std::unique_ptr<RuntimeImageHelper> image(new RuntimeImageHelper(heap));
+#if ART_USE_MMTK
+  {
+    // We need to make generating a run-time image mutually exclusive to MMTk GC
+    // For more information see [1].
+    // [1]: https://github.com/k-sareen/mmtk-art/issues/6
+    Thread* self = Thread::Current();
+    // ScopedThreadSuspension sts(self, ThreadState::kSuspended);
+    gc::ScopedGCCriticalSection gcs(self,
+                                    gc::kGcCauseAddRemoveAppImageSpace,
+                                    gc::kCollectorTypeAddRemoveAppImageSpace);
+    if (!image->Generate(error_msg)) {
+      return false;
+    }
+  }
+#else
   if (!image->Generate(error_msg)) {
     return false;
   }
-
+#endif  // ART_USE_MMTK
   ScopedTrace write_image_trace("Writing runtime image to disk");
 
   const std::string path = GetRuntimeImagePath(image->GetDexLocation());

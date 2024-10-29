@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+#include "gc/third_party_heap.h"
+
+#include "gc/gc_cause.h"
 #include "gc/collector/gc_type.h"
 #include "gc/collector_type.h"
 #include "gc/reference_processor.h"
-#include "gc/third_party_heap.h"
 #include "handle_scope-inl.h"
 #include "mmtk-art/mmtk_gc_thread.h"
 #include "mmtk-art/mmtk_upcalls.h"
@@ -182,6 +184,7 @@ void ThirdPartyHeap::BlockThreadForCollection(Thread* self) {
     MutexLock mu(self, *heap->gc_complete_lock_);
     uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
     heap->gc_complete_cond_->CheckSafeToWait(self);
+    // Waiting on the GC number to go up is fine as the number does not go up for fake GCs
     while (heap->GetCurrentGcNum() < next_gc_num) {
       heap->gc_complete_cond_->Wait(self);
     }
@@ -309,18 +312,27 @@ void ThirdPartyHeap::DelayReferenceReferent(ObjPtr<mirror::Class> klass,
 void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
   Heap* heap = Runtime::Current()->GetHeap();
   MutexLock mu(self, *heap->gc_complete_lock_);
-  // XXX(kunals): Only set collector_type_running_ if it was previously None
+
+  // Wait until there is no other (fake) GC running before attempting to start a GC
+  heap->gc_complete_cond_->CheckSafeToWait(self);
+  while (heap->collector_type_running_ != kCollectorTypeNone
+         && heap->collector_type_running_ != kCollectorTypeThirdPartyHeap) {
+    heap->gc_complete_cond_->Wait(self);
+  }
+
+  // Only set collector_type_running_ if it was previously None
   if (heap->collector_type_running_ == kCollectorTypeNone) {
     heap->collector_type_running_ = kCollectorTypeThirdPartyHeap;
     heap->last_gc_cause_ = cause;
   } else {
     // XXX(kunals): The collector type can be something other than None only if
-    // `CollectGarbage` has been called. Assert that is the case
+    // `CollectGarbage` has been called since we have waited for other fake GCs
+    // to finish above. Assert that is the case
     CHECK_EQ(heap->collector_type_running_, kCollectorTypeThirdPartyHeap)
       << "Cannot run StartGC when some other GC is running. Running GC "
       << heap->collector_type_running_
       << ", cause "
-      << heap->last_gc_cause_;
+      << PrettyCause(heap->last_gc_cause_);
   }
   is_transaction_active_ = Runtime::Current()->IsActiveTransaction();
 }
