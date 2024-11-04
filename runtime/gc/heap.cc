@@ -2988,7 +2988,7 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     // We should not ever become runnable and re-suspend while executing a GC.
     // This would likely cause a deadlock if we acted on a suspension request.
     // TODO: We really want to assert that we don't transition to kRunnable.
-    ScopedAssertNoThreadSuspension("Performing GC");
+    ScopedAssertNoThreadSuspension sants("Performing GC");
     if (self->IsHandlingStackOverflow()) {
       // If we are throwing a stack overflow error we probably don't have enough remaining stack
       // space to run the GC.
