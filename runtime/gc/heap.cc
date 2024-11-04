@@ -17,7 +17,12 @@
 #include "heap.h"
 
 #include <fcntl.h>
+#include <linux/bpf_common.h>
+#include <linux/filter.h>
+#include <linux/prctl.h>
+#include <linux/seccomp.h>
 #include <sys/ioctl.h>
+#include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -4129,6 +4134,21 @@ bool Heap::RequiresHeapSizeSpoofing(std::string package_name) {
   return false;
 }
 
+bool Heap::RequiresDisableSetAffinity(std::string package_name) {
+  DCHECK(IsTargetApp(package_name)) << "Can't call this function for non-target apps";
+  for (auto& bm : heap_sizes_) {
+    if (bm.contains("package")) {
+      if (bm["package"] == package_name) {
+        if (bm.contains("disable_sched_setaffinity")) {
+          return bm["disable_sched_setaffinity"];
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 size_t Heap::GetHeapSizeForTargetApp(std::string package_name) {
   DCHECK(!heap_sizes_.empty()) << "Heap sizes can't be empty if setting target heap size";
   for (auto& bm : heap_sizes_) {
@@ -4143,6 +4163,32 @@ size_t Heap::GetHeapSizeForTargetApp(std::string package_name) {
 
   // Default heap size
   return 256;
+}
+
+#define BLOCK_SYSCALL(syscall)                               \
+  BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_##syscall, 0, 1), \
+  BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ERRNO)
+
+static bool DisableSetAffinityForTargetApp() {
+  if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0) {
+    PLOG(ERROR) << "Could not set no_new_privs bit " << strerror(errno) << "\n";
+    return false;
+  }
+  struct sock_filter filter[] = {
+    // Load the system call numbers
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, nr)),
+    BLOCK_SYSCALL(sched_setaffinity),
+    BPF_STMT(BPF_RET | BPF_W, SECCOMP_RET_ALLOW),
+  };
+  struct sock_fprog prog = {
+    .len = sizeof(filter) / sizeof(filter[0]),
+    .filter = filter,
+  };
+  if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0) {
+    PLOG(ERROR) << "Could not disable sched_setaffinity: " << strerror(errno) << "\n";
+    return false;
+  }
+  return true;
 }
 
 void Heap::ClampGrowthLimit() {
@@ -4161,6 +4207,13 @@ void Heap::ClampGrowthLimit() {
     growth_limit_ = capacity_;
     SetIdealFootprint(capacity_);
     SetDefaultConcurrentStartBytes();
+    if (RequiresDisableSetAffinity(package_name)) {
+      if (!DisableSetAffinityForTargetApp()) {
+        LOG(ERROR) << "Could not disable the sched_setaffinity syscall!";
+      } else {
+        LOG(WARNING) << "Disabled sched_setaffinity syscall!";
+      }
+    }
     Runtime::Current()->SetDumpGCPerformanceOnShutdown(true);
   } else {
     capacity_ = growth_limit_;
