@@ -1417,6 +1417,7 @@ class Heap {
 
   void ReadHeapSizesFile();
   size_t GetHeapSizeForTargetApp(std::string package_name);
+  bool RequiresDisableSetAffinity(std::string package_name);
 
   // All-known continuous spaces, where objects lie within fixed bounds.
   std::vector<space::ContinuousSpace*> continuous_spaces_ GUARDED_BY(Locks::mutator_lock_);
