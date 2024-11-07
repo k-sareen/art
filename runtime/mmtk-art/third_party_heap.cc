@@ -198,6 +198,9 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
                                               size_t* usable_size,
                                               size_t* bytes_tl_bulk_allocated,
                                               ObjPtr<mirror::Class>* klass) {
+  // Make sure there is no pending exception since we may need to throw an OOME.
+  self->AssertNoPendingException();
+
   // Preserve the klass as a root so that it gets updated properly after GC
   StackHandleScope<1> hs(self);
   HandleWrapperObjPtr<mirror::Class> h_klass(hs.NewHandleWrapper(klass));

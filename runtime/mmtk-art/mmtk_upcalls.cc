@@ -294,9 +294,12 @@ static void throw_out_of_memory(void* tls, MmtkAllocationError err_kind) {
       // Allow plugins to intercept out of memory errors.
       runtime->OutOfMemoryErrorHook();
 
-      std::ostringstream oss;
-      oss << "Failed to allocate object. Java heap space exhausted.";
-      self->ThrowOutOfMemoryError(oss.str().c_str());
+      // If we have gotten to this point, we don't have _any_ memory to allocate objects, so just
+      // return the default out of memory error without a stack trace :(
+      // TODO(kunals): Pre-allocate an array of OOME with backtraces to avoid this issue like how OpenJDK does [1]
+      // [1]: https://github.com/mmtk/openjdk/blob/28e56ee32525c32c5a88391d0b01f24e5cd16c0f/src/hotspot/share/memory/universe.cpp#L1084
+      self->Dump(LOG_STREAM(WARNING));  // The pre-allocated OOME has no stack, so help out and log one.
+      self->SetException(runtime->GetPreAllocatedOutOfMemoryErrorWhenThrowingOOME());
       break;
   }
 }
