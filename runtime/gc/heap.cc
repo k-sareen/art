@@ -1194,6 +1194,12 @@ void Heap::DecrementDisableMovingGC(Thread* self) {
   MutexLock mu(self, *gc_complete_lock_);
   CHECK_GT(disable_moving_gc_count_, 0U);
   --disable_moving_gc_count_;
+#if ART_USE_MMTK
+  if (disable_moving_gc_count_ == 0) {
+    // Wake anyone who may have been waiting for the fake GC to complete.
+    gc_complete_cond_->Broadcast(self);
+  }
+#endif  // ART_USE_MMTK
 }
 
 void Heap::IncrementDisableThreadFlip(Thread* self) {
@@ -1955,7 +1961,11 @@ bool Heap::IsValidObjectAddress(const void* addr) const {
 }
 
 bool Heap::IsNonDiscontinuousSpaceHeapAddress(const void* addr) const {
+#if !ART_USE_MMTK
   return FindContinuousSpaceFromAddress(reinterpret_cast<const mirror::Object*>(addr)) != nullptr;
+#else
+  return const_cast<Heap*>(this)->GetThirdPartyHeap()->IsObjectInHeapSpace(addr);
+#endif  // !ART_USE_MMTK
 }
 
 bool Heap::IsLiveObjectLocked(ObjPtr<mirror::Object> obj,

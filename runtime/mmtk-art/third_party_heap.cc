@@ -318,8 +318,9 @@ void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
 
   // Wait until there is no other (fake) GC running before attempting to start a GC
   heap->gc_complete_cond_->CheckSafeToWait(self);
-  while (heap->collector_type_running_ != kCollectorTypeNone
-         && heap->collector_type_running_ != kCollectorTypeThirdPartyHeap) {
+  while ((heap->collector_type_running_ != kCollectorTypeNone
+          && heap->collector_type_running_ != kCollectorTypeThirdPartyHeap)
+          || heap->disable_moving_gc_count_ != 0) {
     heap->gc_complete_cond_->Wait(self);
   }
 
