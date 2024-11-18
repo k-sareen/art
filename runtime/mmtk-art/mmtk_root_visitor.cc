@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
+#include "gc/third_party_heap.h"
+
+#if ART_USE_MMTK_EXTREME_ASSERT
+#include <mutex>
+#include <unordered_set>
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
+
 #include "base/globals.h"
 #include "class_table.h"
-#include "gc/third_party_heap.h"
 #include "gc/verification.h"
 #include "gc/verification-inl.h"
 #include "mirror/class-refvisitor-inl.h"
@@ -28,7 +34,7 @@ namespace art {
 namespace gc {
 namespace third_party_heap {
 
-MmtkRootVisitor::MmtkRootVisitor(SlotsClosure closure) : closure_(closure), cursor_(0) {
+MmtkRootVisitor::MmtkRootVisitor(SlotsClosure closure, ThirdPartyHeap* tp_heap) : closure_(closure), cursor_(0), tp_heap_(tp_heap) {
   RustBuffer buf = closure_.invoke(NULL, 0, 0);
   buffer_ = buf.buf;
   capacity_ = buf.capacity;
@@ -61,7 +67,19 @@ void MmtkRootVisitor::VisitRoots(mirror::Object*** roots,
         << " is not a valid object!"
         << verification->DumpRAMAroundAddress((uintptr_t)ref.AsMirrorPtr(), 128);
     }
+#if !ART_USE_MMTK_EXTREME_ASSERT
     buffer_[cursor_++] = (void*) root; // ref.AsMirrorPtr();
+#else
+    DCHECK(tp_heap_->slot_set_ != nullptr);
+    std::pair<std::unordered_set<void*>::iterator, bool> ret;
+    {
+      std::unique_lock mu(tp_heap_->slot_set_mutex_);
+      ret = tp_heap_->slot_set_->insert((void*) root);
+    }
+    if (ret.second) {
+      buffer_[cursor_++] = (void*) root; // ref.AsMirrorPtr();
+    }
+#endif  // !ART_USE_MMTK_EXTREME_ASSERT
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }
@@ -83,7 +101,19 @@ void MmtkRootVisitor::VisitRoots(mirror::CompressedReference<mirror::Object>** r
         << " is not a valid object!"
         << verification->DumpRAMAroundAddress((uintptr_t)obj, 128);
     }
+#if !ART_USE_MMTK_EXTREME_ASSERT
     buffer_[cursor_++] = (void*) roots[i]; // root;
+#else
+    DCHECK(tp_heap_->slot_set_ != nullptr);
+    std::pair<std::unordered_set<void*>::iterator, bool> ret;
+    {
+      std::unique_lock mu(tp_heap_->slot_set_mutex_);
+      ret = tp_heap_->slot_set_->insert((void*) roots[i]);
+    }
+    if (ret.second) {
+      buffer_[cursor_++] = (void*) roots[i]; // ref.AsMirrorPtr();
+    }
+#endif  // !ART_USE_MMTK_EXTREME_ASSERT
     if (cursor_ >= capacity_) {
       FlushBuffer();
     }

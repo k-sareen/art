@@ -18,6 +18,12 @@
 #define MMTK_ART_MMTK_SCAN_OBJECT_VISITOR_H
 
 #include "gc/third_party_heap.h"
+
+#if ART_USE_MMTK_EXTREME_ASSERT
+#include <mutex>
+#include <unordered_set>
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
+
 #include "gc/verification.h"
 #include "gc/verification-inl.h"
 #include "mirror/class.h"
@@ -63,7 +69,19 @@ class MmtkScanObjectVisitor {
       //     << field->AsMirrorPtr()
       //     << " is not a valid object!\n";
       // }
+#if !ART_USE_MMTK_EXTREME_ASSERT
       closure_.invoke(slot);
+#else
+      DCHECK(tp_heap_->slot_set_ != nullptr);
+      std::pair<std::unordered_set<void*>::iterator, bool> ret;
+      {
+        std::unique_lock mu(tp_heap_->slot_set_mutex_);
+        ret = tp_heap_->slot_set_->insert(slot);
+      }
+      if (ret.second) {
+        closure_.invoke(slot);
+      }
+#endif  // !ART_USE_MMTK_EXTREME_ASSERT
     }
   }
 
@@ -106,7 +124,19 @@ class MmtkScanObjectVisitor {
     //     << root->AsMirrorPtr()
     //     << " is not a valid object!";
     // }
+#if !ART_USE_MMTK_EXTREME_ASSERT
     closure_.invoke(reinterpret_cast<void*>(root));
+#else
+    DCHECK(tp_heap_->slot_set_ != nullptr);
+    std::pair<std::unordered_set<void*>::iterator, bool> ret;
+    {
+      std::unique_lock mu(tp_heap_->slot_set_mutex_);
+      ret = tp_heap_->slot_set_->insert(reinterpret_cast<void*>(root));
+    }
+    if (ret.second) {
+      closure_.invoke(reinterpret_cast<void*>(root));
+    }
+#endif  // !ART_USE_MMTK_EXTREME_ASSERT
   }
 
  private:

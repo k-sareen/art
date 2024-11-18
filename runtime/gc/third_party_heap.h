@@ -17,9 +17,14 @@
 #ifndef ART_RUNTIME_GC_THIRD_PARTY_HEAP_H_
 #define ART_RUNTIME_GC_THIRD_PARTY_HEAP_H_
 
+#define ART_USE_MMTK_EXTREME_ASSERT 0
+
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#if ART_USE_MMTK_EXTREME_ASSERT
+#include <unordered_set>
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
 
 #include "base/locks.h"
 #include "base/macros.h"
@@ -163,6 +168,11 @@ class ThirdPartyHeap {
   // This collection should try to move as many objects as possible to compact
   // the Zygote space
   void PreFirstZygoteForkCollection(Thread* self);
+
+#if ART_USE_MMTK_EXTREME_ASSERT
+  std::mutex slot_set_mutex_;
+  std::unique_ptr<std::unordered_set<void*>> slot_set_;
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
 
  private:
   // Run the companion thread routine to suspend and resume all mutator threads

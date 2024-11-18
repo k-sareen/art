@@ -223,7 +223,7 @@ static void for_all_mutators(MutatorClosure closure) {
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void scan_all_roots(SlotsClosure closure) {
   art::Runtime* runtime = art::Runtime::Current();
-  art::gc::third_party_heap::MmtkRootVisitor visitor(closure);
+  art::gc::third_party_heap::MmtkRootVisitor visitor(closure, runtime->GetHeap()->GetThirdPartyHeap());
   runtime->VisitRoots(&visitor, art::kVisitRootFlagAllRoots);
 }
 

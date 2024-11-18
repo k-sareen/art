@@ -16,9 +16,13 @@
 
 #include "gc/third_party_heap.h"
 
-#include "gc/gc_cause.h"
+#if ART_USE_MMTK_EXTREME_ASSERT
+#include <unordered_set>
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
+
 #include "gc/collector/gc_type.h"
 #include "gc/collector_type.h"
+#include "gc/gc_cause.h"
 #include "gc/reference_processor.h"
 #include "handle_scope-inl.h"
 #include "mmtk-art/mmtk_gc_thread.h"
@@ -338,6 +342,9 @@ void ThirdPartyHeap::StartGC(Thread* self, GcCause cause) {
       << ", cause "
       << PrettyCause(heap->last_gc_cause_);
   }
+#if ART_USE_MMTK_EXTREME_ASSERT
+  slot_set_.reset(new std::unordered_set<void*>());
+#endif  // ART_USE_MMTK_EXTREME_ASSERT
   is_transaction_active_ = Runtime::Current()->IsActiveTransaction();
 }
 

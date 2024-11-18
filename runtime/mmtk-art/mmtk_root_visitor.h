@@ -35,7 +35,7 @@ namespace third_party_heap {
 
 class MmtkRootVisitor : public ThirdPartyHeapRootVisitor, public ClassLoaderVisitor, public DexCacheVisitor {
  public:
-  MmtkRootVisitor(SlotsClosure closure);
+  MmtkRootVisitor(SlotsClosure closure, ThirdPartyHeap* tp_heap);
 
   ~MmtkRootVisitor();
 
@@ -73,6 +73,7 @@ class MmtkRootVisitor : public ThirdPartyHeapRootVisitor, public ClassLoaderVisi
   void** buffer_;
   size_t capacity_;
   size_t cursor_;
+  [[maybe_unused]] ThirdPartyHeap* tp_heap_;
   // std::unordered_set<mirror::Object*> class_set_;
 };
 
