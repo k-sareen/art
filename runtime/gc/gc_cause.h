@@ -66,6 +66,8 @@ enum GcCause {
   kGcCauseProfileSaver,
   // GC cause for deleting dex cache arrays at startup.
   kGcCauseDeletingDexCacheArrays,
+  // Not a real GC cause, used to unload native libraries.
+  kGcCauseUnloadNativeLibraries,
 };
 
 const char* PrettyCause(GcCause cause);

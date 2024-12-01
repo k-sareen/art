@@ -47,6 +47,7 @@ const char* PrettyCause(GcCause cause) {
     case kGcCauseGetObjectsAllocated: return "ObjectsAllocated";
     case kGcCauseProfileSaver: return "ProfileSaver";
     case kGcCauseDeletingDexCacheArrays: return "DeletingDexCacheArrays";
+    case kGcCauseUnloadNativeLibraries: return "UnloadNativeLibraries";
   }
   LOG(FATAL) << "Unreachable";
   UNREACHABLE();

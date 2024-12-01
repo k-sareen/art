@@ -17,6 +17,7 @@
 #include "base/locks.h"
 #include "gc/gc_cause.h"
 #include "gc/reference_processor.h"
+#include "gc/scoped_gc_critical_section.h"
 #include "gc/task_processor.h"
 #include "gc/third_party_heap.h"
 #include "gc/verification.h"
@@ -136,6 +137,11 @@ class UnloadNativeLibrariesTask : public art::gc::HeapTask {
   }
   void Run(art::Thread* thread) override {
     art::ScopedObjectAccess soa(thread);
+    // XXX(kunals): Need to avoid deadlocking with MMTk GC as it may be waiting on the
+    // HeapTaskDaemon thread to suspend
+    art::gc::ScopedGCCriticalSection gcs(soa.Self(),
+                                      art::gc::kGcCauseUnloadNativeLibraries,
+                                      art::gc::kCollectorTypeCriticalSection);
     soa.Vm()->UnloadNativeLibraries();
   }
 };
