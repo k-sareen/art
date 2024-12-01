@@ -1561,7 +1561,16 @@ void Heap::HarnessBegin() {
   inside_harness_ = true;
   dumped_gc_performance_info_ = false;
 #if ART_USE_MMTK
-  mmtk_harness_begin(Thread::Current());
+  Thread* self = Thread::Current();
+  {
+    // Wait until there is no GC running
+    MutexLock mu(Thread::Current(), *gc_complete_lock_);
+    gc_complete_cond_->CheckSafeToWait(self);
+    while (collector_type_running_ != kCollectorTypeNone) {
+      gc_complete_cond_->Wait(self);
+    }
+  }
+  mmtk_harness_begin(self);
 #else
   if (gc_plan_.back() != collector::kGcTypeNoGC) {
     LOG(INFO) << "Performing a GC with " << gc_plan_.back()
