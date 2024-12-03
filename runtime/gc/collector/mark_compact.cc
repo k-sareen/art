@@ -2220,7 +2220,6 @@ void MarkCompact::FreeFromSpacePages(size_t cur_page_idx, int mode) {
     last_reclaimed_page_ = reclaim_begin;
   }
   last_checked_reclaim_page_idx_ = idx;
-  return all_mapped;
 }
 
 template <int kMode>
