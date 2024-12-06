@@ -87,6 +87,10 @@ class ThirdPartyHeap {
   // that it can keep track of any objects it sees that may be in the boot image
   void SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size);
 
+  // Set the size of a pointer used by the runtime. Note that it could be something other
+  // than the machine pointer size if we are cross-compiling
+  void SetPointerSize(size_t pointer_size);
+
   // Block and suspend mutator thread for GC
   void BlockThreadForCollection(Thread* self)
     REQUIRES(!*Heap::gc_complete_lock_)

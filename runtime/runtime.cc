@@ -2106,6 +2106,10 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
     }
   }
 
+#if ART_USE_MMTK
+  GetHeap()->GetThirdPartyHeap()->SetPointerSize(static_cast<size_t>(class_linker_->GetImagePointerSize()));
+#endif  // ART_USE_MMTK
+
   // Now that the boot image space is set, cache the boot classpath checksums,
   // to be used when validating oat files.
   ArrayRef<gc::space::ImageSpace* const> image_spaces(GetHeap()->GetBootImageSpaces());

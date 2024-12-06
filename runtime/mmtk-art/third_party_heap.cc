@@ -87,6 +87,10 @@ void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32
   mmtk_set_image_space(boot_image_start_address, boot_image_size);
 }
 
+void ThirdPartyHeap::SetPointerSize(size_t pointer_size) {
+  mmtk_set_runtime_pointer_size(pointer_size);
+}
+
 bool ThirdPartyHeap::IsObjectInHeapSpace(const void* addr) const {
   return mmtk_is_object_in_heap_space(addr);
 }

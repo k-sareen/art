@@ -30,6 +30,7 @@
 #include "mmtk_upcalls.h"
 #include "mirror/object-inl.h"
 #include "mirror/object-refvisitor-inl.h"
+#include "obj_ptr.h"
 #include "thread.h"
 #include "thread_list.h"
 
@@ -64,6 +65,53 @@ static void scan_object(void* object, ScanObjectClosure closure) {
       << " is not a valid object!";
   }
   obj->VisitReferences</* kVisitNativeRoots= */ true, art::kVerifyNone, art::kWithoutReadBarrier>(visitor, visitor);
+}
+
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void scan_native_roots(void* object,
+                              ScanObjectClosure closure,
+                              ArtObjectNativeRootsType object_type) {
+  DCHECK(object != nullptr);
+  art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  switch (object_type) {
+    case kArtObjNRTClass:
+      {
+        art::ObjPtr<art::mirror::Class> klass = obj->AsClass();
+        klass->VisitNativeRoots<art::kWithoutReadBarrier>(
+            visitor, art::Runtime::Current()->GetClassLinker()->GetImagePointerSize());
+        break;
+      }
+    case kArtObjNRTDexCache:
+      {
+        art::ObjPtr<art::mirror::DexCache> dex_cache = obj->AsDexCache();
+        dex_cache->VisitNativeRoots<art::kVerifyNone, art::kWithoutReadBarrier>(visitor);
+        break;
+      }
+    case kArtObjNRTClassLoader:
+      {
+        art::ObjPtr<art::mirror::ClassLoader> class_loader = obj->AsClassLoader();
+        // Visit classes loaded after.
+        art::ClassTable* const class_table = class_loader->GetClassTable<art::kVerifyNone>();
+        if (class_table != nullptr) {
+          class_table->VisitRoots(visitor);
+        }
+        break;
+      }
+    default:
+      LOG(FATAL) << "Unknown native root object type: " << object_type << " for object: " << obj;
+      UNREACHABLE();
+  }
+}
+
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void process_referent(void* klass, void* reference, ScanObjectClosure closure) {
+  DCHECK(klass != nullptr);
+  DCHECK(reference != nullptr);
+  art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
+  art::ObjPtr<art::mirror::Reference> ref = reinterpret_cast<art::mirror::Reference*>(reference);
+  art::ObjPtr<art::mirror::Class> ref_klass = reinterpret_cast<art::mirror::Class*>(klass);
+  visitor(ref_klass, ref);
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
@@ -307,6 +355,8 @@ static void throw_out_of_memory(void* tls, MmtkAllocationError err_kind) {
 ArtUpcalls art_upcalls = {
   size_of,
   scan_object,
+  scan_native_roots,
+  process_referent,
   is_valid_object,
   block_for_gc,
   spawn_gc_thread,
