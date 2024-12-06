@@ -34,6 +34,9 @@
 #include "fault_handler.h"
 #include "gc/allocation_record.h"
 #include "gc/heap.h"
+#if ART_USE_MMTK
+#include "gc/scoped_gc_critical_section.h"
+#endif  // ART_USE_MMTK
 #include "gc_root-inl.h"
 #include "indirect_reference_table-inl.h"
 #include "jni_internal.h"
@@ -354,6 +357,13 @@ class Libraries {
     Thread* const self = Thread::Current();
     std::vector<SharedLibrary*> unload_libraries;
     {
+#if ART_USE_MMTK
+      // XXX(kunals): Need to avoid deadlocking with MMTk GC as it may be waiting on the
+      // HeapTaskDaemon thread to suspend
+      art::gc::ScopedGCCriticalSection gcs(self,
+                                        art::gc::kGcCauseUnloadNativeLibraries,
+                                        art::gc::kCollectorTypeCriticalSection);
+#endif  // ART_USE_MMTK
       MutexLock mu(self, *Locks::jni_libraries_lock_);
       for (auto it = libraries_.begin(); it != libraries_.end(); ) {
         SharedLibrary* const library = it->second;
