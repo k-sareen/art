@@ -1797,6 +1797,7 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
     // Extra added to the default heap growth multiplier for concurrent GC
     // compaction algorithms. This is done for historical reasons.
     // TODO: remove when we revisit heap configurations.
+    // TODO(kunals): Check this when using MMTk
     foreground_heap_growth_multiplier =
         runtime_options.GetOrDefault(Opt::ForegroundHeapGrowthMultiplier) + 1.0f;
   }

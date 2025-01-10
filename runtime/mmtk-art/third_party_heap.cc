@@ -40,6 +40,11 @@ namespace third_party_heap {
 
 ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
                                size_t capacity,
+                               size_t growth_limit,
+                               double target_utilization,
+                               size_t min_free,
+                               size_t max_free,
+                               double foreground_heap_growth_multiplier,
                                bool use_tlab,
                                bool is_zygote_process)
                             : use_tlab_(use_tlab),
@@ -53,7 +58,13 @@ ThirdPartyHeap::ThirdPartyHeap(size_t initial_size,
 #else
   MmtkPlanSelector plan = MmtkPlanSelector::Immix;
 #endif  // ART_USE_WRITE_BARRIER
-  mmtk_set_heap_size(initial_size, capacity);
+  mmtk_set_heap_size(initial_size,
+                     capacity,
+                     growth_limit,
+                     target_utilization,
+                     min_free,
+                     max_free,
+                     foreground_heap_growth_multiplier);
   mmtk_init(&art_upcalls, plan, is_zygote_process_);
 }
 
@@ -79,8 +90,24 @@ uint32_t ThirdPartyHeap::GetNumberOfWorkers() {
   return mmtk_get_number_of_workers();
 }
 
+void ThirdPartyHeap::ClampGrowthLimit() {
+  mmtk_clamp_growth_limit();
+}
+
+void ThirdPartyHeap::ClearGrowthLimit() {
+  mmtk_clear_growth_limit();
+}
+
 bool ThirdPartyHeap::ClampMaxHeapSize(size_t max) {
   return mmtk_clamp_max_heap_size(max);
+}
+
+void ThirdPartyHeap::SetIsJankPerceptible(bool is_jank_perceptible) {
+  mmtk_set_is_jank_perceptible(is_jank_perceptible);
+}
+
+void ThirdPartyHeap::GrowHeapOnJankPerceptibleSwitch() {
+  mmtk_grow_heap_on_jank_perceptible_switch();
 }
 
 void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size) {

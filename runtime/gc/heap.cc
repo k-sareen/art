@@ -577,7 +577,15 @@ Heap::Heap(size_t initial_size,
   UNUSED(kMemMapSpaceName);
   UNUSED(kZygoteSpaceName);
   UNUSED(kRegionSpaceName);
-  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_, capacity, use_tlab_, is_zygote));
+  tp_heap_.reset(new third_party_heap::ThirdPartyHeap(initial_heap_size_,
+                                                      capacity,
+                                                      growth_limit,
+                                                      target_utilization,
+                                                      min_free,
+                                                      max_free,
+                                                      foreground_heap_growth_multiplier,
+                                                      use_tlab_,
+                                                      is_zygote));
 #else
   LOG(INFO) << "Using " << foreground_collector_type_ << " GC.";
   if (gUseUserfaultfd) {
@@ -1320,14 +1328,23 @@ void Heap::UpdateProcessState(ProcessState old_process_state, ProcessState new_p
     const bool jank_perceptible = new_process_state == kProcessStateJankPerceptible;
     if (jank_perceptible) {
       // Transition back to foreground right away to prevent jank.
+#if !ART_USE_MMTK
       RequestCollectorTransition(foreground_collector_type_, 0);
       GrowHeapOnJankPerceptibleSwitch();
+#else
+      tp_heap_->SetIsJankPerceptible(jank_perceptible);
+      tp_heap_->GrowHeapOnJankPerceptibleSwitch();
+#endif  // !ART_USE_MMTK
     } else {
       // If background_collector_type_ is kCollectorTypeHomogeneousSpaceCompact then we have
       // special handling which does a homogenous space compaction once but then doesn't transition
       // the collector. Similarly, we invoke a full compaction for kCollectorTypeCC but don't
       // transition the collector.
+#if !ART_USE_MMTK
       RequestCollectorTransition(background_collector_type_, 0);
+#else
+      tp_heap_->SetIsJankPerceptible(jank_perceptible);
+#endif  // !ART_USE_MMTK
     }
   }
 }
@@ -4347,8 +4364,14 @@ void Heap::ClampGrowthLimit() {
       }
     }
   } else {
+#if !ART_USE_MMTK
     capacity_ = growth_limit_;
+#else
+    LOG(INFO) << "Clamping growth limit for " << package_name;
+    tp_heap_->ClampGrowthLimit();
+#endif  // !ART_USE_MMTK
   }
+#if !ART_USE_MMTK
   for (const auto& space : continuous_spaces_) {
     if (space->IsMallocSpace()) {
       gc::space::MallocSpace* malloc_space = space->AsMallocSpace();
@@ -4377,6 +4400,7 @@ void Heap::ClampGrowthLimit() {
     << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
     << ". Growth limit = " << growth_limit_
     << ". Concurrent start bytes = " << concurrent_start_bytes_;
+#endif  // !ART_USE_MMTK
 }
 
 void Heap::ClearGrowthLimit() {
@@ -4387,6 +4411,7 @@ void Heap::ClearGrowthLimit() {
     ClampGrowthLimit();
     return;
   }
+#if !ART_USE_MMTK
   if (target_footprint_.load(std::memory_order_relaxed) == growth_limit_
       && growth_limit_ < capacity_) {
     target_footprint_.store(capacity_, std::memory_order_relaxed);
@@ -4411,6 +4436,10 @@ void Heap::ClearGrowthLimit() {
     << " for CC). Target footprint = " << target_footprint_.load(std::memory_order_relaxed)
     << ". Growth limit = " << growth_limit_
     << ". Concurrent start bytes = " << concurrent_start_bytes_;
+#else
+  LOG(INFO) << "Clearing growth limit for " << package_name;
+  tp_heap_->ClearGrowthLimit();
+#endif  // !ART_USE_MMTK
 }
 
 void Heap::AddFinalizerReference(Thread* self, ObjPtr<mirror::Object>* object) {

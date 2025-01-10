@@ -59,6 +59,11 @@ class ThirdPartyHeap {
  public:
   ThirdPartyHeap(size_t initial_size,
                  size_t capacity,
+                 size_t growth_limit,
+                 double target_utilization,
+                 size_t min_free,
+                 size_t max_free,
+                 double foreground_heap_growth_multiplier,
                  bool use_tlab,
                  bool is_zygote_process);
 
@@ -79,6 +84,18 @@ class ThirdPartyHeap {
 
   // Return number of GC worker threads
   uint32_t GetNumberOfWorkers();
+
+  // Set the capacity to the growth limit, thereby decreasing the heap size
+  void ClampGrowthLimit();
+
+  // Set the growth limit to the capacity, thereby increasing the heap size
+  void ClearGrowthLimit();
+
+  // Inform the ThirdPartyHeap if the application is jank perceptible or not
+  void SetIsJankPerceptible(bool is_jank_perceptible);
+
+  // Use cached heap size values when an application switches to a jank perceptible state
+  void GrowHeapOnJankPerceptibleSwitch();
 
   // Clamp the max heap size for target application. Return if the max heap size was clamped
   bool ClampMaxHeapSize(size_t max);
