@@ -54,7 +54,10 @@ inline mirror::Object* RosAllocSpace::AllocCommon(Thread* self, size_t num_bytes
       *usable_size = rosalloc_usable_size;
     }
     DCHECK(bytes_tl_bulk_allocated != nullptr);
-    *bytes_tl_bulk_allocated = rosalloc_bytes_tl_bulk_allocated;
+    // XXX(kunals): Ignore nonmoving space for now as it is the biggest discrepancy between stock ART and MMTk
+    // *bytes_tl_bulk_allocated = allocation_size;
+    // *bytes_tl_bulk_allocated = rosalloc_bytes_tl_bulk_allocated;
+    *bytes_tl_bulk_allocated = 0;
   }
   return result;
 }
