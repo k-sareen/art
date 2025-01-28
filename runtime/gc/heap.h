@@ -1616,8 +1616,8 @@ class Heap {
   // Info related to the current or previous GC iteration.
   collector::Iteration current_gc_iteration_;
 
-  Atomic<size_t> total_non_moving_bytes_;
-  Atomic<size_t> total_non_moving_objects_;
+  // Atomic<size_t> total_non_moving_bytes_;
+  // Atomic<size_t> total_non_moving_objects_;
 
   // Heap verification flags.
   const bool verify_missing_card_marks_;

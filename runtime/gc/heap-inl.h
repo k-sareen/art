@@ -381,9 +381,9 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                                usable_size,
                                                bytes_tl_bulk_allocated);
       }
-      size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
-      size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
-      LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
+      // size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
+      // size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
+      // LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
       break;
     }
     case kAllocatorTypeNonMoving: {
@@ -392,9 +392,9 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                      bytes_allocated,
                                      usable_size,
                                      bytes_tl_bulk_allocated);
-      size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
-      size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
-      LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
+      // size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
+      // size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
+      // LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
       break;
     }
     case kAllocatorTypeLOS: {

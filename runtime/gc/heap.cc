@@ -2809,8 +2809,8 @@ void Heap::PreZygoteFork() {
   AddSpace(zygote_space_);
   non_moving_space_->SetFootprintLimit(non_moving_space_->Capacity());
   AddSpace(non_moving_space_);
-  total_non_moving_bytes_.store(0, std::memory_order_relaxed);
-  total_non_moving_objects_.store(0, std::memory_order_relaxed);
+  // total_non_moving_bytes_.store(0, std::memory_order_relaxed);
+  // total_non_moving_objects_.store(0, std::memory_order_relaxed);
   constexpr bool set_mark_bit = kUseBakerReadBarrier
                                 && gc::collector::ConcurrentCopying::kGrayDirtyImmuneObjects;
   if (set_mark_bit) {
