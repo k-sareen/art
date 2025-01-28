@@ -40,6 +40,7 @@
 #include "gc/collector/mark_compact.h"
 #include "gc/collector_type.h"
 #include "gc/gc_cause.h"
+#include "gc/power_stats.h"
 #include "gc/space/large_object_space.h"
 #include "gc/space/space.h"
 #include "handle.h"
@@ -1097,6 +1098,7 @@ class Heap {
   bool PerfCountersCreated() {
     return perf_counters_created_.load();
   }
+  void CreatePerfCounters();
 
   std::vector<PerfCounter*> GetPerfCounters() {
     return perf_counters_;
@@ -1832,6 +1834,7 @@ class Heap {
   std::vector<PerfCounter*> perf_counters_;
   // Have the perf counters been created?
   std::atomic<bool> perf_counters_created_;
+  std::unique_ptr<IioEnergyMeterDataProvider> power_stats_;
 
   // Boot image spaces.
   std::vector<space::ImageSpace*> boot_image_spaces_;

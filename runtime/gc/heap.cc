@@ -110,6 +110,7 @@
 #ifdef ART_TARGET_ANDROID
 #include "perfetto/heap_profile.h"
 #endif
+#include "power_stats.h"
 #include "reflection.h"
 #include "runtime.h"
 #include "javaheapprof/javaheapsampler.h"
@@ -1046,6 +1047,7 @@ Heap::Heap(size_t initial_size,
     // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
     PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
     perf_counters_created_.store(true);
+    power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
   }
 
   // If we are using NoGC then clear and don't release the entire bump pointer
@@ -1070,6 +1072,19 @@ Heap::Heap(size_t initial_size,
 
 void Heap::PerfCounterCreate(std::string perf_event_name) {
   perf_counters_.push_back(new PerfCounter(perf_event_name));
+}
+
+void Heap::CreatePerfCounters() {
+  CHECK(!perf_counters_created_.load());
+  PerfCounterCreate("PERF_COUNT_SW_TASK_CLOCK");
+  PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
+  PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CACHE_MISSES");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
+  PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
+  perf_counters_created_.store(true);
+  power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
 }
 
 MemMap Heap::MapAnonymousPreferredAddress(const char* name,
@@ -1502,6 +1517,9 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
       << "\t" << perf_counter->name_ << ".stw";
   }
 
+  output_string << "\t";
+  power_stats_->PrintColumnNames(&output_string);
+
   output_string << "\n";
 
   output_string << total_gc_count
@@ -1514,6 +1532,9 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     output_string << "\t" << perf_counter->GetOtherCount()
       << "\t" << perf_counter->GetStwCount();
   }
+
+  output_string << "\t";
+  power_stats_->PrintStats(&output_string);
 
   output_string << "\n";
   output_string << "-------------------------- End Tabulate Statistics --------------------------\n";
@@ -1583,6 +1604,8 @@ void Heap::HarnessBegin() {
     }
   }
 
+  power_stats_->StartAll();
+
   ResetGcPerformanceInfo();
 }
 
@@ -1597,6 +1620,8 @@ void Heap::HarnessEnd() {
       perf_counter->Stop();
     }
   }
+
+  power_stats_->StopAll();
 
   DumpGcPerformanceInfo(LOG_STREAM(INFO));
 

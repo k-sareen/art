@@ -278,6 +278,7 @@ cc_defaults {
         "gc/collector/sticky_mark_sweep.cc",
         "gc/gc_cause.cc",
         "gc/heap.cc",
+        "gc/power_stats.cc",
         "gc/reference_processor.cc",
         "gc/reference_queue.cc",
         "gc/scoped_gc_critical_section.cc",
