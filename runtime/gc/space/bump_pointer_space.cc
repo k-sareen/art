@@ -15,9 +15,12 @@
  */
 
 #include "bump_pointer_space.h"
+#include "base/bit_utils.h"
 #include "bump_pointer_space-inl.h"
+#include "gc/collector_type.h"
 #include "mirror/class-inl.h"
 #include "mirror/object-inl.h"
+#include "runtime_globals.h"
 #include "thread_list.h"
 
 namespace art HIDDEN {
@@ -196,7 +199,7 @@ accounting::ContinuousSpaceBitmap::SweepCallback* BumpPointerSpace::GetSweepCall
 
 uint64_t BumpPointerSpace::GetBytesAllocated() {
   // Start out pre-determined amount (blocks which are not being allocated into).
-  uint64_t total = static_cast<uint64_t>(bytes_allocated_.load(std::memory_order_relaxed));
+  uint64_t total = RoundUp(static_cast<uint64_t>(bytes_allocated_.load(std::memory_order_relaxed)), gPageSize);
   Thread* self = Thread::Current();
   MutexLock mu(self, *Locks::runtime_shutdown_lock_);
   MutexLock mu2(self, *Locks::thread_list_lock_);
@@ -204,9 +207,11 @@ uint64_t BumpPointerSpace::GetBytesAllocated() {
   MutexLock mu3(Thread::Current(), lock_);
   // If we don't have any blocks, we don't have any thread local buffers. This check is required
   // since there can exist multiple bump pointer spaces which exist at the same time.
+  // LOG(WARNING) << "kunals: gba: " << GetName() << " start = " << total;
   if (!block_sizes_.empty()) {
     for (Thread* thread : thread_list) {
       total += thread->GetThreadLocalBytesAllocated();
+      // LOG(WARNING) << "kunals: gba: tlab bytes = " << thread->GetThreadLocalBytesAllocated() << " running total = " << total;
     }
   }
   return total;
@@ -232,7 +237,11 @@ uint64_t BumpPointerSpace::GetObjectsAllocated() {
 
 void BumpPointerSpace::RevokeThreadLocalBuffersLocked(Thread* thread) {
   objects_allocated_.fetch_add(thread->GetThreadLocalObjectsAllocated(), std::memory_order_relaxed);
-  bytes_allocated_.fetch_add(thread->GetThreadLocalBytesAllocated(), std::memory_order_relaxed);
+  size_t bytes_allocated = thread->GetThreadLocalBytesAllocated();
+  // if (!IsAligned<gPageSize>(bytes_allocated)) {
+  //   LOG(WARNING) << "kunals: bump pointer revoke TLAB adding bytes not page aligned " << bytes_allocated;
+  // }
+  bytes_allocated_.fetch_add(bytes_allocated, std::memory_order_relaxed);
   thread->ResetTlab();
 }
 
@@ -246,7 +255,16 @@ bool BumpPointerSpace::AllocNewTlab(Thread* self, size_t bytes, size_t* bytes_tl
   }
   self->SetTlab(start, start + bytes, start + bytes);
   if (bytes_tl_bulk_allocated != nullptr) {
-    *bytes_tl_bulk_allocated = bytes;
+    // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
+    auto collector_type = Runtime::Current()->GetHeap()->CurrentCollectorType();
+    if (collector_type == kCollectorTypeSS
+        || collector_type == kCollectorTypeCC
+        || collector_type == kCollectorTypeCCBackground) {
+      *bytes_tl_bulk_allocated = 2 * bytes;
+      // *bytes_tl_bulk_allocated = bytes;
+    } else {
+      *bytes_tl_bulk_allocated = bytes;
+    }
   }
   return true;
 }

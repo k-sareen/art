@@ -18,8 +18,11 @@
 #define ART_RUNTIME_GC_HEAP_INL_H_
 
 #include <atomic>
+#include "android-base/logging.h"
+#include "gc/collector_type.h"
 #include "heap.h"
 
+#include "gc/allocator_type.h"
 #include "allocation_listener.h"
 #include "base/quasi_atomic.h"
 #include "base/time_utils.h"
@@ -194,6 +197,7 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
     }
     if (bytes_tl_bulk_allocated > 0) {
       starting_gc_num = GetCurrentGcNum();
+      // LOG(WARNING) << "kunals: Allocating " << bytes_tl_bulk_allocated << " bytes in bulk for allocator " << allocator;
       size_t num_bytes_allocated_before = AddBytesAllocated(bytes_tl_bulk_allocated);
       new_num_bytes_allocated = num_bytes_allocated_before + bytes_tl_bulk_allocated;
       // Only trace when we get an increase in the number of bytes allocated. This happens when
@@ -464,7 +468,8 @@ inline bool Heap::IsOutOfMemoryOnAllocation([[maybe_unused]] AllocatorType alloc
                                             bool grow) {
   size_t old_target = target_footprint_.load(std::memory_order_relaxed);
   while (true) {
-    size_t old_allocated = num_bytes_allocated_.load(std::memory_order_relaxed);
+    // size_t old_allocated = num_bytes_allocated_.load(std::memory_order_relaxed);
+    size_t old_allocated = GetBytesAllocated();
     size_t new_footprint = old_allocated + alloc_size;
     // Tests against heap limits are inherently approximate, since multiple allocations may
     // race, and this is not atomic with the allocation.

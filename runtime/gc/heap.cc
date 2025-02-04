@@ -1546,7 +1546,8 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
       << " times\n";
   }
 
-  LOG(INFO) << output_string.str();
+  LOG(WARNING) << output_string.str();
+  // std::cout << output_string.str();
 }
 
 void Heap::ResetGcPerformanceInfo() {
@@ -2082,7 +2083,8 @@ void Heap::VerifyObjectBody(ObjPtr<mirror::Object> obj) {
   }
 
   // Ignore early dawn of the universe verifications.
-  if (UNLIKELY(num_bytes_allocated_.load(std::memory_order_relaxed) < 10 * KB)) {
+  // if (UNLIKELY(num_bytes_allocated_.load(std::memory_order_relaxed) < 10 * KB)) {
+  if (UNLIKELY(GetBytesAllocated() < 10 * KB)) {
     return;
   }
   CHECK_ALIGNED(obj.Ptr(), kObjectAlignment) << "Object isn't aligned";
@@ -2117,7 +2119,10 @@ void Heap::RecordFree(uint64_t freed_objects, int64_t freed_bytes) {
   RACING_DCHECK_LE(freed_bytes,
                    static_cast<int64_t>(num_bytes_allocated_.load(std::memory_order_relaxed)));
   // Note: This relies on 2s complement for handling negative freed_bytes.
-  num_bytes_allocated_.fetch_sub(static_cast<ssize_t>(freed_bytes), std::memory_order_relaxed);
+  // LOG(WARNING) << "kunals: RecordFree: freed_objects=" << freed_objects
+  //           << " freed_bytes=" << freed_bytes;
+  // num_bytes_allocated_.fetch_sub(static_cast<ssize_t>(freed_bytes), std::memory_order_relaxed);
+  SubBytesAllocated(static_cast<ssize_t>(freed_bytes));
   if (Runtime::Current()->HasStatsEnabled()) {
     RuntimeStats* thread_stats = Thread::Current()->GetStats();
     thread_stats->freed_objects += freed_objects;
@@ -2137,7 +2142,8 @@ void Heap::RecordFreeRevoke() {
   size_t bytes_freed = num_bytes_freed_revoke_.load(std::memory_order_relaxed);
   CHECK_GE(num_bytes_freed_revoke_.fetch_sub(bytes_freed, std::memory_order_relaxed),
            bytes_freed) << "num_bytes_freed_revoke_ underflow";
-  CHECK_GE(num_bytes_allocated_.fetch_sub(bytes_freed, std::memory_order_relaxed),
+  CHECK_GE(SubBytesAllocated(bytes_freed),
+  // CHECK_GE(num_bytes_allocated_.fetch_sub(bytes_freed, std::memory_order_relaxed),
            bytes_freed) << "num_bytes_allocated_ underflow";
   GetCurrentGcIteration()->SetFreedRevoke(bytes_freed);
 }
@@ -4513,7 +4519,8 @@ void Heap::IncrementNumberOfBytesFreedRevoke(size_t freed_bytes_revoke) {
   // Check the updated value is less than the number of bytes allocated. There is a risk of
   // execution being suspended between the increment above and the CHECK below, leading to
   // the use of previous_num_bytes_freed_revoke in the comparison.
-  CHECK_GE(num_bytes_allocated_.load(std::memory_order_relaxed),
+  CHECK_GE(GetBytesAllocated(),
+  // CHECK_GE(num_bytes_allocated_.load(std::memory_order_relaxed),
            previous_num_bytes_freed_revoke + freed_bytes_revoke);
 }
 
@@ -4952,7 +4959,15 @@ mirror::Object* Heap::AllocWithNewTLAB(Thread* self,
     if (UNLIKELY(IsOutOfMemoryOnAllocation(allocator_type, expand_bytes, grow))) {
       return nullptr;
     }
-    *bytes_tl_bulk_allocated = expand_bytes;
+    // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
+    if (collector_type_ == kCollectorTypeSS
+        || collector_type_ == kCollectorTypeCC
+        || collector_type_ == kCollectorTypeCCBackground) {
+      *bytes_tl_bulk_allocated = 2 * expand_bytes;
+      // *bytes_tl_bulk_allocated = expand_bytes;
+    } else {
+      *bytes_tl_bulk_allocated = expand_bytes;
+    }
     self->ExpandTlab(expand_bytes);
     DCHECK_LE(alloc_size, self->TlabSize());
   } else if (allocator_type == kAllocatorTypeTLAB) {
@@ -4978,6 +4993,7 @@ mirror::Object* Heap::AllocWithNewTLAB(Thread* self,
     if (jhp_enabled) {
       VLOG(heap) << "JHP:kAllocatorTypeTLAB, New Tlab bytes allocated= " << new_tlab_size;
     }
+    DCHECK_LE(alloc_size, self->TlabSize());
   } else {
     DCHECK(allocator_type == kAllocatorTypeRegionTLAB);
     DCHECK(region_space_ != nullptr);

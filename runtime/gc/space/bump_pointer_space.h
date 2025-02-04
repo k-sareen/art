@@ -161,6 +161,9 @@ class EXPORT BumpPointerSpace final : public ContinuousMemMapAllocSpace {
   // Record objects / bytes freed.
   void RecordFree(int32_t objects, int32_t bytes) {
     objects_allocated_.fetch_sub(objects, std::memory_order_relaxed);
+    // if (!IsAligned<gPageSize>(bytes)) {
+    //   LOG(WARNING) << "kunals: bump pointer RecordFree subtracting bytes not page aligned " << bytes;
+    // }
     bytes_allocated_.fetch_sub(bytes, std::memory_order_relaxed);
   }
 

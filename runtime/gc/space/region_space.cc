@@ -862,6 +862,8 @@ bool RegionSpace::AllocNewTlab(Thread* self,
   RevokeThreadLocalBuffersLocked(self, /*reuse=*/ gc::Heap::kUsePartialTlabs);
   Region* r = nullptr;
   uint8_t* pos = nullptr;
+  // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
+  // *bytes_tl_bulk_allocated = 2 * tlab_size;
   *bytes_tl_bulk_allocated = tlab_size;
   // First attempt to get a partially used TLAB, if available.
   if (tlab_size < kRegionSize) {
@@ -875,6 +877,8 @@ bool RegionSpace::AllocNewTlab(Thread* self,
       DCHECK_GT(r->End(), pos);
       DCHECK_LE(r->Begin(), pos);
       DCHECK_GE(r->Top(), pos);
+      // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
+      // *bytes_tl_bulk_allocated -= 2 * (r->Top() - pos);
       *bytes_tl_bulk_allocated -= r->Top() - pos;
     }
   }

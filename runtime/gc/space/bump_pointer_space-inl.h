@@ -57,6 +57,9 @@ inline mirror::Object* BumpPointerSpace::AllocThreadUnsafe(Thread* self, size_t 
   // Use the CAS free versions as an optimization.
   objects_allocated_.store(objects_allocated_.load(std::memory_order_relaxed) + 1,
                            std::memory_order_relaxed);
+  // if (!IsAligned<gPageSize>(num_bytes)) {
+  //   LOG(WARNING) << "kunals: bump pointer alloc threadunsafe adding bytes not page aligned " << num_bytes;
+  // }
   bytes_allocated_.store(bytes_allocated_.load(std::memory_order_relaxed) + num_bytes,
                          std::memory_order_relaxed);
   if (UNLIKELY(usable_size != nullptr)) {
@@ -85,6 +88,9 @@ inline mirror::Object* BumpPointerSpace::AllocNonvirtual(size_t num_bytes) {
   mirror::Object* ret = AllocNonvirtualWithoutAccounting(num_bytes);
   if (ret != nullptr) {
     objects_allocated_.fetch_add(1, std::memory_order_relaxed);
+    // if (!IsAligned<gPageSize>(num_bytes)) {
+    //   LOG(WARNING) << "kunals: bump pointer alloc nonvirtual adding bytes not page aligned " << num_bytes;
+    // }
     bytes_allocated_.fetch_add(num_bytes, std::memory_order_relaxed);
   }
   return ret;

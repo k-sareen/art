@@ -28,6 +28,7 @@
 
 #include "allocator_type.h"
 #include "base/atomic.h"
+#include "base/bit_utils.h"
 #include "base/histogram.h"
 #include "base/macros.h"
 #include "base/mutex.h"
@@ -608,6 +609,10 @@ class Heap {
 
   EXPORT void AddFinalizerReference(Thread* self, ObjPtr<mirror::Object>* object);
 
+  // EXPORT size_t GetCurrentHeapSize() {
+  //
+  // }
+
   // Returns the number of bytes currently allocated.
   // The result should be treated as an approximation, if it is being concurrently updated.
   size_t GetBytesAllocated() const {
@@ -616,7 +621,20 @@ class Heap {
 
   // Returns bytes_allocated before adding 'bytes' to it.
   size_t AddBytesAllocated(size_t bytes) {
-    return num_bytes_allocated_.fetch_add(bytes, std::memory_order_relaxed);
+    if (!IsAligned<gPageSize>(bytes)) {
+      LOG(WARNING) << "kunals: adding bytes not page aligned: " << bytes;
+    }
+    size_t old = num_bytes_allocated_.fetch_add(bytes, std::memory_order_relaxed);
+    // LOG(WARNING) << "kunals: add bytes allocated: old = " << old << " new = " << old + bytes << " bytes added = " << bytes;
+    return old;
+  }
+
+  // Returns bytes_allocated before subtracting 'bytes' to it.
+  size_t SubBytesAllocated(size_t bytes) {
+    if (!IsAligned<gPageSize>(bytes)) {
+      LOG(WARNING) << "kunals: subtracting bytes not page aligned: " << bytes;
+    }
+    return num_bytes_allocated_.fetch_sub(bytes, std::memory_order_relaxed);
   }
 
   bool GetUseGenerationalCC() const {
@@ -674,7 +692,8 @@ class Heap {
   // Similar to GetFreeMemoryUntilGC. Implements java.lang.Runtime.freeMemory.
   size_t GetFreeMemory() const {
     return UnsignedDifference(GetTotalMemory(),
-                              num_bytes_allocated_.load(std::memory_order_relaxed));
+                              // num_bytes_allocated_.load(std::memory_order_relaxed));
+                              GetBytesAllocated());
   }
 
   // Get the space that corresponds to an object's address. Current implementation searches all

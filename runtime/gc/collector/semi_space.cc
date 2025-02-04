@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "runtime_globals.h"
 #include "semi_space-inl.h"
 
 #include <climits>
@@ -37,6 +38,7 @@
 #include "gc/space/image_space.h"
 #include "gc/space/large_object_space.h"
 #include "gc/space/space-inl.h"
+#include "gc/space/zygote_space.h"
 #include "indirect_reference_table.h"
 #include "intern_table.h"
 #include "jni/jni_internal.h"
@@ -110,21 +112,110 @@ void SemiSpace::RunPhases() {
     MarkingPhase();
     ReclaimPhase();
     GetHeap()->PostGcVerificationPaused(this);
+    FinishPhase();
   } else {
     Locks::mutator_lock_->AssertNotHeld(self);
+    // {
+    //   ScopedPause pause(this);
+    //   GetHeap()->PreGcVerificationPaused(this);
+    //   GetHeap()->PrePauseRosAllocVerification(this);
+    //   MarkingPhase();
+    // }
+    // {
+    //   ReaderMutexLock mu(self, *Locks::mutator_lock_);
+    //   ReclaimPhase();
+    // }
+    ScopedPause pause(this);
     {
-      ScopedPause pause(this);
-      GetHeap()->PreGcVerificationPaused(this);
-      GetHeap()->PrePauseRosAllocVerification(this);
-      MarkingPhase();
+      size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
+      size_t bump_size = GetHeap()->bump_pointer_space_->GetBytesAllocated();
+      size_t temp_size = GetHeap()->temp_space_->GetBytesAllocated();
+      size_t los_size = GetHeap()->large_object_space_->GetBytesAllocated();
+      size_t non_moving_size = GetHeap()->non_moving_space_->GetBytesAllocated();
+      size_t zygote_size = 0;
+      if (GetHeap()->zygote_space_) {
+        zygote_size = GetHeap()->zygote_space_->GetBytesAllocated();
+      }
+
+      if (!IsAligned<gPageSize>(num_bytes_allocated)) {
+        LOG(WARNING) << "kunals: BEFORE num_bytes_allocated not page aligned: " << num_bytes_allocated;
+      }
+
+      if (num_bytes_allocated != (bump_size + temp_size) * 2 + los_size) {
+        LOG(WARNING) << "kunals: BEFORE Space sizes don't match! num_bytes_allocated = "
+                     << num_bytes_allocated << " bump_size = " << bump_size
+                     << " temp_size = " << temp_size << " los_size = " << los_size
+                     << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size
+                     << "; missing " << (ssize_t) num_bytes_allocated - ((ssize_t)((bump_size + temp_size) * 2 + los_size))
+                     << " bytes!";
+      } else {
+        // LOG(WARNING) << "kunals: BEFORE Space sizes match! num_bytes_allocated = "
+        //              << num_bytes_allocated << " bump_size = " << bump_size
+        //              << " temp_size = " << temp_size << " los_size = " << los_size
+        //              << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size;
+      }
+
+      for (const auto& space : GetHeap()->GetContinuousSpaces()) {
+        if (space->IsAllocSpace()) {
+          GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
+        }
+      }
+      for (const auto& space : GetHeap()->GetDiscontinuousSpaces()) {
+        if (space->IsAllocSpace()) {
+          GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
+        }
+      }
     }
+
+    GetHeap()->PreGcVerificationPaused(this);
+    GetHeap()->PrePauseRosAllocVerification(this);
+    MarkingPhase();
+    ReclaimPhase();
+    GetHeap()->PostGcVerificationPaused(this);
+    FinishPhase();
+
     {
-      ReaderMutexLock mu(self, *Locks::mutator_lock_);
-      ReclaimPhase();
+      size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
+      size_t bump_size = GetHeap()->bump_pointer_space_->GetBytesAllocated();
+      size_t temp_size = GetHeap()->temp_space_->GetBytesAllocated();
+      size_t los_size = GetHeap()->large_object_space_->GetBytesAllocated();
+      size_t non_moving_size = GetHeap()->non_moving_space_->GetBytesAllocated();
+      size_t zygote_size = 0;
+      if (GetHeap()->zygote_space_) {
+        zygote_size = GetHeap()->zygote_space_->GetBytesAllocated();
+      }
+
+      if (!IsAligned<gPageSize>(num_bytes_allocated)) {
+        LOG(WARNING) << "kunals: AFTER num_bytes_allocated not page aligned: " << num_bytes_allocated;
+      }
+
+      if (num_bytes_allocated != (bump_size + temp_size) * 2 + los_size) {
+        LOG(WARNING) << "kunals: AFTER Space sizes don't match! num_bytes_allocated = "
+                     << num_bytes_allocated << " bump_size = " << bump_size
+                     << " temp_size = " << temp_size << " los_size = " << los_size
+                     << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size
+                     << "; missing " << (ssize_t) num_bytes_allocated - ((ssize_t)((bump_size + temp_size) * 2 + los_size))
+                     << " bytes!";
+      } else {
+        // LOG(WARNING) << "kunals: AFTER Space sizes match! num_bytes_allocated = "
+        //              << num_bytes_allocated << " bump_size = " << bump_size
+        //              << " temp_size = " << temp_size << " los_size = " << los_size
+        //              << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size;
+      }
+
+      for (const auto& space : GetHeap()->GetContinuousSpaces()) {
+        if (space->IsAllocSpace()) {
+          GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
+        }
+      }
+      for (const auto& space : GetHeap()->GetDiscontinuousSpaces()) {
+        if (space->IsAllocSpace()) {
+          GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
+        }
+      }
     }
-    GetHeap()->PostGcVerification(this);
   }
-  FinishPhase();
+  // FinishPhase();
 }
 
 void SemiSpace::InitializePhase() {
@@ -210,12 +301,19 @@ void SemiSpace::MarkingPhase() {
   GetHeap()->RecordFreeRevoke();  // This is for the non-moving rosalloc space.
   // Record freed memory.
   const int64_t from_bytes = from_space_->GetBytesAllocated();
+  bytes_moved_ = RoundUp(bytes_moved_, gPageSize);
   const int64_t to_bytes = bytes_moved_;
   const uint64_t from_objects = from_space_->GetObjectsAllocated();
   const uint64_t to_objects = objects_moved_;
+  CHECK_EQ(to_space_->GetBytesAllocated(), static_cast<size_t>(to_bytes));
   // Note: Freed bytes can be negative if we copy form a compacted space to a free-list backed
   // space.
-  RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
+  if (!IsAligned<gPageSize>(from_bytes - to_bytes)) {
+    LOG(WARNING) << "kunals: bytes freed not page aligned: " << from_bytes - to_bytes << " from_bytes = " << from_bytes << " to_bytes = " << to_bytes;
+  }
+  // XXX(kunals): 2x bytes are freed from total bytes allocated since we are counting the collection reserved pages
+  RecordFree(ObjectBytePair(from_objects - to_objects, 2 * (from_bytes - to_bytes)));
+  // RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
   // Clear and protect the from space.
   // XXX(kunals): Uncomment the following line and comment out
   // from_space->Clear() if running inside chroot. The SemiSpace collector is

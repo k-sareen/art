@@ -2818,13 +2818,13 @@ void ConcurrentCopying::ReclaimPhase() {
                 << " unevac_from_space size=" << region_space_->UnevacFromSpaceSize()
                 << " to_space size=" << region_space_->ToSpaceSize();
       LOG(INFO) << "(before) num_bytes_allocated="
-                << heap_->num_bytes_allocated_.load();
+                << heap_->GetBytesAllocated();
     }
     RecordFree(ObjectBytePair(freed_objects, freed_bytes));
     GetCurrentIteration()->SetScannedBytes(bytes_scanned_);
     if (kVerboseMode) {
       LOG(INFO) << "(after) num_bytes_allocated="
-                << heap_->num_bytes_allocated_.load();
+                << heap_->GetBytesAllocated();
     }
 
     float reclaimed_bytes_ratio = static_cast<float>(freed_bytes) / num_bytes_allocated_before_gc_;
@@ -3488,7 +3488,7 @@ mirror::Object* ConcurrentCopying::Copy(Thread* const self,
         region_space_->RecordAlloc(to_ref);
       }
       bytes_allocated = region_space_alloc_size;
-      heap_->num_bytes_allocated_.fetch_sub(bytes_allocated, std::memory_order_relaxed);
+      heap_->SubBytesAllocated(bytes_allocated);
       to_space_bytes_skipped_.fetch_sub(bytes_allocated, std::memory_order_relaxed);
       to_space_objects_skipped_.fetch_sub(1, std::memory_order_relaxed);
     } else {
@@ -3540,7 +3540,7 @@ mirror::Object* ConcurrentCopying::Copy(Thread* const self,
       if (!fall_back_to_non_moving) {
         DCHECK(region_space_->IsInToSpace(to_ref));
         // Record the lost copy for later reuse.
-        heap_->num_bytes_allocated_.fetch_add(bytes_allocated, std::memory_order_relaxed);
+        heap_->AddBytesAllocated(bytes_allocated);
         to_space_bytes_skipped_.fetch_add(bytes_allocated, std::memory_order_relaxed);
         to_space_objects_skipped_.fetch_add(1, std::memory_order_relaxed);
         MutexLock mu(self, skipped_blocks_lock_);
