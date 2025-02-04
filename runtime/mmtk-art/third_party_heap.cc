@@ -15,6 +15,7 @@
  */
 
 #include "gc/third_party_heap.h"
+#include <atomic>
 
 #if ART_USE_MMTK_EXTREME_ASSERT
 #include <unordered_set>
@@ -207,17 +208,21 @@ void ThirdPartyHeap::BlockThreadForCollection(Thread* self) {
   Heap* heap = Runtime::Current()->GetHeap();
   VLOG(threads) << "Blocking GC requested by thread: " << *self;
 
-  bool expected = false;
-  if (first_mutator_to_block_.compare_exchange_strong(expected, true)) {
+  if (!first_mutator_to_block_.exchange(true)) {
     VLOG(threads) << "First thread to block: " << *self;
     RunCompanionThreadRoutine(self);
     VLOG(threads) << "First thread to block is waking up: " << *self;
-    expected = true;
-    first_mutator_to_block_.compare_exchange_strong(expected, false, std::memory_order_relaxed);
+    first_mutator_to_block_.store(false);
   } else {
+    // XXX(kunals): There is a subtle race condition here if two threads are about to both block
+    // but the current thread gets suspended when it acquires the gc_complete_lock_ below. In
+    // such a case the current thread would get stuck in a loop waiting for a non-existent GC
+    // to complete if the next_gc_num was calculated after the mutex was acquired.
+    // Hence, calculate the next_gc_num before acquiring the lock to avoid this rare infinite loop.
+    uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
+    CHECK(first_mutator_to_block_.load()) << "First mutator to block is not set! " << *self;
     art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
     MutexLock mu(self, *heap->gc_complete_lock_);
-    uint32_t next_gc_num = heap->GetCurrentGcNum() + 1;
     heap->gc_complete_cond_->CheckSafeToWait(self);
     // Waiting on the GC number to go up is fine as the number does not go up for fake GCs
     while (heap->GetCurrentGcNum() < next_gc_num) {
