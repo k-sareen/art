@@ -2840,8 +2840,6 @@ void Heap::PreZygoteFork() {
   AddSpace(zygote_space_);
   non_moving_space_->SetFootprintLimit(non_moving_space_->Capacity());
   AddSpace(non_moving_space_);
-  // total_non_moving_bytes_.store(0, std::memory_order_relaxed);
-  // total_non_moving_objects_.store(0, std::memory_order_relaxed);
   constexpr bool set_mark_bit = kUseBakerReadBarrier
                                 && gc::collector::ConcurrentCopying::kGrayDirtyImmuneObjects;
   if (set_mark_bit) {
@@ -2943,10 +2941,6 @@ collector::GarbageCollector* Heap::Compact(space::ContinuousMemMapAllocSpace* ta
 
 void Heap::TraceHeapSize(size_t heap_size) {
   ATraceIntegerValue("Heap size (KB)", heap_size / KB);
-}
-
-void Heap::TraceSpaceSize(std::string space_name, size_t space_size) {
-  ATraceIntegerValue((space_name + " (KB)").c_str(), space_size / KB);
 }
 
 #if defined(__GLIBC__)

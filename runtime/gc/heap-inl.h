@@ -17,9 +17,6 @@
 #ifndef ART_RUNTIME_GC_HEAP_INL_H_
 #define ART_RUNTIME_GC_HEAP_INL_H_
 
-#include <atomic>
-#include "android-base/logging.h"
-#include "gc/collector_type.h"
 #include "heap.h"
 
 #include "gc/allocator_type.h"
@@ -211,16 +208,6 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       } else {
         TraceHeapSize(new_num_bytes_allocated);
       }
-      for (const auto& space : GetContinuousSpaces()) {
-        if (space->IsAllocSpace()) {
-          TraceSpaceSize(space->name_, space->AsAllocSpace()->GetBytesAllocated());
-        }
-      }
-      for (const auto& space : GetDiscontinuousSpaces()) {
-        if (space->IsAllocSpace()) {
-          TraceSpaceSize(space->name_, space->AsAllocSpace()->GetBytesAllocated());
-        }
-      }
       // IsGcConcurrent() isn't known at compile time so we can optimize by not checking it for the
       // BumpPointer or TLAB allocators. This is nice since it allows the entire if statement to be
       // optimized out.
@@ -385,9 +372,6 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                                usable_size,
                                                bytes_tl_bulk_allocated);
       }
-      // size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
-      // size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
-      // LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
       break;
     }
     case kAllocatorTypeNonMoving: {
@@ -396,9 +380,6 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
                                      bytes_allocated,
                                      usable_size,
                                      bytes_tl_bulk_allocated);
-      // size_t num_objects = total_non_moving_objects_.fetch_add(1, std::memory_order_seq_cst);
-      // size_t total_bytes = total_non_moving_bytes_.fetch_add(*bytes_allocated, std::memory_order_seq_cst);
-      // LOG(INFO) << "kunals: total_non_moving_objects = " << num_objects + 1 << " total_non_moving_bytes = " << total_bytes + *bytes_allocated;
       break;
     }
     case kAllocatorTypeLOS: {

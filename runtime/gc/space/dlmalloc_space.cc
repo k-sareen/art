@@ -371,11 +371,10 @@ void DlMallocSpace::SetFootprintLimit(size_t new_size) {
 }
 
 uint64_t DlMallocSpace::GetBytesAllocated() {
-  // MutexLock mu(Thread::Current(), lock_);
-  // size_t bytes_allocated = 0;
-  // mspace_inspect_all(mspace_, DlmallocBytesAllocatedCallback, &bytes_allocated);
-  // return bytes_allocated;
-  return GetFootprint();
+  MutexLock mu(Thread::Current(), lock_);
+  size_t bytes_allocated = 0;
+  mspace_inspect_all(mspace_, DlmallocBytesAllocatedCallback, &bytes_allocated);
+  return bytes_allocated;
 }
 
 uint64_t DlMallocSpace::GetObjectsAllocated() {

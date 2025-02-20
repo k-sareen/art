@@ -1090,7 +1090,6 @@ class Heap {
   void PostForkChildAction(Thread* self) REQUIRES(!*gc_complete_lock_);
 
   EXPORT void TraceHeapSize(size_t heap_size);
-  EXPORT void TraceSpaceSize(std::string space_name, size_t space_size);
 
   bool AddHeapTask(gc::HeapTask* task);
 
@@ -1636,9 +1635,6 @@ class Heap {
 
   // Info related to the current or previous GC iteration.
   collector::Iteration current_gc_iteration_;
-
-  // Atomic<size_t> total_non_moving_bytes_;
-  // Atomic<size_t> total_non_moving_objects_;
 
   // Heap verification flags.
   const bool verify_missing_card_marks_;
