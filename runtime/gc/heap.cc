@@ -1546,8 +1546,8 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
       << " times\n";
   }
 
-  LOG(WARNING) << output_string.str();
-  // std::cout << output_string.str();
+  // LOG(WARNING) << output_string.str();
+  std::cout << output_string.str();
 }
 
 void Heap::ResetGcPerformanceInfo() {
