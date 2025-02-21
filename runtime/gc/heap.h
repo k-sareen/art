@@ -621,9 +621,9 @@ class Heap {
 
   // Returns bytes_allocated before adding 'bytes' to it.
   size_t AddBytesAllocated(size_t bytes) {
-    if (!IsAligned<gPageSize>(bytes)) {
-      LOG(WARNING) << "kunals: adding bytes not page aligned: " << bytes;
-    }
+    // if (!IsAligned<gPageSize>(bytes)) {
+    //   LOG(WARNING) << "kunals: adding bytes not page aligned: " << bytes;
+    // }
     size_t old = num_bytes_allocated_.fetch_add(bytes, std::memory_order_relaxed);
     // LOG(WARNING) << "kunals: add bytes allocated: old = " << old << " new = " << old + bytes << " bytes added = " << bytes;
     return old;
@@ -631,9 +631,9 @@ class Heap {
 
   // Returns bytes_allocated before subtracting 'bytes' to it.
   size_t SubBytesAllocated(size_t bytes) {
-    if (!IsAligned<gPageSize>(bytes)) {
-      LOG(WARNING) << "kunals: subtracting bytes not page aligned: " << bytes;
-    }
+    // if (!IsAligned<gPageSize>(bytes)) {
+    //   LOG(WARNING) << "kunals: subtracting bytes not page aligned: " << bytes;
+    // }
     return num_bytes_allocated_.fetch_sub(bytes, std::memory_order_relaxed);
   }
 

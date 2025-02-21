@@ -309,9 +309,9 @@ void SemiSpace::MarkingPhase() {
   CHECK(Runtime::Current()->IsZygote() || to_space_->GetBytesAllocated() == static_cast<size_t>(to_bytes));
   // Note: Freed bytes can be negative if we copy form a compacted space to a free-list backed
   // space.
-  if (!IsAligned<gPageSize>(from_bytes - to_bytes)) {
-    LOG(WARNING) << "kunals: bytes freed not page aligned: " << from_bytes - to_bytes << " from_bytes = " << from_bytes << " to_bytes = " << to_bytes;
-  }
+  // if (!IsAligned<gPageSize>(from_bytes - to_bytes)) {
+  //   LOG(WARNING) << "kunals: bytes freed not page aligned: " << from_bytes - to_bytes << " from_bytes = " << from_bytes << " to_bytes = " << to_bytes;
+  // }
   // XXX(kunals): 2x bytes are freed from total bytes allocated since we are counting the collection reserved pages
   RecordFree(ObjectBytePair(from_objects - to_objects, 2 * (from_bytes - to_bytes)));
   // RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
