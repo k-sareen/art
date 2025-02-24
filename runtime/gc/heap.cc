@@ -212,7 +212,8 @@ static constexpr uint32_t kAllocSpaceBeginForDeterministicAoT = 0x40000000;
 static const char* kRegionSpaceName = "main space (region space)";
 
 // If true, we log all GCs in the both the foreground and background. Used for debugging.
-static constexpr bool kLogAllGCs = false;
+// static constexpr bool kLogAllGCs = false;
+static constexpr bool kLogAllGCs = true;
 
 // Use Max heap for 2 seconds, this is smaller than the usual 5s window since we don't want to leave
 // allocate with relaxed ergonomics for that long.

@@ -115,18 +115,18 @@ void SemiSpace::RunPhases() {
     FinishPhase();
   } else {
     Locks::mutator_lock_->AssertNotHeld(self);
-    {
-      ScopedPause pause(this);
-      GetHeap()->PreGcVerificationPaused(this);
-      GetHeap()->PrePauseRosAllocVerification(this);
-      MarkingPhase();
-    }
-    {
-      ReaderMutexLock mu(self, *Locks::mutator_lock_);
-      ReclaimPhase();
-    }
-    FinishPhase();
-    // ScopedPause pause(this);
+    // {
+    //   ScopedPause pause(this);
+    //   GetHeap()->PreGcVerificationPaused(this);
+    //   GetHeap()->PrePauseRosAllocVerification(this);
+    //   MarkingPhase();
+    // }
+    // {
+    //   ReaderMutexLock mu(self, *Locks::mutator_lock_);
+    //   ReclaimPhase();
+    // }
+    // FinishPhase();
+    ScopedPause pause(this);
     // {
     //   size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
     //   size_t bump_size = GetHeap()->bump_pointer_space_->GetBytesAllocated();
@@ -168,12 +168,12 @@ void SemiSpace::RunPhases() {
     //   }
     // }
 
-    // GetHeap()->PreGcVerificationPaused(this);
-    // GetHeap()->PrePauseRosAllocVerification(this);
-    // MarkingPhase();
-    // ReclaimPhase();
-    // GetHeap()->PostGcVerificationPaused(this);
-    // FinishPhase();
+    GetHeap()->PreGcVerificationPaused(this);
+    GetHeap()->PrePauseRosAllocVerification(this);
+    MarkingPhase();
+    ReclaimPhase();
+    GetHeap()->PostGcVerificationPaused(this);
+    FinishPhase();
 
     // {
     //   size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
