@@ -71,12 +71,6 @@ inline void SemiSpace::MarkObject(CompressedReferenceType* obj_ptr) {
       // This object was not previously marked.
       MarkStackPush(obj);
     }
-  } else {
-    DCHECK(immune_spaces_.IsInImmuneRegion(obj));
-    if (!mark_bitmap_->Set(obj, VoidFunctor())) {
-      // This object was not previously marked.
-      MarkStackPush(obj);
-    }
   }
 }
 
