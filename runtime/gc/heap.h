@@ -1868,6 +1868,9 @@ class Heap {
 
   std::unique_ptr<Verification> verification_;
 
+  uint64_t scan_object_count_;
+  uint64_t trace_object_count_;
+
   nlohmann::json heap_sizes_;
 
   friend class CollectorTransitionTask;

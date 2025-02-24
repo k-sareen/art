@@ -2682,19 +2682,17 @@ void Runtime::VisitReflectiveTargets(ReflectiveValueVisitor *visitor) {
 
 void Runtime::VisitImageRoots(RootVisitor* visitor) {
   // We only confirm that image roots are unchanged.
-  if (kIsDebugBuild) {
-    for (auto* space : GetHeap()->GetContinuousSpaces()) {
-      if (space->IsImageSpace()) {
-        auto* image_space = space->AsImageSpace();
-        const auto& image_header = image_space->GetImageHeader();
-        for (int32_t i = 0, size = image_header.GetImageRoots()->GetLength(); i != size; ++i) {
-          mirror::Object* obj =
-              image_header.GetImageRoot(static_cast<ImageHeader::ImageRoot>(i)).Ptr();
-          if (obj != nullptr) {
-            mirror::Object* after_obj = obj;
-            visitor->VisitRoot(&after_obj, RootInfo(kRootStickyClass));
-            CHECK_EQ(after_obj, obj);
-          }
+  for (auto* space : GetHeap()->GetContinuousSpaces()) {
+    if (space->IsImageSpace()) {
+      auto* image_space = space->AsImageSpace();
+      const auto& image_header = image_space->GetImageHeader();
+      for (int32_t i = 0, size = image_header.GetImageRoots()->GetLength(); i != size; ++i) {
+        mirror::Object* obj =
+            image_header.GetImageRoot(static_cast<ImageHeader::ImageRoot>(i)).Ptr();
+        if (obj != nullptr) {
+          mirror::Object* after_obj = obj;
+          visitor->VisitRoot(&after_obj, RootInfo(kRootStickyClass));
+          DCHECK_EQ(after_obj, obj);
         }
       }
     }

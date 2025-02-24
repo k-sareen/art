@@ -17,6 +17,7 @@
 #ifndef ART_RUNTIME_GC_COLLECTOR_SEMI_SPACE_INL_H_
 #define ART_RUNTIME_GC_COLLECTOR_SEMI_SPACE_INL_H_
 
+#include "base/utils.h"
 #include "semi_space.h"
 
 #include "gc/accounting/heap_bitmap.h"
@@ -44,6 +45,7 @@ inline void SemiSpace::MarkObject(CompressedReferenceType* obj_ptr) {
   if (obj == nullptr) {
     return;
   }
+  heap_->trace_object_count_++;
   if (from_space_->HasAddress(obj)) {
     mirror::Object* forward_address = GetForwardingAddressInFromSpace(obj);
     // If the object has already been moved, return the new forward address.
@@ -66,6 +68,12 @@ inline void SemiSpace::MarkObject(CompressedReferenceType* obj_ptr) {
       CHECK_ALIGNED_PARAM(ref, space::LargeObjectSpace::ObjectAlignment());
     };
     if (!mark_bitmap_->Set(obj, slow_path)) {
+      // This object was not previously marked.
+      MarkStackPush(obj);
+    }
+  } else {
+    DCHECK(immune_spaces_.IsInImmuneRegion(obj));
+    if (!mark_bitmap_->Set(obj, VoidFunctor())) {
       // This object was not previously marked.
       MarkStackPush(obj);
     }

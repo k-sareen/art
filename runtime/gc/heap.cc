@@ -545,11 +545,10 @@ Heap::Heap(size_t initial_size,
        * verification is enabled, we limit the size of allocation stacks to speed up their
        * searching.
        */
-      max_allocation_stack_size_(kGCALotMode
-          ? kGcAlotAllocationStackSize
-          : (kVerifyObjectSupport > kVerifyObjectModeFast)
-              ? kVerifyObjectAllocationStackSize
-              : kDefaultAllocationStackSize),
+      max_allocation_stack_size_(kGCALotMode ? kGcAlotAllocationStackSize :
+                                 (kVerifyObjectSupport > kVerifyObjectModeFast) ?
+                                               kVerifyObjectAllocationStackSize :
+                                               kDefaultAllocationStackSize),
       current_allocator_(kAllocatorTypeDlMalloc),
       current_non_moving_allocator_(kAllocatorTypeNonMoving),
       bump_pointer_space_(nullptr),
@@ -603,7 +602,9 @@ Heap::Heap(size_t initial_size,
       boot_image_spaces_(),
       boot_images_start_address_(0u),
       boot_images_size_(0u),
-      pre_oome_gc_count_(0u) {
+      pre_oome_gc_count_(0u),
+      scan_object_count_(0),
+      trace_object_count_(0) {
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
@@ -3235,6 +3236,11 @@ void Heap::FinishGC(Thread* self, collector::GcType gc_type) {
   if (gc_type != collector::kGcTypeNone) {
     gcs_completed_.fetch_add(1, std::memory_order_release);
   }
+  if (scan_object_count_ != 0 && trace_object_count_ != 0) {
+    std::cout << "scanned " << scan_object_count_ << " objects; traced " << trace_object_count_ << " objects" << std::endl;
+  }
+  scan_object_count_ = 0;
+  trace_object_count_ = 0;
   // Wake anyone who may have been waiting for the GC to complete.
   gc_complete_cond_->Broadcast(self);
 }

@@ -72,6 +72,7 @@ void SemiSpace::BindBitmaps() {
   for (const auto& space : GetHeap()->GetContinuousSpaces()) {
     if (space->GetGcRetentionPolicy() == space::kGcRetentionPolicyNeverCollect ||
         space->GetGcRetentionPolicy() == space::kGcRetentionPolicyFullCollect) {
+      std::cout << "kunals: Adding " << space->GetName() << " to immune spaces\n";
       immune_spaces_.AddSpace(space);
     } else if (space->GetLiveBitmap() != nullptr) {
       // TODO: We can probably also add this space to the immune region.
@@ -707,6 +708,7 @@ void SemiSpace::ProcessMarkStack() {
   while (!mark_stack_->IsEmpty()) {
     Object* obj = mark_stack_->PopBack();
     ScanObject(obj);
+    heap_->scan_object_count_++;
   }
 }
 
