@@ -282,6 +282,39 @@ static void scan_all_roots(SlotsClosure closure) {
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void scan_vm_space_objects(NodesClosure closure) {
+  art::Runtime* runtime = art::Runtime::Current();
+  size_t cursor = 0;
+  RustBuffer buf = closure.invoke(nullptr, 0, 0);
+  for (auto* space : runtime->GetHeap()->GetContinuousSpaces()) {
+    if (space->IsImageSpace()) {
+      art::gc::accounting::ContinuousSpaceBitmap* live_bitmap = space->GetLiveBitmap();
+      live_bitmap->VisitMarkedRange(reinterpret_cast<uintptr_t>(space->Begin()),
+                                    reinterpret_cast<uintptr_t>(space->End()),
+                                    [&](art::mirror::Object* obj)
+         REQUIRES(art::Locks::mutator_lock_, art::Locks::heap_bitmap_lock_) {
+        buf.buf[cursor++] = obj;
+        if (cursor > 0) {
+          if (cursor >= buf.capacity) {
+            buf = closure.invoke(buf.buf, cursor, buf.capacity);
+            cursor = 0;
+          }
+        }
+      });
+    }
+  }
+
+  if (cursor > 0) {
+    buf = closure.invoke(buf.buf, cursor, buf.capacity);
+    cursor = 0;
+  }
+
+  if (buf.buf != nullptr) {
+    mmtk_release_rust_buffer(buf.buf, cursor, buf.capacity);
+  }
+}
+
+REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void process_references(void* tls,
                                TraceObjectClosure closure,
                                RefProcessingPhase phase,
@@ -374,6 +407,7 @@ ArtUpcalls art_upcalls = {
   get_mmtk_mutator,
   for_all_mutators,
   scan_all_roots,
+  scan_vm_space_objects,
   process_references,
   sweep_system_weaks,
   set_has_zygote_space_in_art,
