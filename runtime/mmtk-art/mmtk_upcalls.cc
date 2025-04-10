@@ -121,6 +121,12 @@ static bool is_valid_object(void* object) {
   return verification->IsValidObject(obj);
 }
 
+REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void dump_object(void* object) {
+  art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
+  LOG(WARNING) << obj << " type = " << art::mirror::Object::PrettyTypeOf(obj) << "\n";
+}
+
 REQUIRES(art::Roles::uninterruptible_)
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void block_for_gc(void* tls) {
@@ -358,6 +364,7 @@ ArtUpcalls art_upcalls = {
   scan_native_roots,
   process_referent,
   is_valid_object,
+  dump_object,
   block_for_gc,
   spawn_gc_thread,
   suspend_mutators,
