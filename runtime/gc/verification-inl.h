@@ -20,6 +20,7 @@
 #include "verification.h"
 
 #include "mirror/class-inl.h"
+#include "mmtk.h"
 
 namespace art HIDDEN {
 namespace gc {
@@ -42,6 +43,13 @@ bool Verification::IsValidClassUnchecked(mirror::Class* klass) const {
 
 template <ReadBarrierOption kReadBarrierOption>
 bool Verification::IsValidClass(mirror::Class* klass) const {
+#if ART_USE_MMTK
+  if (mmtk_is_object_forwarded(klass)) {
+    void* forwarded_klass = mmtk_get_forwarded_object(klass);
+    DCHECK(forwarded_klass != nullptr);
+    klass = reinterpret_cast<mirror::Class*>(forwarded_klass);
+  }
+#endif  // ART_USE_MMTK
   if (!IsValidHeapObjectAddress(klass)) {
     return false;
   }
@@ -50,6 +58,13 @@ bool Verification::IsValidClass(mirror::Class* klass) const {
 
 template <ReadBarrierOption kReadBarrierOption>
 bool Verification::IsValidObject(mirror::Object* obj) const {
+#if ART_USE_MMTK
+  if (mmtk_is_object_forwarded(obj)) {
+    void* forwarded_obj = mmtk_get_forwarded_object(obj);
+    DCHECK(forwarded_obj != nullptr);
+    obj = reinterpret_cast<mirror::Object*>(forwarded_obj);
+  }
+#endif  // ART_USE_MMTK
   if (!IsValidHeapObjectAddress(obj)) {
     return false;
   }
