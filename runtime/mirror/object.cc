@@ -129,8 +129,16 @@ ObjPtr<Object> Object::CopyObject(ObjPtr<mirror::Object> dest,
   ObjPtr<Class> c = src->GetClass();
   if (c->IsArrayClass()) {
     if (!c->GetComponentType()->IsPrimitive()) {
+#if !ART_USE_MMTK
       ObjPtr<ObjectArray<Object>> array = dest->AsObjectArray<Object>();
       WriteBarrier::ForArrayWrite(src.Ptr(), dest.Ptr(), 0, array->GetLength());
+#else
+      ObjPtr<ObjectArray<Object>> src_array = src->AsObjectArray<Object>();
+      ObjPtr<ObjectArray<Object>> dst_array = dest->AsObjectArray<Object>();
+      WriteBarrier::ForArrayWrite(src_array->GetRawData(kHeapReferenceSize, 0),
+                                  dst_array->GetRawData(kHeapReferenceSize, 0),
+                                  /* start_offset= */ 0, dst_array->GetLength());
+#endif  // !ART_USE_MMTK
     }
   } else {
     WriteBarrier::ForEveryFieldWrite(dest);
