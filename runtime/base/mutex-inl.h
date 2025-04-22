@@ -108,6 +108,11 @@ inline void BaseMutex::RegisterAsLockedImpl(Thread* self, LockLevel level, bool 
   if (UNLIKELY(level == kThreadWaitLock) && self->GetHeldMutex(kThreadWaitLock) != nullptr) {
     level = kThreadWaitWakeLock;
   }
+#if ART_USE_MMTK
+  // MMTk uses a different thread model and does not use the mutator lock for the GC thread.
+  // So avoid checking locks if we are the GC thread
+  check = check && (self->GetMmtkMutator() != nullptr);
+#endif  // ART_USE_MMTK
   if (check) {
     // Check if a bad Mutex of this level or lower is held.
     bool bad_mutexes_held = false;
