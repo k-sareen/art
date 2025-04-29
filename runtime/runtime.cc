@@ -2815,6 +2815,7 @@ void Runtime::VisitImageRoots(RootVisitor* visitor) {
     }
   }
 #else
+  // TODO(kunals): Check if this is required for nursery GCs
   // XXX(kunals): Optimize this so that we don't have to visit it always
   for (auto* space : GetHeap()->GetContinuousSpaces()) {
     if (space->IsImageSpace()) {
