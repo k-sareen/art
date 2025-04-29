@@ -202,7 +202,7 @@ class Heap {
   static constexpr size_t kMinLargeObjectThreshold = 12 * KB;
   #else
   // TODO(kunals): Max non-LOS alloc bytes
-  static constexpr size_t kMinLargeObjectThreshold = 16 * KB;
+  static constexpr size_t kMinLargeObjectThreshold = 8 * KB;
   #endif  // !ART_USE_MMTK
   static constexpr size_t kDefaultLargeObjectThreshold = kMinLargeObjectThreshold;
   // Whether or not parallel GC is enabled. If not, then we never create the thread pool.
