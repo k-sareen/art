@@ -21,6 +21,7 @@
 #include "base/macros.h"
 #include "mirror/object_reference.h"
 #include "read_barrier_option.h"
+#include "stack_reference.h"
 
 namespace art HIDDEN {
 class ArtField;
@@ -137,7 +138,8 @@ class SingleRootVisitor : public RootVisitor {
   void VisitRoots(mirror::Object*** roots, size_t count, const RootInfo& info) override
       REQUIRES_SHARED(Locks::mutator_lock_) {
     for (size_t i = 0; i < count; ++i) {
-      VisitRoot(*roots[i], info);
+      // XXX(kunals): Avoid reading more than uint32_t on 64-bit builds
+      VisitRoot(reinterpret_cast<StackReference<mirror::Object>*>(roots[i])->AsMirrorPtr(), info);
     }
   }
 

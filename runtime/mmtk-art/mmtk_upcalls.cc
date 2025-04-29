@@ -340,6 +340,12 @@ static void process_references(void* tls,
     runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
     runtime->BroadcastForNewSystemWeaks();
     runtime->GetClassLinker()->CleanupClassLoaders();
+#if ART_USE_MMTK_SANITY
+    // We run SanityPostGC after the GC has completed the transitive closure so
+    // that we still have all forwarding pointers etc.
+    const art::gc::Verification* verification = runtime->GetHeap()->GetVerification();
+    verification->SanityPostGC();
+#endif  // ART_USE_MMTK_SANITY
   }
 }
 

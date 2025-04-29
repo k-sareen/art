@@ -338,14 +338,23 @@ void Verification::SanityPostGC() const {
                  << obj
                  << DumpRAMAroundAddress((uintptr_t)obj, 128);
       for (auto path_obj : vec) {
+        auto new_path_obj = is_marked_visitor->IsMarked(path_obj);
         LOG(FATAL_WITHOUT_ABORT) << "Object "
                                  << path_obj
                                  << " marked "
-                                 << (is_marked_visitor->IsMarked(path_obj) != nullptr)
+                                 << (new_path_obj != nullptr)
+                                 << " new address "
+                                 << new_path_obj
                                  << "\nDumping memory around "
                                  << path_obj
                                  << "\n"
                                  << DumpRAMAroundAddress((uintptr_t)path_obj, 128);
+        if (new_path_obj != path_obj) {
+          LOG(FATAL_WITHOUT_ABORT) << "Dumping memory around new address "
+                                   << new_path_obj
+                                   << "\n"
+                                   << DumpRAMAroundAddress((uintptr_t)new_path_obj, 128);
+          }
       }
 
       if (failed) {
