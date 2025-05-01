@@ -196,7 +196,7 @@ class Heap {
   // Primitive arrays larger than this size are put in the large object space.
   // TODO: Preliminary experiments suggest this value might be not optimal.
   //       This might benefit from further investigation.
-  static constexpr size_t kMinLargeObjectThreshold = 12 * KB;
+  static constexpr size_t kMinLargeObjectThreshold = 8 * KB;
   static constexpr size_t kDefaultLargeObjectThreshold = kMinLargeObjectThreshold;
   // Whether or not parallel GC is enabled. If not, then we never create the thread pool.
   static constexpr bool kDefaultEnableParallelGC = true;
