@@ -704,7 +704,7 @@ void SemiSpace::ScanObject(Object* obj) {
   // Turn off read barrier. ZygoteCompactingCollector doesn't use it (even in the CC build.)
   obj->VisitReferences</*kVisitNativeRoots=*/true, kDefaultVerifyFlags, kWithoutReadBarrier>(
       visitor, visitor);
-  heap_->scan_object_count_++;
+  // heap_->scan_object_count_++;
 }
 
 // Scan anything that's on the mark stack.

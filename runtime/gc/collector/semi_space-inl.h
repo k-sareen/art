@@ -45,7 +45,7 @@ inline void SemiSpace::MarkObject(CompressedReferenceType* obj_ptr) {
   if (obj == nullptr) {
     return;
   }
-  heap_->trace_object_count_++;
+  // heap_->trace_object_count_++;
   if (from_space_->HasAddress(obj)) {
     mirror::Object* forward_address = GetForwardingAddressInFromSpace(obj);
     // If the object has already been moved, return the new forward address.

@@ -3240,11 +3240,11 @@ void Heap::FinishGC(Thread* self, collector::GcType gc_type) {
   if (gc_type != collector::kGcTypeNone) {
     gcs_completed_.fetch_add(1, std::memory_order_release);
   }
-  if (scan_object_count_ != 0 && trace_object_count_ != 0) {
-    std::cout << "scanned " << scan_object_count_ << " objects; traced " << trace_object_count_ << " objects" << std::endl;
-  }
-  scan_object_count_ = 0;
-  trace_object_count_ = 0;
+  // if (scan_object_count_ != 0 && trace_object_count_ != 0) {
+  //   std::cout << "scanned " << scan_object_count_ << " objects; traced " << trace_object_count_ << " objects" << std::endl;
+  // }
+  // scan_object_count_ = 0;
+  // trace_object_count_ = 0;
   // Wake anyone who may have been waiting for the GC to complete.
   gc_complete_cond_->Broadcast(self);
 }
