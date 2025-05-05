@@ -253,7 +253,12 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
   }
   if (alloc_size >= Heap::kMinLargeObjectThreshold) {
     // Since LOS is non-moving anyway, we don't need to check if `non_moving` is true
-    semantics = AllocatorLos;
+    if ((*klass)->IsPrimitiveArray()) {
+      // We can handle large primitive arrays specially since we don't need to scan them
+      semantics = AllocatorLos;
+    } else {
+      semantics = AllocatorLos;
+    }
   }
 
   MmtkMutator mmtk_mutator = self->GetMmtkMutator();
