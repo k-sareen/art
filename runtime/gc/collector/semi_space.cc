@@ -323,7 +323,8 @@ void SemiSpace::MarkingPhase() {
   // used for the Zygote so if the pages are not returned back to the operating
   // system here, then the phone soft reboots (restarts inplace) before
   // eventually dying completely from out of memory errors
-  if (heap_->IsTargetApp(Runtime::Current()->GetPackageName())) {
+  if (heap_->IsTargetApp(Runtime::Current()->GetPackageName())
+        || (!Runtime::Current()->IsZygote() && !heap_->HasZygoteSpace())) {
     from_space_->ClearAndDontRelease();
   } else {
     from_space_->Clear();
