@@ -310,7 +310,7 @@ static void scan_vm_space_objects(NodesClosure closure) {
   }
 
   if (buf.buf != nullptr) {
-    mmtk_release_rust_buffer(buf.buf, cursor, buf.capacity);
+    mmtk_release_rust_buffer_unchecked(buf.buf, cursor, buf.capacity);
   }
 }
 
