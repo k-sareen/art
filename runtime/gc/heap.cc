@@ -1047,8 +1047,8 @@ Heap::Heap(size_t initial_size,
     PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
     PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
     // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CACHE_MISSES");
-    // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
-    // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
+    PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+    PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
     PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
     perf_counters_created_.store(true);
     power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
@@ -1084,8 +1084,8 @@ void Heap::CreatePerfCounters() {
   PerfCounterCreate("PERF_COUNT_HW_CPU_CYCLES");
   PerfCounterCreate("PERF_COUNT_HW_INSTRUCTIONS");
   // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_CACHE_MISSES");
-  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
-  // GetHeap()->PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
+  PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND");
+  PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   perf_counters_created_.store(true);
   power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
