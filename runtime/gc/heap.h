@@ -1874,6 +1874,9 @@ class Heap {
   Atomic<uint64_t> num_large_object_alloc_;
   Atomic<uint64_t> time_large_object_alloc_ns_;
 
+  Mutex slowpath_timings_lock_;
+  std::vector<uint64_t> slowpath_timings_ GUARDED_BY(slowpath_timings_lock_);
+
   nlohmann::json heap_sizes_;
 
   friend class CollectorTransitionTask;

@@ -606,7 +606,8 @@ Heap::Heap(size_t initial_size,
       scan_object_count_(0),
       trace_object_count_(0),
       num_large_object_alloc_(0),
-      time_large_object_alloc_ns_(0) {
+      time_large_object_alloc_ns_(0),
+      slowpath_timings_lock_("slowpath timings lock") {
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
@@ -1555,6 +1556,13 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     output_string << "  " << collector->GetName()
       << " ran " << collector->GetCumulativeTimings().GetIterations()
       << " times\n";
+  }
+
+  {
+    MutexLock mu(Thread::Current(), slowpath_timings_lock_);
+    for (uint64_t t : slowpath_timings_) {
+      output_string << "mutator slowpath allocation took: " << t << " ns\n";
+    }
   }
 
   // LOG(WARNING) << output_string.str();
