@@ -1598,6 +1598,8 @@ void Heap::HarnessBegin() {
   dumped_gc_performance_info_ = false;
   harness_begin_start_time_ns_ = NanoTime();
 
+  ResetGcPerformanceInfo();
+
   LOG(INFO) << "Starting perf counters for "
     << Runtime::Current()->GetAppInfo()->PackageName()
     << "\n";
@@ -1611,7 +1613,6 @@ void Heap::HarnessBegin() {
 
   power_stats_->StartAll();
 
-  ResetGcPerformanceInfo();
 }
 
 void Heap::HarnessEnd() {
