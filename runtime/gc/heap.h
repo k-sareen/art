@@ -1872,6 +1872,7 @@ class Heap {
   uint64_t trace_object_count_;
 
   Atomic<uint64_t> num_large_object_alloc_;
+  Atomic<uint64_t> time_large_object_alloc_ns_;
 
   nlohmann::json heap_sizes_;
 
