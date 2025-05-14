@@ -1871,6 +1871,8 @@ class Heap {
   uint64_t scan_object_count_;
   uint64_t trace_object_count_;
 
+  Atomic<uint64_t> num_large_object_alloc_;
+
   nlohmann::json heap_sizes_;
 
   friend class CollectorTransitionTask;
