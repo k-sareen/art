@@ -1565,8 +1565,12 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
     }
   }
 
-  // LOG(WARNING) << output_string.str();
-  std::cout << output_string.str();
+  // Print stats to logcat or stdout depending on whether we are an application or headless process
+  if (Runtime::Current()->IsZygote() || HasZygoteSpace()) {
+    LOG(WARNING) << output_string.str();
+  } else {
+    std::cout << output_string.str();
+  }
 }
 
 void Heap::ResetGcPerformanceInfo() {
