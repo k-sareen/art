@@ -327,7 +327,8 @@ void Verification::SanityPostGC() const {
   for (auto obj : *live_) {
     // XXX(kunals): If we allocate a new object into the non-moving immortal space, and then have
     // a nursery GC, the mark bit will not be set for the object so the sanity GC inside ART will
-    // fail since it does a full heap GC.
+    // fail since it does a full heap GC. Abuse the fact that we know that the non-moving space is
+    // immortal and the objects in it are always live.
     if (is_marked_visitor->IsMarked(obj) == nullptr
           && !mmtk_is_object_live(reinterpret_cast<void*>(obj))) {
       failed = true;
