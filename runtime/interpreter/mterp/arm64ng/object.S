@@ -258,7 +258,7 @@
    $store  w26, [x2, x0]
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_skip_write_barrier
-#else
+#elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
    SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
    mov     ip, x1
    mov     ip2, x0
@@ -305,7 +305,7 @@
    $volatile_store w26, [x3]
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_slow_path_skip_write_barrier
-#else
+#elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
    SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
    mov     ip, x1
    mov     ip2, x0
@@ -454,7 +454,7 @@
    $store  w26, [x0, x1]
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_skip_write_barrier
-#else
+#elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
    SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
    mov     x2, x26
    add     x1, x0, x1
@@ -499,7 +499,7 @@
    $volatile_store    w26, [x1]
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_slow_path_skip_write_barrier
-#else
+#elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
    SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
    mov     x2, x26
    WRITE_BARRIER_IF_OBJECT $is_object, x2, w0, w1, .L${opcode}_slow_path_skip_write_barrier
