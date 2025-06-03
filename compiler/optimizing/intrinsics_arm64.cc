@@ -1138,6 +1138,9 @@ static void CreateUnsafeCASLocations(ArenaAllocator* allocator,
                                           ? LocationSummary::kCallOnSlowPath
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
+  if (can_call && kUseBakerReadBarrier) {
+    locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
+  }
 #else
   UNUSED(codegen);
   const bool can_call = IsUnsafeCASReference(invoke);
@@ -1148,9 +1151,6 @@ static void CreateUnsafeCASLocations(ArenaAllocator* allocator,
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
 #endif  // !ART_USE_MMTK
-  if (can_call && kUseBakerReadBarrier) {
-    locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
-  }
   locations->SetInAt(0, Location::NoLocation());        // Unused receiver.
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
@@ -1754,9 +1754,6 @@ static void CreateUnsafeGetAndUpdateLocations(ArenaAllocator* allocator,
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
 #endif  // !ART_USE_MMTK
-  if (can_call && kUseBakerReadBarrier) {
-    locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
-  }
   locations->SetInAt(0, Location::NoLocation());        // Unused receiver.
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
