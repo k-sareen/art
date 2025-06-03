@@ -3226,9 +3226,11 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
   MacroAssembler* masm = GetVIXLAssembler();
 
   if (!needs_write_barrier) {
+#if !ART_USE_MMTK
     if (gUseWriteBarrier && codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind)) {
       codegen_->CheckGCCardIsValid(array);
     }
+#endif  // !ART_USE_MMTK
 
     DCHECK(!needs_type_check);
     UseScratchRegisterScope temps(masm);
@@ -3387,7 +3389,7 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
     }
 
 #if ART_USE_MMTK
-    if (needs_write_barrier) {
+    if (gUseWriteBarrier && needs_write_barrier) {
       Location obj_loc = locations->InAt(0);
       if (index.IsConstant()) {
         codegen_->GenerateWriteBarrierPost(instruction,
