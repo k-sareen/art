@@ -871,8 +871,15 @@ void IntrinsicCodeGeneratorARM64::VisitJdkUnsafeGetByte(HInvoke* invoke) {
 }
 
 static void CreateUnsafePutLocations(ArenaAllocator* allocator, HInvoke* invoke) {
+#if !ART_USE_MMTK
   LocationSummary* locations =
       new (allocator) LocationSummary(invoke, LocationSummary::kNoCall, kIntrinsified);
+#else
+  LocationSummary* locations =
+      new (allocator) LocationSummary(invoke,
+                                      LocationSummary::kCallOnSlowPath,
+                                      kIntrinsified);
+#endif  // !ART_USE_MMTK
   locations->SetInAt(0, Location::NoLocation());        // Unused receiver.
   locations->SetInAt(1, Location::RequiresRegister());
   locations->SetInAt(2, Location::RequiresRegister());
@@ -988,6 +995,11 @@ static void GenUnsafePut(HInvoke* invoke,
 #if !ART_USE_MMTK
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(base, value, value_can_be_null);
+#else
+    codegen->GenerateWriteBarrierPost(invoke,
+                                      LocationFrom(base),
+                                      LocationFrom(value),
+                                      0u, LocationFrom(offset));
 #endif  // !ART_USE_MMTK
   }
 }
@@ -1118,13 +1130,24 @@ void IntrinsicCodeGeneratorARM64::VisitJdkUnsafePutByte(HInvoke* invoke) {
 static void CreateUnsafeCASLocations(ArenaAllocator* allocator,
                                      HInvoke* invoke,
                                      CodeGeneratorARM64* codegen) {
-  const bool can_call = codegen->EmitReadBarrier() && IsUnsafeCASReference(invoke);
+#if !ART_USE_MMTK
+  const bool can_call = codegen->EmitBakerReadBarrier() && IsUnsafeCASReference(invoke);
   LocationSummary* locations =
       new (allocator) LocationSummary(invoke,
                                       can_call
                                           ? LocationSummary::kCallOnSlowPath
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
+#else
+  UNUSED(codegen);
+  const bool can_call = IsUnsafeCASReference(invoke);
+  LocationSummary* locations =
+      new (allocator) LocationSummary(invoke,
+                                      can_call
+                                          ? LocationSummary::kCallOnSlowPath
+                                          : LocationSummary::kNoCall,
+                                      kIntrinsified);
+#endif  // !ART_USE_MMTK
   if (can_call && kUseBakerReadBarrier) {
     locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
   }
@@ -1512,6 +1535,16 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
                         old_value,
                         /*store_result=*/ old_value.W(),  // Reuse `old_value` for ST*XR* result.
                         expected);
+
+#if ART_USE_MMTK
+  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+    codegen->GenerateWriteBarrierPost(invoke,
+                                      LocationFrom(base),
+                                      LocationFrom(new_value),
+                                      0u, LocationFrom(offset));
+  }
+#endif  // ART_USE_MMTK
+
   __ Bind(exit_loop);
   __ Cset(out, eq);
 }
@@ -1700,6 +1733,7 @@ static void GenerateGetAndUpdate(CodeGeneratorARM64* codegen,
 static void CreateUnsafeGetAndUpdateLocations(ArenaAllocator* allocator,
                                               HInvoke* invoke,
                                               CodeGeneratorARM64* codegen) {
+#if !ART_USE_MMTK
   const bool can_call = codegen->EmitReadBarrier() && IsUnsafeGetAndSetReference(invoke);
   LocationSummary* locations =
       new (allocator) LocationSummary(invoke,
@@ -1707,6 +1741,19 @@ static void CreateUnsafeGetAndUpdateLocations(ArenaAllocator* allocator,
                                           ? LocationSummary::kCallOnSlowPath
                                           : LocationSummary::kNoCall,
                                       kIntrinsified);
+  if (can_call && kUseBakerReadBarrier) {
+    locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
+  }
+#else
+  UNUSED(codegen);
+  const bool can_call = IsUnsafeGetAndSetReference(invoke);
+  LocationSummary* locations =
+      new (allocator) LocationSummary(invoke,
+                                      can_call
+                                          ? LocationSummary::kCallOnSlowPath
+                                          : LocationSummary::kNoCall,
+                                      kIntrinsified);
+#endif  // !ART_USE_MMTK
   if (can_call && kUseBakerReadBarrier) {
     locations->SetCustomSlowPathCallerSaves(RegisterSet::Empty());  // No caller-save registers.
   }
@@ -1733,12 +1780,14 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
   Register tmp_ptr = XRegisterFrom(locations->GetTemp(0));        // Pointer to actual memory.
 
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
+#if !ART_USE_MMTK
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     // Mark card for object as a new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(base, /*value=*/arg, new_value_can_be_null);
   }
+#endif  // !ART_USE_MMTK
 
   __ Add(tmp_ptr, base.X(), Operand(offset));
   GenerateGetAndUpdate(codegen,
@@ -1748,6 +1797,14 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
                        tmp_ptr,
                        arg,
                        /*old_value=*/ out);
+#if ART_USE_MMTK
+  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+    codegen->GenerateWriteBarrierPost(invoke,
+                                      LocationFrom(base),
+                                      LocationFrom(arg),
+                                      0u, LocationFrom(offset));
+  }
+#endif  // ART_USE_MMTK
 
   if (type == DataType::Type::kReference && codegen->EmitReadBarrier()) {
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
@@ -3382,6 +3439,12 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopy(HInvoke* invoke) {
         __ Tbnz(tmp, LockWord::kReadBarrierStateShift, read_barrier_slow_path->GetEntryLabel());
       }
 
+#if ART_USE_MMTK
+      if (gUseWriteBarrier) {
+        __ Push(src_curr_addr, dst_curr_addr);
+      }
+#endif  // ART_USE_MMTK
+
       // Iterate over the arrays and do a raw copy of the objects. We don't need to
       // poison/unpoison.
       vixl::aarch64::Label loop;
@@ -3395,14 +3458,24 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopy(HInvoke* invoke) {
         DCHECK(read_barrier_slow_path != nullptr);
         __ Bind(read_barrier_slow_path->GetExitLabel());
       }
+
+#if ART_USE_MMTK
+      if (gUseWriteBarrier) {
+        __ Pop(dst_curr_addr, src_curr_addr);
+        codegen_->GenerateArrayCopyBarrierPost(invoke,
+                                               LocationFrom(src_curr_addr),
+                                               LocationFrom(dst_curr_addr),
+                                               length);
+      }
+#endif  // ART_USE_MMTK
     }
 
+#if !ART_USE_MMTK
     // We only need one card marking on the destination array.
     if (gUseWriteBarrier) {
-#if !ART_USE_MMTK
       codegen_->MarkGCCard(dest.W());
-#endif  // !ART_USE_MMTK
     }
+#endif  // !ART_USE_MMTK
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -4982,10 +5055,21 @@ static void GenerateVarHandleSet(HInvoke* invoke,
     } else {
       codegen->Store(value_type, source, address);
     }
-  }
-
-  if (CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(value_index))) {
-    codegen->MaybeMarkGCCard(target.object, Register(value), /* emit_null_check= */ true);
+    if (gUseWriteBarrier) {
+      bool needs_write_barrier = CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(value_index));
+#if !ART_USE_MMTK
+      if (needs_write_barrier) {
+        codegen->MaybeMarkGCCard(target.object, Register(value), /* emit_null_check= */ true);
+      }
+#else
+      if (needs_write_barrier) {
+        codegen->GenerateWriteBarrierPost(invoke,
+                                          LocationFrom(target.object),
+                                          LocationFrom(source.X()),
+                                          0u, LocationFrom(target.offset));
+      }
+#endif  // !ART_USE_MMTK
+    }
   }
 
   if (slow_path != nullptr) {
@@ -5145,20 +5229,34 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
     }
   }
 
+#if !ART_USE_MMTK
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
   if (CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(new_value_index))) {
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(target.object, new_value.W(), new_value_can_be_null);
   }
+#endif  // !ART_USE_MMTK
 
   // Reuse the `offset` temporary for the pointer to the target location,
   // except for references that need the offset for the read barrier.
   UseScratchRegisterScope temps(masm);
+#if !ART_USE_MMTK
   Register tmp_ptr = target.offset.X();
   if (value_type == DataType::Type::kReference && codegen->EmitReadBarrier()) {
     tmp_ptr = temps.AcquireX();
   }
+#else
+  Register tmp_ptr;
+  bool needs_write_barrier =
+      CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(new_value_index));
+  // Use a temporary register if we need a write barrier
+  if (gUseWriteBarrier && needs_write_barrier) {
+    tmp_ptr = temps.AcquireX();
+  } else {
+    tmp_ptr = target.offset.X();
+  }
+#endif // !ART_USE_MMTK
   __ Add(tmp_ptr, target.object.X(), target.offset.X());
 
   // Move floating point values to scratch registers.
@@ -5278,6 +5376,15 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
                         store_result,
                         expected_reg);
   __ Bind(exit_loop);
+
+#if ART_USE_MMTK
+  if (gUseWriteBarrier && needs_write_barrier) {
+    codegen->GenerateWriteBarrierPost(invoke,
+                                      LocationFrom(target.object.X()),
+                                      LocationFrom(new_value_reg),
+                                      0u, LocationFrom(target.offset.X()));
+  }
+#endif  // ART_USE_MMTK
 
   if (return_success) {
     if (strong) {
@@ -5448,6 +5555,7 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
     }
   }
 
+#if !ART_USE_MMTK
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
   if (CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(arg_index))) {
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
@@ -5455,14 +5563,27 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(target.object, arg.W(), new_value_can_be_null);
   }
+#endif  // !ART_USE_MMTK
 
   // Reuse the `target.offset` temporary for the pointer to the target location,
   // except for references that need the offset for the non-Baker read barrier.
   UseScratchRegisterScope temps(masm);
+#if !ART_USE_MMTK
   Register tmp_ptr = target.offset.X();
   if (value_type == DataType::Type::kReference && codegen->EmitNonBakerReadBarrier()) {
     tmp_ptr = temps.AcquireX();
   }
+#else
+  Register tmp_ptr;
+  bool needs_write_barrier =
+      CodeGenerator::StoreNeedsWriteBarrier(value_type, invoke->InputAt(arg_index));
+  // Use a temporary register if we need a write barrier
+  if (gUseWriteBarrier && needs_write_barrier) {
+    tmp_ptr = temps.AcquireX();
+  } else {
+    tmp_ptr = target.offset.X();
+  }
+#endif // !ART_USE_MMTK
   __ Add(tmp_ptr, target.object.X(), target.offset.X());
 
   // The load/store type is never floating point.
@@ -5516,6 +5637,15 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
   }
 
   GenerateGetAndUpdate(codegen, get_and_update_op, load_store_type, order, tmp_ptr, arg, old_value);
+
+#if ART_USE_MMTK
+  if (gUseWriteBarrier && needs_write_barrier) {
+    codegen->GenerateWriteBarrierPost(invoke,
+                                      LocationFrom(target.object.X()),
+                                      LocationFrom(arg.X()),
+                                      0u, LocationFrom(target.offset.X()));
+  }
+#endif  // ART_USE_MMTK
 
   if (get_and_update_op == GetAndUpdateOp::kAddWithByteSwap) {
     // The only adjustment needed is sign-extension for `kInt16`.

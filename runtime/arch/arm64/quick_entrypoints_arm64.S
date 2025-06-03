@@ -1029,6 +1029,11 @@ ENTRY art_quick_aput_obj
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#else
+    SAVE_TWO_REGS_INCREASE_FRAME x1, xLR, 16
+    add x1, x3, x1, lsl #2  // slot
+    bl art_quick_write_barrier_post
+    RESTORE_TWO_REGS_DECREASE_FRAME x1, xLR, 16
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
@@ -1064,6 +1069,11 @@ ENTRY art_quick_aput_obj
     ldr x3, [xSELF, #THREAD_CARD_TABLE_OFFSET]
     lsr x0, x0, #CARD_TABLE_CARD_SHIFT
     strb w3, [x3, x0]
+#else
+    SAVE_TWO_REGS_INCREASE_FRAME x1, xLR, 16
+    add x1, x3, x1, lsl #2  // slot
+    bl art_quick_write_barrier_post
+    RESTORE_TWO_REGS_DECREASE_FRAME x1, xLR, 16
 #endif  // !ART_USE_MMTK
 #endif  // USE_WRITE_BARRIER
     ret
@@ -2432,6 +2442,26 @@ art_quick_read_barrier_mark_introspection_arrays:
 art_quick_read_barrier_mark_introspection_gc_roots:
     READ_BARRIER_MARK_INTROSPECTION_SLOW_PATH BAKER_MARK_INTROSPECTION_GC_ROOT_LDR_OFFSET
 END art_quick_read_barrier_mark_introspection
+
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+ENTRY art_quick_write_barrier_post
+    // XXX(kunals): Save everything that may be potentially overwritten by the
+    // write barrier slow path
+    SETUP_SAVE_EVERYTHING_FRAME
+    bl     artWriteBarrierPost // artWriteBarrierPost(src, slot, target)
+    RESTORE_SAVE_EVERYTHING_FRAME
+    ret
+END art_quick_write_barrier_post
+
+ENTRY art_quick_array_copy_barrier_post
+    // XXX(kunals): Save everything that may be potentially overwritten by the
+    // write barrier slow path
+    SETUP_SAVE_EVERYTHING_FRAME
+    bl     artArrayCopyBarrierPost // artArrayCopyBarrierPost(src, dst, offset)
+    RESTORE_SAVE_EVERYTHING_FRAME
+    ret
+END art_quick_array_copy_barrier_post
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 
 .extern artInvokePolymorphic
 ENTRY art_quick_invoke_polymorphic

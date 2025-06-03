@@ -6095,6 +6095,10 @@ void InstructionCodeGeneratorARMVIXL::HandleFieldSet(HInstruction* instruction,
     }
 #else
     UNUSED(needs_write_barrier);
+    // if (needs_write_barrier) {
+    //   // field_addr = base + offset;
+    //   codegen_->GenerateWriteBarrierPost(instruction, LocationFrom(base), offset, value);
+    // }
 #endif  // !ART_USE_MMTK
   }
 
@@ -6964,6 +6968,8 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
             vixl32::Register temp2 = RegisterFrom(locations->GetTemp(1));
             codegen_->MarkGCCard(temp1, temp2, array);
           }
+#else
+          // TODO(kunals): Write barrier for writing null is being omitted here
 #endif  // !ART_USE_MMTK
         }
         DCHECK(!needs_type_check);
@@ -7071,10 +7077,16 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
       {
         // Ensure that between store and MaybeRecordImplicitNullCheck there are no pools emitted.
         // As two macro instructions can be emitted the max size is doubled.
+        // TODO(kunals): Does this need to be 3x?
         EmissionCheckScope guard(GetVIXLAssembler(), 2 * kMaxMacroInstructionSizeInBytes);
         if (index.IsConstant()) {
           size_t offset = (Int32ConstantFrom(index) << TIMES_4) + data_offset;
           GetAssembler()->StoreToOffset(kStoreWord, source, array, offset);
+// #if ART_USE_MMTK
+//           if (gUseWriteBarrier && needs_write_barrier) {
+//             codegen_->GenerateWriteBarrierPost(instruction, LocationFrom(source), offset, value_loc);
+//           }
+// #endif  // ART_USE_MMTK
         } else {
           DCHECK(index.IsRegister()) << index;
 
@@ -7085,6 +7097,13 @@ void InstructionCodeGeneratorARMVIXL::VisitArraySet(HArraySet* instruction) {
                                             LocationFrom(source),
                                             temp,
                                             RegisterFrom(index));
+// #if ART_USE_MMTK
+//           if (gUseWriteBarrier && needs_write_barrier) {
+//             uint32_t shift_count = DataType::SizeShift(value_type);
+//             MemOperand mem_address(temp, RegisterFrom(index), vixl32::LSL, shift_count);
+//             codegen_->GenerateWriteBarrierPost(instruction, LocationFrom(source), offset, value_loc);
+//           }
+// #endif  // ART_USE_MMTK
         }
 
         if (can_value_be_null || !needs_type_check) {

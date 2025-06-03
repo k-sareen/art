@@ -34,6 +34,8 @@
 #include "thread.h"
 #include "thread_list.h"
 
+#define ART_USE_MMTK_SANITY 0
+
 namespace art {
 class Thread;
 }  // namespace art
@@ -359,6 +361,12 @@ static void sweep_system_weaks() {
   runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
   runtime->BroadcastForNewSystemWeaks();
   runtime->GetClassLinker()->CleanupClassLoaders();
+#if ART_USE_MMTK_SANITY
+  // We run SanityPostGC after the GC has completed the transitive closure so
+  // that we still have all forwarding pointers etc.
+  const art::gc::Verification* verification = runtime->GetHeap()->GetVerification();
+  verification->SanityPostGC();
+#endif  // ART_USE_MMTK_SANITY
 }
 
 static void set_has_zygote_space_in_art(bool has_zygote_space) {

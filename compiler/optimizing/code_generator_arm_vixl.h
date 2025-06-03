@@ -636,6 +636,12 @@ class CodeGeneratorARMVIXL : public CodeGenerator {
                           vixl::aarch32::Register card,
                           vixl::aarch32::Register object);
 
+// #if ART_USE_MMTK
+//   void GenerateWriteBarrierPost(HInstruction* instruction, Location src, uint32_t offset, Location target);
+//
+//   // void GenerateArrayCopyBarrierPost(HInstruction* instruction, Location src, Location dst, Location count);
+// #endif  // ART_USE_MMTK
+
   void GenerateMemoryBarrier(MemBarrierKind kind);
 
   vixl::aarch32::Label* GetLabelOf(HBasicBlock* block) {

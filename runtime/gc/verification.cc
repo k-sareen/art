@@ -325,7 +325,11 @@ void Verification::SanityPostGC() const {
   bool failed = false;
   IsMarkedVisitor* is_marked_visitor = new third_party_heap::MmtkIsMarkedVisitor();
   for (auto obj : *live_) {
-    if (is_marked_visitor->IsMarked(obj) == nullptr) {
+    // XXX(kunals): If we allocate a new object into the non-moving immortal space, and then have
+    // a nursery GC, the mark bit will not be set for the object so the sanity GC inside ART will
+    // fail since it does a full heap GC.
+    if (is_marked_visitor->IsMarked(obj) == nullptr
+          && !mmtk_is_object_live(reinterpret_cast<void*>(obj))) {
       failed = true;
       auto [vec, path] = FirstPathFromRootSetVector(obj);
       LOG(FATAL_WITHOUT_ABORT) << "SanityPostGC: Found live object "
@@ -337,6 +341,17 @@ void Verification::SanityPostGC() const {
                  << "Dumping memory around missing object "
                  << obj
                  << DumpRAMAroundAddress((uintptr_t)obj, 128);
+        for (int i = 0; (size_t) i < vec.size(); i++) {
+          // Compare each element with current one
+          for (int j = i + 1; (size_t) j < vec.size();) {
+            // Erase if duplicate is found.
+            if (vec[j] == vec[i]) {
+              vec.erase(vec.begin() + j);
+            } else {
+              j++;
+            }
+          }
+      }
       for (auto path_obj : vec) {
         auto new_path_obj = is_marked_visitor->IsMarked(path_obj);
         LOG(FATAL_WITHOUT_ABORT) << "Object "
@@ -349,7 +364,7 @@ void Verification::SanityPostGC() const {
                                  << path_obj
                                  << "\n"
                                  << DumpRAMAroundAddress((uintptr_t)path_obj, 128);
-        if (new_path_obj != path_obj) {
+        if (new_path_obj != path_obj && new_path_obj != nullptr) {
           LOG(FATAL_WITHOUT_ABORT) << "Dumping memory around new address "
                                    << new_path_obj
                                    << "\n"

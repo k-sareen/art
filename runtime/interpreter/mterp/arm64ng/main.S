@@ -505,6 +505,22 @@ END \name
     ldp x0, x1, [sp], #128
 .endm
 
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+.macro SAVE_TWO_REGS_INCREASE_FRAME reg1, reg2, frame_adjustment
+    stp \reg1, \reg2, [sp, #-(\frame_adjustment)]!
+    .cfi_adjust_cfa_offset (\frame_adjustment)
+    .cfi_rel_offset \reg1, 0
+    .cfi_rel_offset \reg2, 8
+.endm
+
+.macro RESTORE_TWO_REGS_DECREASE_FRAME reg1, reg2, frame_adjustment
+    ldp \reg1, \reg2, [sp], #(\frame_adjustment)
+    .cfi_restore \reg1
+    .cfi_restore \reg2
+    .cfi_adjust_cfa_offset -(\frame_adjustment)
+.endm
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+
 // Helper to setup the stack after doing a nterp to nterp call. This will setup:
 // - xNEW_FP: the new pointer to dex registers
 // - xNEW_REFS: the new pointer to references
@@ -1418,8 +1434,8 @@ END \name
    .endif
 .endm
 
-.macro WRITE_BARRIER_IF_OBJECT is_object, value, holder, label
 #if !ART_USE_MMTK
+.macro WRITE_BARRIER_IF_OBJECT is_object, value, holder, label
    .if \is_object
    cbz     \value, \label
    ldr     ip, [xSELF, #THREAD_CARD_TABLE_OFFSET]
@@ -1427,8 +1443,16 @@ END \name
    strb    wip, [ip, ip2]
 \label:
    .endif
-#endif  // !ART_USE_MMTK
 .endm
+#else
+// Requires x2=value, x1=slot, x0=holder
+.macro WRITE_BARRIER_IF_OBJECT is_object, value, holder, slot, label
+   .if \is_object
+   bl art_quick_write_barrier_post
+\label:
+   .endif
+.endm
+#endif  // !ART_USE_MMTK
 
 // Puts the next int/long/object parameter passed in physical register
 // in the expected dex register array entry, and in case of object in the

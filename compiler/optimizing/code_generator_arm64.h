@@ -673,6 +673,16 @@ class CodeGeneratorARM64 : public CodeGenerator {
   // GC is marking for eliminated write barriers.
   void CheckGCCardIsValid(vixl::aarch64::Register object);
 
+#if ART_USE_MMTK
+  void GenerateWriteBarrierPost(HInstruction* instruction,
+                                Location src,
+                                Location target,
+                                uint32_t offset,
+                                Location index = Location::NoLocation());
+
+  void GenerateArrayCopyBarrierPost(HInstruction* instruction, Location src, Location dst, Location count);
+#endif  // ART_USE_MMTK
+
   void GenerateMemoryBarrier(MemBarrierKind kind);
 
   // Register allocation.

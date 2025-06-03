@@ -433,7 +433,7 @@ extern "C" int artSet16InstanceFromCode(uint32_t field_idx,
 #if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
 extern "C" void artWriteBarrierPost(mirror::Object* src,
                                     uint8_t* slot,
-                                    mirror::Object* target) {
+                                    mirror::Object* target) REQUIRES_SHARED(Locks::mutator_lock_) {
   MmtkMutator mmtk_mutator = Thread::Current()->GetMmtkMutator();
   if (mmtk_mutator != nullptr) {
     mmtk_object_reference_write_post(mmtk_mutator, (void*) src, (void*) slot, (void*) target);
@@ -442,7 +442,7 @@ extern "C" void artWriteBarrierPost(mirror::Object* src,
 
 extern "C" void artArrayCopyBarrierPost(void* src,
                                         void* dst,
-                                        uint32_t count) {
+                                        uint32_t count) REQUIRES_SHARED(Locks::mutator_lock_) {
   MmtkMutator mmtk_mutator = Thread::Current()->GetMmtkMutator();
   if (mmtk_mutator != nullptr) {
     mmtk_array_copy_post(mmtk_mutator, src, dst, (size_t) count);

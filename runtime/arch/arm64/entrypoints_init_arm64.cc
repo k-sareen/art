@@ -76,6 +76,11 @@ extern "C" mirror::Object* art_quick_read_barrier_mark_introspection(mirror::Obj
 extern "C" mirror::Object* art_quick_read_barrier_mark_introspection_arrays(mirror::Object*);
 extern "C" mirror::Object* art_quick_read_barrier_mark_introspection_gc_roots(mirror::Object*);
 
+#if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+extern "C" void art_quick_write_barrier_post(art::mirror::Object*, uint8_t*, art::mirror::Object*);
+extern "C" void art_quick_array_copy_barrier_post(void*, void*, uint32_t count);
+#endif  // defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+
 void UpdateReadBarrierEntrypoints(QuickEntryPoints* qpoints, bool is_active) {
   // ARM64 is the architecture with the largest number of core
   // registers (32) that supports the read barrier configuration.
@@ -195,8 +200,8 @@ void InitEntryPoints(JniEntryPoints* jpoints,
   qpoints->SetReadBarrierForRootSlow(artReadBarrierForRootSlow);
 
 #if defined(USE_WRITE_BARRIER) && ART_USE_MMTK
-  qpoints->SetWriteBarrierPost(artWriteBarrierPost);
-  qpoints->SetArrayCopyBarrierPost(artArrayCopyBarrierPost);
+  qpoints->SetWriteBarrierPost(art_quick_write_barrier_post);
+  qpoints->SetArrayCopyBarrierPost(art_quick_array_copy_barrier_post);
 #else
   qpoints->SetWriteBarrierPost(nullptr);
   qpoints->SetArrayCopyBarrierPost(nullptr);
