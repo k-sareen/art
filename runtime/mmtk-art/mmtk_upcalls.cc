@@ -317,6 +317,22 @@ static void scan_vm_space_objects(NodesClosure closure) {
 }
 
 REQUIRES_SHARED(art::Locks::mutator_lock_)
+static void __sweep_system_weaks(art::Runtime* runtime,
+                                 art::IsMarkedVisitor* is_marked_visitor) {
+    runtime->UpdateTransactionMovingRoots(is_marked_visitor);
+    runtime->SweepSystemWeaks(is_marked_visitor);
+    runtime->GetThreadList()->SweepInterpreterCaches(is_marked_visitor);
+    runtime->BroadcastForNewSystemWeaks();
+    runtime->GetClassLinker()->CleanupClassLoaders();
+#if ART_USE_MMTK_SANITY
+    // We run SanityPostGC after the GC has completed the transitive closure so
+    // that we still have all forwarding pointers etc.
+    const art::gc::Verification* verification = runtime->GetHeap()->GetVerification();
+    verification->SanityPostGC();
+#endif  // ART_USE_MMTK_SANITY
+}
+
+REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void process_references(void* tls,
                                TraceObjectClosure closure,
                                RefProcessingPhase phase,
@@ -337,17 +353,7 @@ static void process_references(void* tls,
 
   // Sweep system weaks after clearing the soft, weak, and phantom references
   if (phase == Phase3) {
-    runtime->UpdateTransactionMovingRoots(&is_marked_visitor);
-    runtime->SweepSystemWeaks(&is_marked_visitor);
-    runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
-    runtime->BroadcastForNewSystemWeaks();
-    runtime->GetClassLinker()->CleanupClassLoaders();
-#if ART_USE_MMTK_SANITY
-    // We run SanityPostGC after the GC has completed the transitive closure so
-    // that we still have all forwarding pointers etc.
-    const art::gc::Verification* verification = runtime->GetHeap()->GetVerification();
-    verification->SanityPostGC();
-#endif  // ART_USE_MMTK_SANITY
+    __sweep_system_weaks(runtime, &is_marked_visitor);
   }
 }
 
@@ -355,18 +361,7 @@ REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void sweep_system_weaks() {
   art::Runtime* runtime = art::Runtime::Current();
   art::gc::third_party_heap::MmtkIsMarkedVisitor is_marked_visitor;
-
-  runtime->UpdateTransactionMovingRoots(&is_marked_visitor);
-  runtime->SweepSystemWeaks(&is_marked_visitor);
-  runtime->GetThreadList()->SweepInterpreterCaches(&is_marked_visitor);
-  runtime->BroadcastForNewSystemWeaks();
-  runtime->GetClassLinker()->CleanupClassLoaders();
-#if ART_USE_MMTK_SANITY
-  // We run SanityPostGC after the GC has completed the transitive closure so
-  // that we still have all forwarding pointers etc.
-  const art::gc::Verification* verification = runtime->GetHeap()->GetVerification();
-  verification->SanityPostGC();
-#endif  // ART_USE_MMTK_SANITY
+  __sweep_system_weaks(runtime, &is_marked_visitor);
 }
 
 static void set_has_zygote_space_in_art(bool has_zygote_space) {
