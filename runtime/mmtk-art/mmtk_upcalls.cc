@@ -316,9 +316,16 @@ static void scan_vm_space_objects(NodesClosure closure) {
   }
 }
 
+// If we run multiple stress GCs in one GC, then we need to update the reference processor roots
+// as well as we will crash otherwise
+#define ART_USE_MMTK_STRESS_MULTIPLE_GC 0
+
 REQUIRES_SHARED(art::Locks::mutator_lock_)
 static void __sweep_system_weaks(art::Runtime* runtime,
                                  art::IsMarkedVisitor* is_marked_visitor) {
+#if ART_USE_MMTK_STRESS_MULTIPLE_GC
+    runtime->GetHeap()->GetReferenceProcessor()->UpdateRoots(is_marked_visitor);
+#endif  // ART_USE_MMTK_STRESS_MULTIPLE_GC
     runtime->UpdateTransactionMovingRoots(is_marked_visitor);
     runtime->SweepSystemWeaks(is_marked_visitor);
     runtime->GetThreadList()->SweepInterpreterCaches(is_marked_visitor);

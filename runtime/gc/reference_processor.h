@@ -93,8 +93,13 @@ class ReferenceProcessor {
   void DelayReferenceReferentTPH(ObjPtr<mirror::Class> klass,
                                  ObjPtr<mirror::Reference> ref)
       REQUIRES_SHARED(Locks::mutator_lock_);
+#if !ART_USE_MMTK
   void UpdateRoots(IsMarkedVisitor* visitor)
       REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
+#else
+  void UpdateRoots(IsMarkedVisitor* visitor)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+#endif  // !ART_USE_MMTK
   // Make a circular list with reference if it is not enqueued. Uses the finalizer queue lock.
   bool MakeCircularListIfUnenqueued(ObjPtr<mirror::FinalizerReference> reference)
       REQUIRES_SHARED(Locks::mutator_lock_)
