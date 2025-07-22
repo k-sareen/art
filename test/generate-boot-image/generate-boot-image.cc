@@ -154,6 +154,7 @@ int GenerateBootImage(const Options& options) {
   args.push_back("--image-format=lz4hc");
   args.push_back("--strip");
   args.push_back("--android-root=out/empty");
+  args.push_back("--force-determinism");
 
   std::string path = ART_FORMAT("{}/{}", options.output_dir, options.instruction_set);
   if (!OS::DirectoryExists(path.c_str())) {
