@@ -227,10 +227,12 @@ static void resume_mutators(void* tls) {
   // XXX(kunals): We don't need to use the return value of CollectClearedReferences
   // as we directly enqueue the task into the HeapTaskDaemon thread.
   // For more context read the comment for `kAsyncReferenceQueueAdd` inside reference_processor.cc
-  heap->GetReferenceProcessor()->CollectClearedReferences(self);
-  // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
-  // deadlocks in case the JNI_OnUnload function does allocations.
-  heap->AddHeapTask(new UnloadNativeLibrariesTask());
+  if (!mmtk_is_nursery_collection()) {
+    heap->GetReferenceProcessor()->CollectClearedReferences(self);
+    // Unload native libraries for class unloading. We do this after calling FinishGC to prevent
+    // deadlocks in case the JNI_OnUnload function does allocations.
+    heap->AddHeapTask(new UnloadNativeLibrariesTask());
+  }
 }
 
 REQUIRES(!art::Locks::thread_list_lock_)
