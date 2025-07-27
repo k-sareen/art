@@ -77,6 +77,10 @@ class ReferenceProcessor {
   // The slow path bool is contained in the reference class object, can only be set once
   // Only allow setting this with mutators suspended so that we can avoid using a lock in the
   // GetReferent fast path as an optimization.
+  // TODO(kunals): For SATB, we need to enable slow path in the initial marking pause. We also need
+  // to DisableNewSystemWeaks at the same time. We can then call the MMTk load barrier in the
+  // ReferenceProcessor::GetReferent function. Later in the reference processing phase, we need to
+  // DisableSlowPath in the final pause.
   void EnableSlowPath() REQUIRES_SHARED(Locks::mutator_lock_);
   void BroadcastForSlowPath(Thread* self);
   // Decode the referent, may block if references are being processed. In the normal
