@@ -1148,6 +1148,11 @@ class Dex2Oat final {
     if (args.Exists(M::ForceDeterminism)) {
       force_determinism_ = true;
     }
+    // FIXME(kunals): Always force determinism for MMTk to workaround a bug in compilation wherein
+    // we don't update dex metadata correctly somewhere.
+    // We also force determinism for stock ART to get more stable performance.
+    force_determinism_ = true;
+
     AssignTrueIfExists(args, M::CompileIndividually, &compile_individually_);
 
     if (args.Exists(M::Base)) {
