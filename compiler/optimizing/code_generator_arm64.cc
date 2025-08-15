@@ -971,7 +971,7 @@ class WriteBarrierPostSlowPathARM64 : public SlowPathCodeARM64 {
     // We shall never fail to find a free caller-save register, as
     // there are more than two core caller-save registers on ARM64
     // (meaning it is possible to find one which is different from
-    // `ref` and `obj`).
+    // `src` and `target`).
     DCHECK_GT(codegen->GetNumberOfCoreCallerSaveRegisters(), 2u);
     LOG(FATAL) << "Could not find a free register";
     UNREACHABLE();
