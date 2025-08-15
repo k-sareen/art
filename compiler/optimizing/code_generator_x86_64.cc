@@ -1034,6 +1034,7 @@ class WriteBarrierPostX86_64 : public SlowPathCode {
     DCHECK(locations->CanCall());
 
     __ Bind(GetEntryLabel());
+    SaveLiveRegisters(codegen, locations);
 
     InvokeRuntimeCallingConvention calling_convention;
     CodeGeneratorX86_64* x86_64_codegen = down_cast<CodeGeneratorX86_64*>(codegen);
@@ -1044,42 +1045,89 @@ class WriteBarrierPostX86_64 : public SlowPathCode {
 
     // XXX(kunals): Just save the argument registers we use as the
     // `art_quick_write_barrier_post` will save all other registers
-    __ pushq(rdi);
-    __ pushq(rsi);
-    __ pushq(rdx);
-    __ subq(CpuRegister(RSP), Immediate(8)); // Alignment padding
+    // __ pushq(rdi);
+    // __ pushq(rsi);
+    // __ pushq(rdx);
+    // __ subq(CpuRegister(RSP), Immediate(8)); // Alignment padding
+
+    // XXX(kunals): The TMP register was getting clobbered because of the parallel
+    // move resolver. Just push-pop values to the stack to put them into the right
+    // locations.
+    // CpuRegister tmp = FindAvailableCallerSaveRegister(codegen);
+    // __ leal(tmp, slot_);
 
     __ leal(CpuRegister(TMP), slot_);
+    __ pushq(CpuRegister(TMP));
+    __ pushq(src_.AsRegister<CpuRegister>());
+    if (target_.IsRegister()) {
+      __ pushq(target_.AsRegister<CpuRegister>());
+    } else {
+      DCHECK(target_.IsConstant());
+      DCHECK(target_.GetConstant()->IsNullConstant());
+      __ movq(CpuRegister(TMP), Immediate(target_.GetConstant()->GetValueAsUint64()));
+      __ pushq(CpuRegister(TMP));
+    }
 
-    HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
-    parallel_move.AddMove(src_,
-                          Location::RegisterLocation(rdi.AsRegister()),
-                          DataType::Type::kReference,
-                          nullptr);
-    parallel_move.AddMove(Location::RegisterLocation(TMP),
-                          Location::RegisterLocation(rsi.AsRegister()),
-                          DataType::Type::kReference,
-                          nullptr);
-    parallel_move.AddMove(target_,
-                          Location::RegisterLocation(rdx.AsRegister()),
-                          DataType::Type::kReference,
-                          nullptr);
-    codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    // HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
+    // parallel_move.AddMove(src_,
+    //                       Location::RegisterLocation(rdi.AsRegister()),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(Location::RegisterLocation(tmp.AsRegister()),
+    //                       Location::RegisterLocation(rsi.AsRegister()),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // parallel_move.AddMove(target_,
+    //                       Location::RegisterLocation(rdx.AsRegister()),
+    //                       DataType::Type::kReference,
+    //                       nullptr);
+    // codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+
+    __ popq(CpuRegister(rdx));
+    __ popq(CpuRegister(rdi));
+    __ popq(CpuRegister(rsi));
+    // __ addq(CpuRegister(RSP), Immediate(8));
 
     // There is no need to update the stack mask, as this runtime call will not
     // trigger a garbage collection.
     int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kX86_64PointerSize, pWriteBarrierPost).Int32Value();
     x86_64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
 
-    __ addq(CpuRegister(RSP), Immediate(8));
-    __ popq(rdx);
-    __ popq(rsi);
-    __ popq(rdi);
+    // __ popq(rdx);
+    // __ popq(rsi);
+    // __ popq(rdi);
 
+    RestoreLiveRegisters(codegen, locations);
     __ jmp(GetExitLabel());
   }
 
  private:
+  CpuRegister FindAvailableCallerSaveRegister(CodeGenerator* codegen) {
+    size_t src = static_cast<int>(src_.AsRegister<CpuRegister>().AsRegister());
+    if (!target_.IsConstant()) {
+      DCHECK(target_.IsRegister());
+      size_t target = static_cast<int>(target_.AsRegister<CpuRegister>().AsRegister());
+      for (size_t i = 0, e = codegen->GetNumberOfCoreRegisters(); i < e; ++i) {
+        if (i != src && i != target && !codegen->IsCoreCalleeSaveRegister(i)) {
+          return static_cast<CpuRegister>(i);
+        }
+      }
+    } else {
+      for (size_t i = 0, e = codegen->GetNumberOfCoreRegisters(); i < e; ++i) {
+        if (i != src && !codegen->IsCoreCalleeSaveRegister(i)) {
+          return static_cast<CpuRegister>(i);
+        }
+      }
+    }
+    // We shall never fail to find a free caller-save register, as
+    // there are more than two core caller-save registers on x86-64
+    // (meaning it is possible to find one which is different from
+    // `src` and `target`).
+    DCHECK_GT(codegen->GetNumberOfCoreCallerSaveRegisters(), 2u);
+    LOG(FATAL) << "Could not find a free caller-save register";
+    UNREACHABLE();
+  }
+
   // The location (register) of the object holding the modified object reference field.
   const Location src_;
   // The address of the modified reference field. The base of this address must be `obj_`.
