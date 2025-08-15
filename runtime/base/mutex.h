@@ -54,7 +54,13 @@ class ScopedContentionRecorder;
 class Thread;
 class LOCKABLE Mutex;
 
+#if !ART_USE_MMTK
 constexpr bool kDebugLocking = kIsDebugBuild;
+#else
+// FIXME(kunals): MMTk currently breaks a lot of assumptions with locking so
+// disable debug lock checking temporarily
+constexpr bool kDebugLocking = false;
+#endif  // !ART_USE_MMTK
 
 // Record Log contention information, dumpable via SIGQUIT.
 #if ART_USE_FUTEXES
