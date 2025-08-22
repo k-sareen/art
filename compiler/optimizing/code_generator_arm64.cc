@@ -18,12 +18,14 @@
 
 #include "aarch64/assembler-aarch64.h"
 #include "aarch64/registers-aarch64.h"
+#include "android-base/logging.h"
 #include "arch/arm64/asm_support_arm64.h"
 #include "arch/arm64/instruction_set_features_arm64.h"
 #include "arch/arm64/jni_frame_arm64.h"
 #include "art_method-inl.h"
 #include "base/bit_utils.h"
 #include "base/bit_utils_iterator.h"
+#include "base/globals.h"
 #include "class_root-inl.h"
 #include "class_table.h"
 #include "code_generator_utils.h"
@@ -820,140 +822,108 @@ class ReadBarrierForRootSlowPathARM64 : public SlowPathCodeARM64 {
 #if ART_USE_MMTK
 class WriteBarrierPostSlowPathARM64 : public SlowPathCodeARM64 {
  public:
-  WriteBarrierPostSlowPathARM64(
-      HInstruction* instruction, Location src, Location target, uint32_t offset, Location index)
+  WriteBarrierPostSlowPathARM64(HInstruction* instruction,
+                                Location src,
+                                Location target,
+                                uint32_t offset,
+                                Location index,
+                                bool is_offset_register_64bit)
       : SlowPathCodeARM64(instruction),
         src_(src),
         target_(target),
         offset_(offset),
-        index_(index) {}
+        index_(index),
+        is_offset_register_64bit_(is_offset_register_64bit) {}
 
   void EmitNativeCode(CodeGenerator* codegen) override {
     LocationSummary* locations = instruction_->GetLocations();
+    // if (is_offset_register_64bit_) {
+    //   LOG(INFO) << "Compiling code for WriteBarrierPostSlowPathARM64 "
+    //             << "src = " << src_ << ", target = " << target_ << ", offset = " << offset_
+    //             << ", index = " << index_ << "\n";
+    //   LOG(INFO) << "  IsArraySet " << instruction_->IsArraySet()
+    //             << ", IsInvoke " << instruction_->IsInvoke()
+    //             << ", Intrinsified " << instruction_->GetLocations()->Intrinsified() << "\n";
+    //   LOG(INFO) << "  Printing instruction " << instruction_->DebugName();
+    //   // LOG(INFO) << "  Printing instruction " << instruction_->DebugName() << " " << instruction_->DumpWithArgs();
+    // }
+    // LOG(INFO) << "  Printing instruction " << instruction_->DebugName() << " " << instruction_->DumpWithArgs();
+    // LOG(INFO) << "  Printing instruction " << instruction_->DebugName();
 
+    // CHECK(!Runtime::Current()->IsZygote() || (kIsDebugBuild && ::android::base::kEnableDChecks))
+    //   << "Runtime is " << Runtime::Current()->IsZygote()
+    //   << " kIsDebugBuild " << kIsDebugBuild
+    //   << ", kEnableDChecks " << ::android::base::kEnableDChecks;
     DCHECK(locations->CanCall());
+    DCHECK(src_.IsRegister()) << "Source is not a register! src = " << src_;
+    DCHECK(target_.IsRegister()) << "Target is not a register! target = " << target_;
 
     __ Bind(GetEntryLabel());
-
-    SaveLiveRegisters(codegen, locations);
 
     InvokeRuntimeCallingConvention calling_convention;
     CodeGeneratorARM64* arm64_codegen = down_cast<CodeGeneratorARM64*>(codegen);
 
-    // UseScratchRegisterScope temps(arm64_codegen->GetVIXLAssembler());
-    // Register tmp = temps.AcquireX();
+    __ Push(x0, x1, x2, x3);
 
-    // XXX(kunals): Just save the argument registers we use as the
-    // `art_quick_write_barrier_post` will save all other registers
-    // __ Push(x0, x1, x2);
-    // __ Sub(Register(sp), Register(sp), 8); // Alignment padding
+    Register src_reg = RegisterFrom(src_, DataType::Type::kInt32);
+    Register target_reg = RegisterFrom(target_, DataType::Type::kInt32);
 
-    // We may have to change the index's value, but as `index_` is a
-    // constant member (like other "inputs" of this slow path),
-    // introduce a copy of it, `index`.
-    Location index = index_;
+    DCHECK(AreSameSizeAndType(src_reg, target_reg))
+      << "Src reg " << src_ << " and target reg "
+      << target_ << " are not the same size and type!";
+
+    __ Claim(16);
+    __ Stp(src_reg, target_reg, MemOperand(sp, 0));
+
     if (index_.IsValid()) {
+      Register index_reg = RegisterFrom(index_,
+                                        is_offset_register_64bit_ ? DataType::Type::kInt64
+                                                                  : DataType::Type::kInt32);
       if (instruction_->IsArraySet()) {
-        Register index_reg = RegisterFrom(index_, DataType::Type::kInt32);
-        DCHECK(locations->GetLiveRegisters()->ContainsCoreRegister(index_.reg()));
-        if (codegen->IsCoreCalleeSaveRegister(index_.reg())) {
-          // We are about to change the value of `index_reg` (see the
-          // calls to vixl::MacroAssembler::Lsl and
-          // vixl::MacroAssembler::Mov below), but it has
-          // not been saved by the previous call to
-          // art::SlowPathCode::SaveLiveRegisters, as it is a
-          // callee-save register --
-          // art::SlowPathCode::SaveLiveRegisters does not consider
-          // callee-save registers, as it has been designed with the
-          // assumption that callee-save registers are supposed to be
-          // handled by the called function.  So, as a callee-save
-          // register, `index_reg` _would_ eventually be saved onto
-          // the stack, but it would be too late: we would have
-          // changed its value earlier.  Therefore, we manually save
-          // it here into another freely available register,
-          // `free_reg`, chosen of course among the caller-save
-          // registers (as a callee-save `free_reg` register would
-          // exhibit the same problem).
-          //
-          // Note we could have requested a temporary register from
-          // the register allocator instead; but we prefer not to, as
-          // this is a slow path, and we know we can find a
-          // caller-save register that is available.
-          Register free_reg = FindAvailableCallerSaveRegister(codegen);
-          __ Mov(free_reg.W(), index_reg);
-          index_reg = free_reg;
-          index = LocationFrom(index_reg);
-        } else {
-          // The initial register stored in `index_` has already been
-          // saved in the call to art::SlowPathCode::SaveLiveRegisters
-          // (as it is not a callee-save register), so we can freely
-          // use it.
-        }
-        // Shifting the index value contained in `index_reg` by the scale
-        // factor (2) cannot overflow in practice, as the runtime is
-        // unable to allocate object arrays with a size larger than
-        // 2^26 - 1 (that is, 2^28 - 4 bytes).
-        __ Lsl(index_reg, index_reg, DataType::SizeShift(DataType::Type::kReference));
+        __ Lsl(w3, index_reg, DataType::SizeShift(DataType::Type::kReference));
         static_assert(
             sizeof(mirror::HeapReference<mirror::Object>) == sizeof(int32_t),
             "art::mirror::HeapReference<art::mirror::Object> and int32_t have different sizes.");
-        __ Add(index_reg, index_reg, Operand(offset_));
+        __ Add(w3, w3, Operand(offset_));
       } else {
         // In the case of the following intrinsics `index_` is not shifted by a scale factor of 2
-        // (as in the case of ArrayGet), as it is actually an offset to an object field within an
+        // (as in the case of ArraySet), as it is actually an offset to an object field within an
         // object.
         DCHECK(instruction_->IsInvoke()) << instruction_->DebugName();
         DCHECK(instruction_->GetLocations()->Intrinsified());
-        // HInvoke* invoke = instruction_->AsInvoke();
-        // DCHECK(IsUnsafeGetAndSetReference(invoke) ||
-        //        IsVarHandleGet(invoke) ||
-        //        IsUnsafeCASReference(invoke) ||
-        //        IsVarHandleCASFamily(invoke)) << invoke->GetIntrinsic();
         DCHECK_EQ(offset_, 0u);
         DCHECK(index_.IsRegister());
+        if (is_offset_register_64bit_) {
+          __ Mov(x3, index_reg);
+        } else {
+          __ Mov(w3, index_reg);
+        }
       }
-    }
-
-    // if (!index_.IsValid()) {
-    //   arm64_codegen->MoveConstant(LocationFrom(tmp), offset_);
-    // }
-
-    HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
-    parallel_move.AddMove(src_,
-                          LocationFrom(x0),
-                          DataType::Type::kReference,
-                          nullptr);
-    parallel_move.AddMove(target_,
-                          LocationFrom(x2),
-                          DataType::Type::kReference,
-                          nullptr);
-    if (index.IsValid()) {
-      parallel_move.AddMove(index,
-                            LocationFrom(x1),
-                            DataType::Type::kInt32,
-                            nullptr);
-      codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
     } else {
-      codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
-      arm64_codegen->MoveConstant(LocationFrom(x1), offset_);
-      // parallel_move.AddMove(LocationFrom(tmp),
-      //                       LocationFrom(x1),
-      //                       DataType::Type::kInt32,
-      //                       nullptr);
+      arm64_codegen->MoveConstant(LocationFrom(w3), offset_);
     }
-    // codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
-    // MemOperand destination(x0, x1);
-    __ Add(x1, x0, x1);  // x1 = src + offset
+
+    __ Ldp(w0, w2, MemOperand(sp, 0));
+    __ Drop(16);
+    if (index_.IsValid()) {
+      if (is_offset_register_64bit_) {
+        __ Mov(x1, x3);
+        __ Add(x1, x0, x1);  // x1 = src + offset
+      } else {
+        __ Mov(w1, w3);
+        __ Add(w1, w0, w1);  // w1 = src + offset
+      }
+    } else {
+      __ Mov(w1, w3);
+      __ Add(w1, w0, w1);  // w1 = src + offset
+    }
 
     // There is no need to update the stack mask, as this runtime call will not
     // trigger a garbage collection.
     int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kArm64PointerSize, pWriteBarrierPost).Int32Value();
     arm64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
 
-    // __ Add(Register(sp), Register(sp), 8); // Alignment padding
-    // __ Pop(x2, x1, x0);
-
-    RestoreLiveRegisters(codegen, locations);
+    __ Pop(x3, x2, x1, x0);
     __ B(GetExitLabel());
   }
 
@@ -985,6 +955,8 @@ class WriteBarrierPostSlowPathARM64 : public SlowPathCodeARM64 {
   const uint32_t offset_;
   // The address of the modified reference field. The base of this address must be `obj_`.
   const Location index_;
+  // Indicates whether the index is a 64-bit register.
+  const bool is_offset_register_64bit_;
 
   DISALLOW_COPY_AND_ASSIGN(WriteBarrierPostSlowPathARM64);
 };
@@ -1004,41 +976,41 @@ class ArrayCopyBarrierPostSlowPathARM64 : public SlowPathCodeARM64 {
     DCHECK(locations->CanCall());
 
     __ Bind(GetEntryLabel());
-
-    SaveLiveRegisters(codegen, locations);
+    __ Push(w0, w1, w2, w3);
 
     InvokeRuntimeCallingConvention calling_convention;
     CodeGeneratorARM64* arm64_codegen = down_cast<CodeGeneratorARM64*>(codegen);
 
-    // XXX(kunals): Just save the argument registers we use as the
-    // `art_quick_array_copy_barrier_post` will save all other registers
-    // __ Push(x0, x1, x2);
-    // __ Sub(Register(sp), Register(sp), 8); // Alignment padding
+    DCHECK(src_.IsRegister()) << "Source is not a register! src = " << src_;
+    DCHECK(dst_.IsRegister()) << "Destination is not a register! dst = " << dst_;
 
     HParallelMove parallel_move(codegen->GetGraph()->GetAllocator());
     parallel_move.AddMove(src_,
-                          LocationFrom(x0),
+                          LocationFrom(w0),
                           DataType::Type::kReference,
                           nullptr);
     parallel_move.AddMove(dst_,
-                          LocationFrom(x1),
+                          LocationFrom(w1),
                           DataType::Type::kReference,
                           nullptr);
-    parallel_move.AddMove(length_,
-                          LocationFrom(x2),
-                          DataType::Type::kInt32,
-                          nullptr);
-    codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    if (length_.IsRegister()) {
+      parallel_move.AddMove(length_,
+                            LocationFrom(w2),
+                            DataType::Type::kInt32,
+                            nullptr);
+      codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+    } else {
+      DCHECK(length_.IsConstant());
+      codegen->GetMoveResolver()->EmitNativeCode(&parallel_move);
+      arm64_codegen->MoveConstant(LocationFrom(w2), length_.GetConstant()->GetValueAsUint64());
+    }
 
     // There is no need to update the stack mask, as this runtime call will not
     // trigger a garbage collection.
     int32_t entry_point_offset = QUICK_ENTRYPOINT_OFFSET(kArm64PointerSize, pArrayCopyBarrierPost).Int32Value();
     arm64_codegen->InvokeRuntimeWithoutRecordingPcInfo(entry_point_offset, instruction_, this);
 
-    // __ Add(Register(sp), Register(sp), 8); // Alignment padding
-    // __ Pop(x2, x1, x0);
-
-    RestoreLiveRegisters(codegen, locations);
+    __ Pop(w3, w2, w1, w0);
     __ B(GetExitLabel());
   }
 
@@ -1807,11 +1779,12 @@ void CodeGeneratorARM64::GenerateWriteBarrierPost(HInstruction* instruction,
                                                   Location src,
                                                   Location target,
                                                   uint32_t offset,
-                                                  Location index) {
+                                                  Location index,
+                                                  bool is_offset_register_64bit) {
   DCHECK(gUseWriteBarrier);
 
   SlowPathCodeARM64* slow_path = new (GetScopedAllocator())
-      WriteBarrierPostSlowPathARM64(instruction, src, target, offset, index);
+      WriteBarrierPostSlowPathARM64(instruction, src, target, offset, index, is_offset_register_64bit);
   AddSlowPath(slow_path);
 
   __ B(slow_path->GetEntryLabel());
@@ -2650,7 +2623,7 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
       Location obj_loc = instruction->GetLocations()->InAt(0);
       codegen_->GenerateWriteBarrierPost(instruction,
                                          obj_loc,
-                                         LocationFrom(source.X()),
+                                         LocationFrom(source.W()),
                                          offset.Uint32Value());
     }
 #endif  // !ART_USE_MMTK
@@ -3343,8 +3316,8 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
       }
     }
 
-    if (gUseWriteBarrier) {
 #if !ART_USE_MMTK
+    if (gUseWriteBarrier) {
       DCHECK_NE(write_barrier_kind, WriteBarrierKind::kDontEmit);
       // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip this
       // write barrier when its value is null (without an extra cbz since we already checked if the
@@ -3354,8 +3327,8 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
       // we have the Zero register as the value. If we do `HuntForOriginalReference` on the value
       // we'll resolve this.
       codegen_->MarkGCCard(array);
-#endif  // !ART_USE_MMTK
     }
+#endif  // !ART_USE_MMTK
 
     UseScratchRegisterScope temps(masm);
     if (kPoisonHeapReferences) {
@@ -3379,32 +3352,32 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
     }
 
     {
-      // Ensure that between store and MaybeRecordImplicitNullCheck there are no pools emitted.
-      EmissionCheckScope guard(GetVIXLAssembler(), kMaxMacroInstructionSizeInBytes);
       __ Str(source, destination);
 
+#if ART_USE_MMTK
+      if (gUseWriteBarrier && needs_write_barrier) {
+        Location array_loc = locations->InAt(0);
+        if (index.IsConstant()) {
+          codegen_->GenerateWriteBarrierPost(instruction,
+                                             array_loc,
+                                             LocationFrom(source.W()),
+                                             offset);
+        } else {
+          codegen_->GenerateWriteBarrierPost(instruction,
+                                             array_loc,
+                                             LocationFrom(source.W()),
+                                             offset,
+                                             index);
+        }
+      }
+#endif  // ART_USE_MMTK
+
+      // Ensure that between store and MaybeRecordImplicitNullCheck there are no pools emitted.
+      EmissionCheckScope guard(GetVIXLAssembler(), kMaxMacroInstructionSizeInBytes);
       if (can_value_be_null || !needs_type_check) {
         codegen_->MaybeRecordImplicitNullCheck(instruction);
       }
     }
-
-#if ART_USE_MMTK
-    if (gUseWriteBarrier && needs_write_barrier) {
-      Location obj_loc = locations->InAt(0);
-      if (index.IsConstant()) {
-        codegen_->GenerateWriteBarrierPost(instruction,
-                                           obj_loc,
-                                           LocationFrom(source.X()),
-                                           offset);
-      } else {
-        codegen_->GenerateWriteBarrierPost(instruction,
-                                           obj_loc,
-                                           LocationFrom(source.X()),
-                                           offset,
-                                           index);
-      }
-    }
-#endif  // ART_USE_MMTK
 
     if (slow_path != nullptr) {
       __ Bind(slow_path->GetExitLabel());

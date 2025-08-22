@@ -678,7 +678,8 @@ class CodeGeneratorARM64 : public CodeGenerator {
                                 Location src,
                                 Location target,
                                 uint32_t offset,
-                                Location index = Location::NoLocation());
+                                Location index = Location::NoLocation(),
+                                bool is_offset_register_64bit = false);
 
   void GenerateArrayCopyBarrierPost(HInstruction* instruction, Location src, Location dst, Location count);
 #endif  // ART_USE_MMTK

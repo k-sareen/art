@@ -59,6 +59,8 @@ bool EntrypointRequiresStackMap(QuickEntrypointEnum trampoline) {
     case kQuickShlLong:
     case kQuickShrLong:
     case kQuickUshrLong:
+    case kQuickWriteBarrierPost:
+    case kQuickArrayCopyBarrierPost:
       return false;
 
     // TODO: Remove these entrypoints now that MIPS support was removed.
@@ -111,6 +113,8 @@ bool EntrypointCanTriggerGC(QuickEntrypointEnum entrypoint) {
     case kQuickShlLong:
     case kQuickShrLong:
     case kQuickUshrLong:
+    case kQuickWriteBarrierPost:
+    case kQuickArrayCopyBarrierPost:
       return false;
 
     // TODO: Remove these entrypoints now that MIPS support was removed.

@@ -999,7 +999,8 @@ static void GenUnsafePut(HInvoke* invoke,
     codegen->GenerateWriteBarrierPost(invoke,
                                       LocationFrom(base),
                                       LocationFrom(value),
-                                      0u, LocationFrom(offset));
+                                      0u, LocationFrom(offset),
+                                      /* is_offset_register_64bit= */ true);
 #endif  // !ART_USE_MMTK
   }
 }
@@ -1478,14 +1479,14 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
   Register expected = RegisterFrom(locations->InAt(3), type);     // Expected.
   Register new_value = RegisterFrom(locations->InAt(4), type);    // New value.
 
+#if !ART_USE_MMTK
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
-#if !ART_USE_MMTK
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MarkGCCard(base, new_value, new_value_can_be_null);
-#endif  // !ART_USE_MMTK
   }
+#endif  // !ART_USE_MMTK
 
   UseScratchRegisterScope temps(masm);
   Register tmp_ptr = temps.AcquireX();                             // Pointer to actual memory.
@@ -1496,6 +1497,9 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
   vixl::aarch64::Label* cmp_failure = &exit_loop_label;
 
   if (type == DataType::Type::kReference && codegen->EmitReadBarrier()) {
+#if ART_USE_MMTK
+    CHECK(false) << "Should not emit read barrier for MMTk!";
+#endif  // ART_USE_MMTK
     // We need to store the `old_value` in a non-scratch register to make sure
     // the read barrier in the slow path does not clobber it.
     old_value = WRegisterFrom(locations->GetTemp(0));  // The old value from main path.
@@ -1541,7 +1545,8 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
     codegen->GenerateWriteBarrierPost(invoke,
                                       LocationFrom(base),
                                       LocationFrom(new_value),
-                                      0u, LocationFrom(offset));
+                                      0u, LocationFrom(offset),
+                                      /* is_offset_register_64bit= */ true);
   }
 #endif  // ART_USE_MMTK
 
@@ -1796,10 +1801,12 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
                        /*old_value=*/ out);
 #if ART_USE_MMTK
   if (type == DataType::Type::kReference && gUseWriteBarrier) {
+    DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     codegen->GenerateWriteBarrierPost(invoke,
                                       LocationFrom(base),
                                       LocationFrom(arg),
-                                      0u, LocationFrom(offset));
+                                      0u, LocationFrom(offset),
+                                      /* is_offset_register_64bit= */ true);
   }
 #endif  // ART_USE_MMTK
 
@@ -5062,7 +5069,7 @@ static void GenerateVarHandleSet(HInvoke* invoke,
       if (needs_write_barrier) {
         codegen->GenerateWriteBarrierPost(invoke,
                                           LocationFrom(target.object),
-                                          LocationFrom(source.X()),
+                                          LocationFrom(source.W()),
                                           0u, LocationFrom(target.offset));
       }
 #endif  // !ART_USE_MMTK
@@ -5335,6 +5342,9 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
   vixl::aarch64::Label* cmp_failure = &exit_loop_label;
 
   if (value_type == DataType::Type::kReference && codegen->EmitReadBarrier()) {
+#if ART_USE_MMTK
+    CHECK(false) << "Should not emit read barrier for MMTk!";
+#endif  // ART_USE_MMTK
     // The `old_value_temp` is used first for the marked `old_value` and then for the unmarked
     // reloaded old value for subsequent CAS in the slow path. It cannot be a scratch register.
     size_t expected_coordinates_count = GetExpectedVarHandleCoordinatesCount(invoke);
@@ -5377,9 +5387,9 @@ static void GenerateVarHandleCompareAndSetOrExchange(HInvoke* invoke,
 #if ART_USE_MMTK
   if (gUseWriteBarrier && needs_write_barrier) {
     codegen->GenerateWriteBarrierPost(invoke,
-                                      LocationFrom(target.object.X()),
+                                      LocationFrom(target.object.W()),
                                       LocationFrom(new_value_reg),
-                                      0u, LocationFrom(target.offset.X()));
+                                      0u, LocationFrom(target.offset.W()));
   }
 #endif  // ART_USE_MMTK
 
@@ -5638,9 +5648,9 @@ static void GenerateVarHandleGetAndUpdate(HInvoke* invoke,
 #if ART_USE_MMTK
   if (gUseWriteBarrier && needs_write_barrier) {
     codegen->GenerateWriteBarrierPost(invoke,
-                                      LocationFrom(target.object.X()),
-                                      LocationFrom(arg.X()),
-                                      0u, LocationFrom(target.offset.X()));
+                                      LocationFrom(target.object.W()),
+                                      LocationFrom(arg.W()),
+                                      0u, LocationFrom(target.offset.W()));
   }
 #endif  // ART_USE_MMTK
 

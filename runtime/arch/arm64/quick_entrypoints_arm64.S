@@ -1038,9 +1038,19 @@ ENTRY art_quick_aput_obj
 #endif  // USE_WRITE_BARRIER
     ret
 
+// XXX(kunals): Omitted write barrier for null write.
+// This needs to still call MMTk's write barriers
 .Laput_obj_null:
     add x3, x0, #MIRROR_OBJECT_ARRAY_DATA_OFFSET
     str w2, [x3, x1, lsl #2]                           // Heap reference = 32b.
+#ifdef USE_WRITE_BARRIER
+#if ART_USE_MMTK
+    SAVE_TWO_REGS_INCREASE_FRAME x1, xLR, 16
+    add x1, x3, x1, lsl #2  // slot
+    bl art_quick_write_barrier_post
+    RESTORE_TWO_REGS_DECREASE_FRAME x1, xLR, 16
+#endif  // ART_USE_MMTK
+#endif  // USE_WRITE_BARRIER
     ret
 
 .Laput_obj_check_assignability:

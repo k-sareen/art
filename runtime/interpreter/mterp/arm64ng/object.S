@@ -259,17 +259,17 @@
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_skip_write_barrier
 #elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
-   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
-   mov     ip, x1
-   mov     ip2, x0
+   .if $is_object
+   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 32
+   SAVE_TWO_REGS x0, x1, 16
+   mov     x1, x0
    mov     x0, x2
-   mov     x1, ip2
-   add     x1, x2, x1
    mov     x2, x26
+   add     x1, x0, x1
    WRITE_BARRIER_IF_OBJECT $is_object, w2, w0, w1, .L${opcode}_skip_write_barrier
-   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 16
-   mov     x1, ip
-   mov     x0, ip2
+   RESTORE_TWO_REGS x0, x1, 16
+   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 32
+   .endif
 #endif   // defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    .endif
    FETCH_ADVANCE_INST 2
@@ -306,16 +306,16 @@
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w2, .L${opcode}_slow_path_skip_write_barrier
 #elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
-   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
-   mov     ip, x1
-   mov     ip2, x0
+   .if $is_object
+   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 32
+   SAVE_TWO_REGS x0, x1, 16
    mov     x0, x2
    mov     x1, x3
    mov     x2, x26
    WRITE_BARRIER_IF_OBJECT $is_object, w2, w0, w1, .L${opcode}_slow_path_skip_write_barrier
-   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 16
-   mov     x1, ip
-   mov     x0, ip2
+   RESTORE_TWO_REGS x0, x1, 16
+   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 32
+   .endif
 #endif   // defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    .endif
    FETCH_ADVANCE_INST 2
@@ -455,11 +455,15 @@
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_skip_write_barrier
 #elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
-   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
+   .if $is_object
+   SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 32
+   SAVE_REG x1, 24
    mov     x2, x26
    add     x1, x0, x1
    WRITE_BARRIER_IF_OBJECT $is_object, w2, w0, w1, .L${opcode}_skip_write_barrier
-   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 16
+   RESTORE_REG x1, 24
+   RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 32
+   .endif
 #endif   // defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    .endif
    FETCH_ADVANCE_INST 2
@@ -500,10 +504,12 @@
 #if defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    WRITE_BARRIER_IF_OBJECT $is_object, w26, w0, .L${opcode}_slow_path_skip_write_barrier
 #elif defined(USE_WRITE_BARRIER) && ART_USE_MMTK
+   .if $is_object
    SAVE_TWO_REGS_INCREASE_FRAME x2, xLR, 16
    mov     x2, x26
    WRITE_BARRIER_IF_OBJECT $is_object, x2, w0, w1, .L${opcode}_slow_path_skip_write_barrier
    RESTORE_TWO_REGS_DECREASE_FRAME x2, xLR, 16
+   .endif
 #endif   // defined(USE_WRITE_BARRIER) && !ART_USE_MMTK
    .endif
    FETCH_ADVANCE_INST 2

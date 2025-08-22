@@ -507,7 +507,11 @@ class CodeGenerator : public DeletableArenaObject<kArenaAllocCodeGenerator> {
     // Check that null value is not represented as an integer constant.
     // TODO(kunals): This is where the write barrier when writing null is omitted
     DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
+#if !ART_USE_MMTK
     return type == DataType::Type::kReference && !value->IsNullConstant();
+#else
+    return type == DataType::Type::kReference;
+#endif  // !ART_USE_MMTK
   }
 
   // If we are compiling a graph with the WBE pass enabled, we want to honor the WriteBarrierKind
