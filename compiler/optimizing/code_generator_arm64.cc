@@ -18,14 +18,12 @@
 
 #include "aarch64/assembler-aarch64.h"
 #include "aarch64/registers-aarch64.h"
-#include "android-base/logging.h"
 #include "arch/arm64/asm_support_arm64.h"
 #include "arch/arm64/instruction_set_features_arm64.h"
 #include "arch/arm64/jni_frame_arm64.h"
 #include "art_method-inl.h"
 #include "base/bit_utils.h"
 #include "base/bit_utils_iterator.h"
-#include "base/globals.h"
 #include "class_root-inl.h"
 #include "class_table.h"
 #include "code_generator_utils.h"
@@ -837,23 +835,6 @@ class WriteBarrierPostSlowPathARM64 : public SlowPathCodeARM64 {
 
   void EmitNativeCode(CodeGenerator* codegen) override {
     LocationSummary* locations = instruction_->GetLocations();
-    // if (is_offset_register_64bit_) {
-    //   LOG(INFO) << "Compiling code for WriteBarrierPostSlowPathARM64 "
-    //             << "src = " << src_ << ", target = " << target_ << ", offset = " << offset_
-    //             << ", index = " << index_ << "\n";
-    //   LOG(INFO) << "  IsArraySet " << instruction_->IsArraySet()
-    //             << ", IsInvoke " << instruction_->IsInvoke()
-    //             << ", Intrinsified " << instruction_->GetLocations()->Intrinsified() << "\n";
-    //   LOG(INFO) << "  Printing instruction " << instruction_->DebugName();
-    //   // LOG(INFO) << "  Printing instruction " << instruction_->DebugName() << " " << instruction_->DumpWithArgs();
-    // }
-    // LOG(INFO) << "  Printing instruction " << instruction_->DebugName() << " " << instruction_->DumpWithArgs();
-    // LOG(INFO) << "  Printing instruction " << instruction_->DebugName();
-
-    // CHECK(!Runtime::Current()->IsZygote() || (kIsDebugBuild && ::android::base::kEnableDChecks))
-    //   << "Runtime is " << Runtime::Current()->IsZygote()
-    //   << " kIsDebugBuild " << kIsDebugBuild
-    //   << ", kEnableDChecks " << ::android::base::kEnableDChecks;
     DCHECK(locations->CanCall());
     DCHECK(src_.IsRegister()) << "Source is not a register! src = " << src_;
     DCHECK(target_.IsRegister()) << "Target is not a register! target = " << target_;
