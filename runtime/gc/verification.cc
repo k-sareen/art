@@ -159,6 +159,13 @@ class Verification::BFSFindReachable {
 
   void operator()(mirror::Object* obj, MemberOffset offset, [[maybe_unused]] bool is_static) const
       REQUIRES_SHARED(Locks::mutator_lock_) {
+    if (obj->IsClass()) {
+      if (!(obj->AsClass()->IsLoaded() || obj->AsClass()->IsErroneous())) {
+        // Skip classes that are not loaded or erroneous. Avoids a race condition wherein the
+        // we try to load class metadata when it is in the middle of being initialized.
+        return;
+      }
+    }
     ArtField* field = obj->FindFieldByOffset(offset);
     Visit(obj->GetFieldObject<mirror::Object>(offset),
           field != nullptr ? field->GetName() : "");

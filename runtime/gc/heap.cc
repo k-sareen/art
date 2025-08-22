@@ -2006,7 +2006,8 @@ bool Heap::IsLiveObjectLocked(ObjPtr<mirror::Object> obj,
     UNUSED(search_allocation_stack);
     UNUSED(search_live_stack);
     UNUSED(sorted);
-    // TODO(kunals): Cleanup and abstract behind TPH
+    // TODO(kunals): Cleanup and abstract behind TPH or use the MmtkIsMarkedVisitor
+    // If the object is in the MMTk heap, then we can use the MMTk API to check if it is marked.
     return mmtk_is_object_marked(obj.Ptr());
 #else
   if (bump_pointer_space_ != nullptr && bump_pointer_space_->HasAddress(obj.Ptr())) {
