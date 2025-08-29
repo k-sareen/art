@@ -190,6 +190,9 @@ class ThirdPartyHeap {
   // the Zygote space
   void PreFirstZygoteForkCollection(Thread* self);
 
+  // The runtime is shutting down. Perform cleanup etc.
+  void Shutdown();
+
 #if ART_USE_MMTK_EXTREME_ASSERT
   std::mutex slot_set_mutex_;
   std::unique_ptr<std::unordered_set<void*>> slot_set_;

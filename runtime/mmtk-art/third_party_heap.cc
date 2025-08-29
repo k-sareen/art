@@ -417,6 +417,8 @@ void ThirdPartyHeap::PreFirstZygoteForkCollection(Thread* self) {
   mmtk_handle_pre_first_zygote_fork_collection_request(reinterpret_cast<void*>(self));
 }
 
+void ThirdPartyHeap::Shutdown() {}
+
 }  // namespace third_party_heap
 }  // namespace gc
 }  // namespace art

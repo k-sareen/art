@@ -393,6 +393,9 @@ Runtime::~Runtime() {
   if (oat_file_manager_ != nullptr) {
     oat_file_manager_->WaitForWorkersToBeCreated();
   }
+#if ART_USE_MMTK
+  heap_->GetThirdPartyHeap()->Shutdown();
+#endif  // ART_USE_MMTK
   // Disable GC before deleting the thread-pool and shutting down runtime as it
   // restricts attaching new threads.
   heap_->DisableGCForShutdown();
