@@ -77,20 +77,20 @@ static void scan_native_roots(void* object,
   art::gc::third_party_heap::MmtkScanObjectVisitor visitor(closure);
   art::mirror::Object* obj = reinterpret_cast<art::mirror::Object*>(object);
   switch (object_type) {
-    case kArtObjNRTClass:
+    case ArtObjectNativeRootsType::kClass:
       {
         art::ObjPtr<art::mirror::Class> klass = obj->AsClass();
         klass->VisitNativeRoots<art::kWithoutReadBarrier>(
             visitor, art::Runtime::Current()->GetClassLinker()->GetImagePointerSize());
         break;
       }
-    case kArtObjNRTDexCache:
+    case ArtObjectNativeRootsType::kDexCache:
       {
         art::ObjPtr<art::mirror::DexCache> dex_cache = obj->AsDexCache();
         dex_cache->VisitNativeRoots<art::kVerifyNone, art::kWithoutReadBarrier>(visitor);
         break;
       }
-    case kArtObjNRTClassLoader:
+    case ArtObjectNativeRootsType::kClassLoader:
       {
         art::ObjPtr<art::mirror::ClassLoader> class_loader = obj->AsClassLoader();
         // Visit classes loaded after.
