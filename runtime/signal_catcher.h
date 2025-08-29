@@ -49,6 +49,7 @@ class SignalCatcher {
 
   void HandleSigUsr1();
   void HandleSigUsr2();
+  void HandleDumpProfile();
   void Output(const std::string& s);
   void SetHaltFlag(bool new_value) REQUIRES(!lock_);
   bool ShouldHalt() REQUIRES(!lock_);

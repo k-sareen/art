@@ -17,6 +17,7 @@
 #include "runtime.h"
 #include "harness.h"
 
+#include <csignal>
 #include <optional>
 #include <utility>
 
@@ -2635,6 +2636,8 @@ void Runtime::BlockSignals() {
   signals.Add(SIGUSR1);
   // SIGUSR2 is used to start/stop harnessing.
   signals.Add(SIGUSR2);
+  // SIGRTMIN+15 is used to dump LLVM profile information.
+  signals.Add(SIGRTMIN+15);
   signals.Block();
 }
 

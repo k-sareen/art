@@ -170,6 +170,13 @@ void SignalCatcher::HandleSigUsr2() {
   }
 }
 
+void SignalCatcher::HandleDumpProfile() {
+  LOG(INFO) << "SIGRTMIN+15 Dumping LLVM profiles";
+#if ART_USE_MMTK
+  mmtk_dump_llvm_profile_file();
+#endif  // ART_USE_MMTK
+}
+
 int SignalCatcher::WaitForSignal(Thread* self, SignalSet& signals) {
   ScopedThreadStateChange tsc(self, ThreadState::kWaitingInMainSignalCatcherLoop);
 
@@ -211,12 +218,20 @@ void* SignalCatcher::Run(void* arg) {
   signals.Add(SIGQUIT);
   signals.Add(SIGUSR1);
   signals.Add(SIGUSR2);
+  signals.Add(SIGRTMIN+15);  // Used to dump LLVM profile information.
 
   while (true) {
     int signal_number = signal_catcher->WaitForSignal(self, signals);
     if (signal_catcher->ShouldHalt()) {
       runtime->DetachCurrentThread();
       return nullptr;
+    }
+
+    // XXX(kunals): Have to check signal for dumping profile outside of switch since
+    // it's not a constant expression
+    if (signal_number == SIGRTMIN+15) {
+      signal_catcher->HandleDumpProfile();
+      continue;
     }
 
     switch (signal_number) {
