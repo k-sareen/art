@@ -255,7 +255,7 @@ mirror::Object* ThirdPartyHeap::TryToAllocate(Thread* self,
     // Since LOS is non-moving anyway, we don't need to check if `non_moving` is true
     if ((*klass)->IsPrimitiveArray()) {
       // We can handle large primitive arrays specially since we don't need to scan them
-      semantics = AllocatorLos;
+      semantics = AllocatorPrimitiveLos;
     } else {
       semantics = AllocatorLos;
     }
