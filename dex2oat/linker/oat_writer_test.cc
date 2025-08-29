@@ -504,7 +504,9 @@ TEST_F(OatTest, OatHeaderSizeCheck) {
   EXPECT_EQ(68U, sizeof(OatHeader));
   EXPECT_EQ(4U, sizeof(OatMethodOffsets));
   EXPECT_EQ(4U, sizeof(OatQuickMethodHeader));
-  EXPECT_EQ(170 * static_cast<size_t>(GetInstructionSetPointerSize(kRuntimeISA)),
+  // XXX(kunals): This was previously 170. We've added two extra entry points for
+  // the write barriers
+  EXPECT_EQ(172 * static_cast<size_t>(GetInstructionSetPointerSize(kRuntimeISA)),
             sizeof(QuickEntryPoints));
 }
 

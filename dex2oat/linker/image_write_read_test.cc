@@ -39,12 +39,15 @@ void ImageWriteReadTest::TestWriteRead(ImageHeader::StorageMode storage_mode,
     ASSERT_GE(bitmap_section.Offset(), sizeof(image_header));
     ASSERT_NE(0U, bitmap_section.Size());
 
+    // XXX(kunals): Disabling these for MMTk since we don't use the ART spaces and layout
+#if !ART_USE_MMTK
     gc::Heap* heap = Runtime::Current()->GetHeap();
     ASSERT_TRUE(heap->HaveContinuousSpaces());
     gc::space::ContinuousSpace* space = heap->GetNonMovingSpace();
     ASSERT_FALSE(space->IsImageSpace());
     ASSERT_TRUE(space != nullptr);
     ASSERT_TRUE(space->IsMallocSpace());
+#endif  // !ART_USE_MMTK
     image_file_sizes.push_back(file->GetLength());
   }
 
@@ -87,7 +90,9 @@ void ImageWriteReadTest::TestWriteRead(ImageHeader::StorageMode storage_mode,
 
   gc::Heap* heap = Runtime::Current()->GetHeap();
   ASSERT_TRUE(heap->HasBootImageSpace());
+#if !ART_USE_MMTK
   ASSERT_TRUE(heap->GetNonMovingSpace()->IsMallocSpace());
+#endif  // !ART_USE_MMTK
 
   // We loaded the runtime with an explicit image, so it must exist.
   ASSERT_EQ(heap->GetBootImageSpaces().size(), image_file_sizes.size());

@@ -22,6 +22,7 @@
 #include "jit/jit_code_cache.h"
 #include "jni.h"
 #include "runtime.h"
+#include "runtime-inl.h"
 #include "thread_list.h"
 
 namespace art {

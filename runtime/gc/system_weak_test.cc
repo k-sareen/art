@@ -118,6 +118,7 @@ static bool CollectorDoesAllowOrBroadcast() {
     case CollectorType::kCollectorTypeCMC:
     case CollectorType::kCollectorTypeCC:
     case CollectorType::kCollectorTypeSS:
+    case CollectorType::kCollectorTypeThirdPartyHeap:
       return true;
 
     default:
