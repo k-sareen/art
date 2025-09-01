@@ -17,6 +17,11 @@
 #ifndef MMTK_ART_THIRD_PARTY_HEAP_VISIT_OBJECTS_INL_H_
 #define MMTK_ART_THIRD_PARTY_HEAP_VISIT_OBJECTS_INL_H_
 
+// This flag controls whether we use a heap visitor that is independent of MMTk's implementation.
+// The default MMTk heap visitor implemented below is not entirely correct since it might visit
+// dead objects
+#define ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR 1
+
 #include <sstream>
 
 #include "android-base/unique_fd.h"
@@ -24,6 +29,11 @@
 #include "mirror/class.h"
 #include "mmtk.h"
 #include "read_barrier_option.h"
+
+#if ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
+#include "base/utils.h"
+#include "mirror/object-refvisitor-inl.h"
+#endif  // ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
 
 namespace art {
 namespace gc {
@@ -89,8 +99,92 @@ static bool IsValidClass(ThirdPartyHeap* tp_heap, mirror::Class* klass) REQUIRES
   return IsValidClassUnchecked<kReadBarrierOption>(tp_heap, klass);
 }
 
+#if ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
+// A heap visitor that is independent of MMTk. It does a BFS transitive closure over all the
+// objects. It also visits the referents of weak references.
+//
+// It does not visit objects in the boot image space as we do a separate pass over the boot
+// image bitmap.
+template <typename Visitor>
+class ThirdPartyHeapObjectVisitor: public SingleRootVisitor {
+ public:
+  explicit ThirdPartyHeapObjectVisitor() {
+    heap_ = Runtime::Current()->GetHeap();
+    visited_.reset(new std::set<mirror::Object*>());
+    work_.reset(new std::deque<mirror::Object*>());
+  }
+
+  ~ThirdPartyHeapObjectVisitor() {
+    visited_->clear();
+    work_->clear();
+  }
+
+  void VisitObjects(Visitor&& visitor) REQUIRES_SHARED(Locks::mutator_lock_) {
+    Runtime::Current()->VisitRoots(this, kVisitRootFlagAllRoots);
+    while (!work_->empty()) {
+      mirror::Object* obj = work_->front();
+      work_->pop_front();
+      visitor(obj);
+      obj->VisitReferences(*this, VoidFunctor());
+    }
+  }
+
+  void VisitRoot(mirror::Object* obj, [[maybe_unused]] const RootInfo& info)
+      override REQUIRES_SHARED(Locks::mutator_lock_) {
+    if (obj != nullptr
+        && !heap_->IsBootImageAddress(obj)
+        && visited_->insert(obj).second) {
+      work_->emplace_back(obj);
+    }
+  }
+
+  void operator()(mirror::Object* obj, MemberOffset offset, [[maybe_unused]] bool is_static) const
+      REQUIRES_SHARED(Locks::mutator_lock_) {
+    Visit(obj->GetFieldObject<mirror::Object>(offset));
+  }
+
+  void operator()([[maybe_unused]] ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const
+      REQUIRES_SHARED(Locks::mutator_lock_) {
+    auto referent_slot = ref->GetReferentReferenceAddr();
+    Visit(referent_slot->AsMirrorPtr());
+  }
+
+  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const
+      REQUIRES_SHARED(Locks::mutator_lock_) {
+    if (!root->IsNull()) {
+      VisitRoot(root);
+    }
+  }
+
+  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const
+      REQUIRES_SHARED(Locks::mutator_lock_) {
+    Visit(root->AsMirrorPtr());
+  }
+
+ private:
+  void Visit(mirror::Object* ref) const
+      REQUIRES_SHARED(Locks::mutator_lock_) {
+    if (ref != nullptr
+        && !heap_->IsBootImageAddress(ref)
+        && visited_->insert(ref).second) {
+      work_->emplace_back(ref);
+    }
+  }
+
+  // Set of objects we've visited
+  std::unique_ptr<std::set<mirror::Object*>> visited_;
+  // Worklist of objects to be visited
+  std::unique_ptr<std::deque<mirror::Object*>> work_;
+  Heap* heap_;
+};
+#endif  // ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
+
 template <typename Visitor>
 inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
+#if ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
+  ThirdPartyHeapObjectVisitor<Visitor>* object_visitor = new ThirdPartyHeapObjectVisitor<Visitor>();
+  object_visitor->VisitObjects(visitor);
+#else
   // TODO(kunals): Investigate performance of visiting objects like this
   // Visit objects by doing a linear scan through allocated regions
   RustAllocatedRegionBuffer regions = mmtk_iterate_allocated_regions();
@@ -125,6 +219,7 @@ inline void ThirdPartyHeap::VisitObjects(Visitor&& visitor) {
 
   mmtk_release_rust_allocated_region_buffer(regions.buf, regions.len, regions.capacity);
   mmtk_release_rust_object_reference_buffer(large_objects.buf, large_objects.len, large_objects.capacity);
+#endif  // ART_USE_MMTK_INDEPENDENT_HEAP_VISITOR
 
   {
     // Visit objects inside image space
