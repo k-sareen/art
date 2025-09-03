@@ -984,7 +984,7 @@ static void GenUnsafePut(HInvoke* invoke,
     }
   }
 
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(base, value, value_can_be_null);
   }
@@ -1454,7 +1454,7 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARM6
   Register new_value = RegisterFrom(locations->InAt(4), type);    // New value.
 
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     // Mark card for object assuming new value is stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(base, new_value, new_value_can_be_null);
@@ -1729,7 +1729,7 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
   Register tmp_ptr = XRegisterFrom(locations->GetTemp(0));        // Pointer to actual memory.
 
   // This needs to be before the temp registers, as MarkGCCard also uses VIXL temps.
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     // Mark card for object as a new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
@@ -3394,9 +3394,7 @@ void IntrinsicCodeGeneratorARM64::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    if (gUseWriteBarrier) {
-      codegen_->MarkGCCard(dest.W());
-    }
+    codegen_->MarkGCCard(dest.W());
 
     __ Bind(&skip_copy_and_write_barrier);
   }

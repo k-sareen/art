@@ -37,7 +37,6 @@
 #include "oat/oat_quick_method_header.h"
 #include "optimizing_compiler_stats.h"
 #include "read_barrier_option.h"
-#include "write_barrier_config.h"
 #include "stack.h"
 #include "subtype_check.h"
 #include "utils/assembler.h"
@@ -504,13 +503,9 @@ class CodeGenerator : public DeletableArenaObject<kArenaAllocCodeGenerator> {
   }
 
   static bool StoreNeedsWriteBarrier(DataType::Type type, HInstruction* value) {
-    if (gUseWriteBarrier) {
-      // Check that null value is not represented as an integer constant.
-      DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
-      return type == DataType::Type::kReference && !value->IsNullConstant();
-    } else {
-      return false;
-    }
+    // Check that null value is not represented as an integer constant.
+    DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
+    return type == DataType::Type::kReference && !value->IsNullConstant();
   }
 
   // If we are compiling a graph with the WBE pass enabled, we want to honor the WriteBarrierKind

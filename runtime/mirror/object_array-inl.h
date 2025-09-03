@@ -31,7 +31,6 @@
 #include "read_barrier-inl.h"
 #include "runtime.h"
 #include "thread-current-inl.h"
-#include "write_barrier_config.h"
 #include "write_barrier-inl.h"
 
 namespace art HIDDEN {

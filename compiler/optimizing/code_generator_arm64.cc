@@ -1507,42 +1507,38 @@ void CodeGeneratorARM64::AddLocationAsTemp(Location location, LocationSummary* l
 }
 
 void CodeGeneratorARM64::MaybeMarkGCCard(Register object, Register value, bool emit_null_check) {
-  if (gUseWriteBarrier) {
-    vixl::aarch64::Label done;
-    if (emit_null_check) {
-      __ Cbz(value, &done);
-    }
-    MarkGCCard(object);
-    if (emit_null_check) {
-      __ Bind(&done);
-    }
+  vixl::aarch64::Label done;
+  if (emit_null_check) {
+    __ Cbz(value, &done);
+  }
+  MarkGCCard(object);
+  if (emit_null_check) {
+    __ Bind(&done);
   }
 }
 
 void CodeGeneratorARM64::MarkGCCard(Register object) {
-  if (gUseWriteBarrier) {
-    UseScratchRegisterScope temps(GetVIXLAssembler());
-    Register card = temps.AcquireX();
-    Register temp = temps.AcquireW();  // Index within the CardTable - 32bit.
-    // Load the address of the card table into `card`.
-    __ Ldr(card, MemOperand(tr, Thread::CardTableOffset<kArm64PointerSize>().Int32Value()));
-    // Calculate the offset (in the card table) of the card corresponding to `object`.
-    __ Lsr(temp, object, gc::accounting::CardTable::kCardShift);
-    // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
-    // `object`'s card.
-    //
-    // Register `card` contains the address of the card table. Note that the card
-    // table's base is biased during its creation so that it always starts at an
-    // address whose least-significant byte is equal to `kCardDirty` (see
-    // art::gc::accounting::CardTable::Create). Therefore the STRB instruction
-    // below writes the `kCardDirty` (byte) value into the `object`'s card
-    // (located at `card + object >> kCardShift`).
-    //
-    // This dual use of the value in register `card` (1. to calculate the location
-    // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
-    // (no need to explicitly load `kCardDirty` as an immediate value).
-    __ Strb(card, MemOperand(card, temp.X()));
-  }
+  UseScratchRegisterScope temps(GetVIXLAssembler());
+  Register card = temps.AcquireX();
+  Register temp = temps.AcquireW();  // Index within the CardTable - 32bit.
+  // Load the address of the card table into `card`.
+  __ Ldr(card, MemOperand(tr, Thread::CardTableOffset<kArm64PointerSize>().Int32Value()));
+  // Calculate the offset (in the card table) of the card corresponding to `object`.
+  __ Lsr(temp, object, gc::accounting::CardTable::kCardShift);
+  // Write the `art::gc::accounting::CardTable::kCardDirty` value into the
+  // `object`'s card.
+  //
+  // Register `card` contains the address of the card table. Note that the card
+  // table's base is biased during its creation so that it always starts at an
+  // address whose least-significant byte is equal to `kCardDirty` (see
+  // art::gc::accounting::CardTable::Create). Therefore the STRB instruction
+  // below writes the `kCardDirty` (byte) value into the `object`'s card
+  // (located at `card + object >> kCardShift`).
+  //
+  // This dual use of the value in register `card` (1. to calculate the location
+  // of the card to mark; and 2. to load the `kCardDirty` value) saves a load
+  // (no need to explicitly load `kCardDirty` as an immediate value).
+  __ Strb(card, MemOperand(card, temp.X()));
 }
 
 void CodeGeneratorARM64::CheckGCCardIsValid(Register object) {
@@ -2353,19 +2349,17 @@ void InstructionCodeGeneratorARM64::HandleFieldSet(HInstruction* instruction,
   const bool needs_write_barrier =
       codegen_->StoreNeedsWriteBarrier(field_type, instruction->InputAt(1), write_barrier_kind);
 
-  if (gUseWriteBarrier) {
-    if (needs_write_barrier) {
-      // TODO(solanes): If we do a `HuntForOriginalReference` call to the value in WBE, we will be
-      // able to DCHECK that the write_barrier_kind is kBeingReliedOn when Register(value).IsZero(),
-      // and we could remove the `!Register(value).IsZero()` from below.
-      codegen_->MaybeMarkGCCard(obj,
-                                Register(value),
-                                value_can_be_null &&
-                                    write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn &&
-                                    !Register(value).IsZero());
-    } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
-      codegen_->CheckGCCardIsValid(obj);
-    }
+  if (needs_write_barrier) {
+    // TODO(solanes): If we do a `HuntForOriginalReference` call to the value in WBE, we will be
+    // able to DCHECK that the write_barrier_kind is kBeingReliedOn when Register(value).IsZero(),
+    // and we could remove the `!Register(value).IsZero()` from below.
+    codegen_->MaybeMarkGCCard(obj,
+                              Register(value),
+                              value_can_be_null &&
+                                  write_barrier_kind == WriteBarrierKind::kEmitNotBeingReliedOn &&
+                                  !Register(value).IsZero());
+  } else if (codegen_->ShouldCheckGCCard(field_type, instruction->InputAt(1), write_barrier_kind)) {
+    codegen_->CheckGCCardIsValid(obj);
   }
 }
 
@@ -2932,7 +2926,7 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
   MacroAssembler* masm = GetVIXLAssembler();
 
   if (!needs_write_barrier) {
-    if (gUseWriteBarrier && codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind)) {
+    if (codegen_->ShouldCheckGCCard(value_type, instruction->GetValue(), write_barrier_kind)) {
       codegen_->CheckGCCardIsValid(array);
     }
 
@@ -3047,17 +3041,15 @@ void InstructionCodeGeneratorARM64::VisitArraySet(HArraySet* instruction) {
       }
     }
 
-    if (gUseWriteBarrier) {
-      DCHECK_NE(write_barrier_kind, WriteBarrierKind::kDontEmit);
-      // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip this
-      // write barrier when its value is null (without an extra cbz since we already checked if the
-      // value is null for the type check). This will be done as a follow-up since it is a runtime
-      // optimization that needs extra care.
-      // TODO(solanes): We can also skip it for known zero values which are not relied on i.e. when
-      // we have the Zero register as the value. If we do `HuntForOriginalReference` on the value
-      // we'll resolve this.
-      codegen_->MarkGCCard(array);
-    }
+    DCHECK_NE(write_barrier_kind, WriteBarrierKind::kDontEmit);
+    // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip this
+    // write barrier when its value is null (without an extra cbz since we already checked if the
+    // value is null for the type check). This will be done as a follow-up since it is a runtime
+    // optimization that needs extra care.
+    // TODO(solanes): We can also skip it for known zero values which are not relied on i.e. when
+    // we have the Zero register as the value. If we do `HuntForOriginalReference` on the value
+    // we'll resolve this.
+    codegen_->MarkGCCard(array);
 
     UseScratchRegisterScope temps(masm);
     if (kPoisonHeapReferences) {

@@ -2021,7 +2021,7 @@ static void GenUnsafePut(LocationSummary* locations,
     codegen->MemoryFence();
   }
 
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
     codegen->MaybeMarkGCCard(locations->GetTemp(0).AsRegister<Register>(),
                              locations->GetTemp(1).AsRegister<Register>(),
@@ -2360,13 +2360,11 @@ static void GenReferenceCAS(HInvoke* invoke,
   }
 
   // Mark card for object if the new value is stored.
-  if (gUseWriteBarrier) {
-    bool value_can_be_null = true;  // TODO: Worth finding out this information?
-    NearLabel skip_mark_gc_card;
-    __ j(kNotZero, &skip_mark_gc_card);
-    codegen->MaybeMarkGCCard(temp, temp2, base, value, value_can_be_null);
-    __ Bind(&skip_mark_gc_card);
-  }
+  bool value_can_be_null = true;  // TODO: Worth finding out this information?
+  NearLabel skip_mark_gc_card;
+  __ j(kNotZero, &skip_mark_gc_card);
+  codegen->MaybeMarkGCCard(temp, temp2, base, value, value_can_be_null);
+  __ Bind(&skip_mark_gc_card);
 
   // If heap poisoning is enabled, we need to unpoison the values
   // that were poisoned earlier.
@@ -2629,11 +2627,9 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
     }
 
     // Mark card for object as a new value shall be stored.
-    if (gUseWriteBarrier) {
-      bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
-      DCHECK_EQ(temp2, ECX);  // Byte register for `MarkGCCard()`.
-      codegen->MaybeMarkGCCard(temp1, temp2, base, /*value=*/out_reg, new_value_can_be_null);
-    }
+    bool new_value_can_be_null = true;  // TODO: Worth finding out this information?
+    DCHECK_EQ(temp2, ECX);  // Byte register for `MarkGCCard()`.
+    codegen->MaybeMarkGCCard(temp1, temp2, base, /*value=*/out_reg, new_value_can_be_null);
 
     if (kPoisonHeapReferences) {
       // Use a temp to avoid poisoning base of the field address, which might happen if `out`
@@ -3361,9 +3357,7 @@ void IntrinsicCodeGeneratorX86::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    if (gUseWriteBarrier) {
-      codegen_->MarkGCCard(temp1, temp3, dest);
-    }
+    codegen_->MarkGCCard(temp1, temp3, dest);
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -4343,9 +4337,7 @@ static void GenerateVarHandleGetAndSet(HInvoke* invoke, CodeGeneratorX86* codege
             /* always_update_field= */ true,
             &temp2);
       }
-      if (gUseWriteBarrier) {
-        codegen->MarkGCCard(temp, temp2, reference);
-      }
+      codegen->MarkGCCard(temp, temp2, reference);
       if (kPoisonHeapReferences) {
         __ movl(temp, value.AsRegister<Register>());
         __ PoisonHeapReference(temp);

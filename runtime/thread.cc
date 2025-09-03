@@ -112,7 +112,6 @@
 #include "trace.h"
 #include "verify_object.h"
 #include "well_known_classes-inl.h"
-#include "write_barrier_config.h"
 
 #ifdef ART_TARGET_ANDROID
 #include <android/set_abort_message.h>
@@ -155,9 +154,7 @@ static constexpr bool kVerifyImageObjectsMarked = kIsDebugBuild;
 static const char* kThreadNameDuringStartup = "<native thread without managed peer>";
 
 void Thread::InitCardTable() {
-  if (gUseWriteBarrier) {
-    tlsPtr_.card_table = Runtime::Current()->GetHeap()->GetCardTable()->GetBiasedBegin();
-  }
+  tlsPtr_.card_table = Runtime::Current()->GetHeap()->GetCardTable()->GetBiasedBegin();
 }
 
 static void UnimplementedEntryPoint() {

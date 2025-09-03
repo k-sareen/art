@@ -6598,7 +6598,7 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         DCHECK(value.IsConstant()) << value;
         __ movl(address, Immediate(0));
         codegen_->MaybeRecordImplicitNullCheck(instruction);
-        if (gUseWriteBarrier && write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
+        if (write_barrier_kind == WriteBarrierKind::kEmitBeingReliedOn) {
           // We need to set a write barrier here even though we are writing null, since this write
           // barrier is being relied on.
           DCHECK(needs_write_barrier);
@@ -6671,21 +6671,19 @@ void InstructionCodeGeneratorX86::VisitArraySet(HArraySet* instruction) {
         __ Bind(&do_store);
       }
 
-      if (gUseWriteBarrier) {
-        if (needs_write_barrier) {
-          // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
-          // this write barrier when its value is null (without an extra testl since we already
-          // checked if the value is null for the type check). This will be done as a follow-up since
-          // it is a runtime optimization that needs extra care.
-          Register temp = locations->GetTemp(0).AsRegister<Register>();
-          Register card = locations->GetTemp(1).AsRegister<Register>();
-          codegen_->MarkGCCard(temp, card, array);
-        } else if (codegen_->ShouldCheckGCCard(
-                       value_type, instruction->GetValue(), write_barrier_kind)) {
-          Register temp = locations->GetTemp(0).AsRegister<Register>();
-          Register card = locations->GetTemp(1).AsRegister<Register>();
-          codegen_->CheckGCCardIsValid(temp, card, array);
-        }
+      if (needs_write_barrier) {
+        // TODO(solanes): The WriteBarrierKind::kEmitNotBeingReliedOn case should be able to skip
+        // this write barrier when its value is null (without an extra testl since we already
+        // checked if the value is null for the type check). This will be done as a follow-up since
+        // it is a runtime optimization that needs extra care.
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
+        Register card = locations->GetTemp(1).AsRegister<Register>();
+        codegen_->MarkGCCard(temp, card, array);
+      } else if (codegen_->ShouldCheckGCCard(
+                     value_type, instruction->GetValue(), write_barrier_kind)) {
+        Register temp = locations->GetTemp(0).AsRegister<Register>();
+        Register card = locations->GetTemp(1).AsRegister<Register>();
+        codegen_->CheckGCCardIsValid(temp, card, array);
       }
 
       Register source = register_value;

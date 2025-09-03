@@ -1592,9 +1592,7 @@ void IntrinsicCodeGeneratorARMVIXL::VisitSystemArrayCopy(HInvoke* invoke) {
     }
 
     // We only need one card marking on the destination array.
-    if (gUseWriteBarrier) {
-      codegen_->MarkGCCard(temp1, temp2, dest);
-    }
+    codegen_->MarkGCCard(temp1, temp2, dest);
 
     __ Bind(&skip_copy_and_write_barrier);
   }
@@ -3017,7 +3015,7 @@ static void GenUnsafePut(HInvoke* invoke,
                        maybe_temp2,
                        /*maybe_temp3=*/ Location::NoLocation());
 
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     vixl32::Register temp = RegisterFrom(locations->GetTemp(0));
     UseScratchRegisterScope temps(assembler->GetVIXLAssembler());
     vixl32::Register card = temps.Acquire();
@@ -3610,7 +3608,7 @@ static void GenUnsafeCas(HInvoke* invoke, DataType::Type type, CodeGeneratorARMV
   UseScratchRegisterScope temps(assembler->GetVIXLAssembler());
   vixl32::Register tmp_ptr = temps.Acquire();
 
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     // Mark card for object assuming new value is stored. Worst case we will mark an unchanged
     // object and scan the receiver at the next GC for nothing.
     bool value_can_be_null = true;  // TODO: Worth finding out this information?
@@ -3920,7 +3918,7 @@ static void GenUnsafeGetAndUpdate(HInvoke* invoke,
   UseScratchRegisterScope temps(assembler->GetVIXLAssembler());
   vixl32::Register temp = temps.Acquire();
 
-  if (type == DataType::Type::kReference && gUseWriteBarrier) {
+  if (type == DataType::Type::kReference) {
     DCHECK(get_and_update_op == GetAndUpdateOp::kSet);
     // Mark card for object as a new value shall be stored.
     bool new_value_can_be_null = true;  // TODO: Worth finding out this information?

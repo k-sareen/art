@@ -161,25 +161,21 @@ ReadBarrierOption CodeGenerator::GetCompilerReadBarrierOption() const {
 bool CodeGenerator::ShouldCheckGCCard(DataType::Type type,
                                       HInstruction* value,
                                       WriteBarrierKind write_barrier_kind) const {
-  if (gUseWriteBarrier) {
-    const CompilerOptions& options = GetCompilerOptions();
-    const bool result =
-        // Check the GC card in debug mode,
-        options.EmitRunTimeChecksInDebugMode() &&
-        // only for CC GC,
-        options.EmitReadBarrier() &&
-        // and if we eliminated the write barrier in WBE.
-        !StoreNeedsWriteBarrier(type, value, write_barrier_kind) &&
-        CodeGenerator::StoreNeedsWriteBarrier(type, value);
+  const CompilerOptions& options = GetCompilerOptions();
+  const bool result =
+      // Check the GC card in debug mode,
+      options.EmitRunTimeChecksInDebugMode() &&
+      // only for CC GC,
+      options.EmitReadBarrier() &&
+      // and if we eliminated the write barrier in WBE.
+      !StoreNeedsWriteBarrier(type, value, write_barrier_kind) &&
+      CodeGenerator::StoreNeedsWriteBarrier(type, value);
 
-    DCHECK_IMPLIES(result, write_barrier_kind == WriteBarrierKind::kDontEmit);
-    DCHECK_IMPLIES(
-        result, !(GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches()));
+  DCHECK_IMPLIES(result, write_barrier_kind == WriteBarrierKind::kDontEmit);
+  DCHECK_IMPLIES(
+      result, !(GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches()));
 
-    return result;
-  } else {
-    return false;
-  }
+  return result;
 }
 
 ScopedArenaAllocator* CodeGenerator::GetScopedAllocator() {
@@ -1635,16 +1631,12 @@ void CodeGenerator::EmitParallelMoves(Location from1,
 bool CodeGenerator::StoreNeedsWriteBarrier(DataType::Type type,
                                            HInstruction* value,
                                            WriteBarrierKind write_barrier_kind) const {
-  if (gUseWriteBarrier) {
-    // Check that null value is not represented as an integer constant.
-    DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
-    // Branch profiling currently doesn't support running optimizations.
-    return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
-              ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
-              : write_barrier_kind != WriteBarrierKind::kDontEmit;
-  } else {
-    return false;
-  }
+  // Check that null value is not represented as an integer constant.
+  DCHECK_IMPLIES(type == DataType::Type::kReference, !value->IsIntConstant());
+  // Branch profiling currently doesn't support running optimizations.
+  return (GetGraph()->IsCompilingBaseline() && compiler_options_.ProfileBranches())
+            ? CodeGenerator::StoreNeedsWriteBarrier(type, value)
+            : write_barrier_kind != WriteBarrierKind::kDontEmit;
 }
 
 void CodeGenerator::ValidateInvokeRuntime(QuickEntrypointEnum entrypoint,

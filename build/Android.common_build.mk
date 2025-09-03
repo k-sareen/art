@@ -48,8 +48,6 @@ endif
 
 # Enable the read barrier by default.
 ART_USE_READ_BARRIER ?= true
-# Enable the write barrier by default.
-ART_USE_WRITE_BARRIER ?= true
 
 # Default compact dex level to none.
 ifeq ($(ART_DEFAULT_COMPACT_DEX_LEVEL),)

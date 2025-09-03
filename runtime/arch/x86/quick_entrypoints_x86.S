@@ -1254,11 +1254,9 @@ DEFINE_FUNCTION art_quick_aput_obj
 .Laput_obj_store:
     POISON_HEAP_REF edx
     movl %edx, MIRROR_OBJECT_ARRAY_DATA_OFFSET(%eax, %ecx, 4)
-#ifdef USE_WRITE_BARRIER
     movl %fs:THREAD_CARD_TABLE_OFFSET, %edx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %eax
     movb %dl, (%edx, %eax)
-#endif  // USE_WRITE_BARRIER
     ret
 
 .Laput_obj_null:
@@ -1291,11 +1289,9 @@ DEFINE_FUNCTION art_quick_aput_obj
     jz   .Lthrow_array_store_exception
     POISON_HEAP_REF edx
     movl %edx, MIRROR_OBJECT_ARRAY_DATA_OFFSET(%eax, %ecx, 4)  // Do the aput.
-#ifdef USE_WRITE_BARRIER
     movl %fs:THREAD_CARD_TABLE_OFFSET, %edx
     shrl LITERAL(CARD_TABLE_CARD_SHIFT), %eax
     movb %dl, (%edx, %eax)
-#endif  // USE_WRITE_BARRIER
     ret
 
 .Lthrow_array_store_exception:

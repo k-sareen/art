@@ -23,7 +23,6 @@
 #include "gc/heap.h"
 #include "obj_ptr-inl.h"
 #include "runtime.h"
-#include "write_barrier_config.h"
 
 namespace art {
 
@@ -31,35 +30,25 @@ template <WriteBarrier::NullCheck kNullCheck>
 inline void WriteBarrier::ForFieldWrite(ObjPtr<mirror::Object> dst,
                                         [[maybe_unused]] MemberOffset offset,
                                         ObjPtr<mirror::Object> new_value) {
-  if (gUseWriteBarrier) {
-    if (kNullCheck == kWithNullCheck && new_value == nullptr) {
-      return;
-    }
-    DCHECK(new_value != nullptr);
-    GetCardTable()->MarkCard(dst.Ptr());
+  if (kNullCheck == kWithNullCheck && new_value == nullptr) {
+    return;
   }
+  DCHECK(new_value != nullptr);
+  GetCardTable()->MarkCard(dst.Ptr());
 }
 
 inline void WriteBarrier::ForArrayWrite(ObjPtr<mirror::Object> dst,
                                         [[maybe_unused]] int start_offset,
                                         [[maybe_unused]] size_t length) {
-  if (gUseWriteBarrier) {
-    GetCardTable()->MarkCard(dst.Ptr());
-  }
+  GetCardTable()->MarkCard(dst.Ptr());
 }
 
 inline void WriteBarrier::ForEveryFieldWrite(ObjPtr<mirror::Object> obj) {
-  if (gUseWriteBarrier) {
-    GetCardTable()->MarkCard(obj.Ptr());
-  }
+  GetCardTable()->MarkCard(obj.Ptr());
 }
 
 inline gc::accounting::CardTable* WriteBarrier::GetCardTable() {
-  if (gUseWriteBarrier) {
-    return Runtime::Current()->GetHeap()->GetCardTable();
-  } else {
-    return nullptr;
-  }
+  return Runtime::Current()->GetHeap()->GetCardTable();
 }
 
 }  // namespace art
