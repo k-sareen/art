@@ -114,108 +114,14 @@ void SemiSpace::RunPhases() {
     FinishPhase();
   } else {
     Locks::mutator_lock_->AssertNotHeld(self);
-    // {
-    //   ScopedPause pause(this);
-    //   GetHeap()->PreGcVerificationPaused(this);
-    //   GetHeap()->PrePauseRosAllocVerification(this);
-    //   MarkingPhase();
-    // }
-    // {
-    //   ReaderMutexLock mu(self, *Locks::mutator_lock_);
-    //   ReclaimPhase();
-    // }
-    // FinishPhase();
     ScopedPause pause(this);
-    // {
-    //   size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
-    //   size_t bump_size = GetHeap()->bump_pointer_space_->GetBytesAllocated();
-    //   size_t temp_size = GetHeap()->temp_space_->GetBytesAllocated();
-    //   size_t los_size = GetHeap()->large_object_space_->GetBytesAllocated();
-    //   size_t non_moving_size = GetHeap()->non_moving_space_->GetBytesAllocated();
-    //   size_t zygote_size = 0;
-    //   if (GetHeap()->zygote_space_) {
-    //     zygote_size = GetHeap()->zygote_space_->GetBytesAllocated();
-    //   }
-
-    //   if (!IsAligned<gPageSize>(num_bytes_allocated)) {
-    //     LOG(WARNING) << "kunals: BEFORE num_bytes_allocated not page aligned: " << num_bytes_allocated;
-    //   }
-
-    //   if (num_bytes_allocated != (bump_size + temp_size) * 2 + los_size) {
-    //     LOG(WARNING) << "kunals: BEFORE Space sizes don't match! num_bytes_allocated = "
-    //                  << num_bytes_allocated << " bump_size = " << bump_size
-    //                  << " temp_size = " << temp_size << " los_size = " << los_size
-    //                  << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size
-    //                  << "; missing " << (ssize_t) num_bytes_allocated - ((ssize_t)((bump_size + temp_size) * 2 + los_size))
-    //                  << " bytes!";
-    //   } else {
-    //     // LOG(WARNING) << "kunals: BEFORE Space sizes match! num_bytes_allocated = "
-    //     //              << num_bytes_allocated << " bump_size = " << bump_size
-    //     //              << " temp_size = " << temp_size << " los_size = " << los_size
-    //     //              << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size;
-    //   }
-
-    //   for (const auto& space : GetHeap()->GetContinuousSpaces()) {
-    //     if (space->IsAllocSpace()) {
-    //       GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
-    //     }
-    //   }
-    //   for (const auto& space : GetHeap()->GetDiscontinuousSpaces()) {
-    //     if (space->IsAllocSpace()) {
-    //       GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
-    //     }
-    //   }
-    // }
-
     GetHeap()->PreGcVerificationPaused(this);
     GetHeap()->PrePauseRosAllocVerification(this);
     MarkingPhase();
     ReclaimPhase();
     GetHeap()->PostGcVerificationPaused(this);
     FinishPhase();
-
-    // {
-    //   size_t num_bytes_allocated = GetHeap()->GetBytesAllocated();
-    //   size_t bump_size = GetHeap()->bump_pointer_space_->GetBytesAllocated();
-    //   size_t temp_size = GetHeap()->temp_space_->GetBytesAllocated();
-    //   size_t los_size = GetHeap()->large_object_space_->GetBytesAllocated();
-    //   size_t non_moving_size = GetHeap()->non_moving_space_->GetBytesAllocated();
-    //   size_t zygote_size = 0;
-    //   if (GetHeap()->zygote_space_) {
-    //     zygote_size = GetHeap()->zygote_space_->GetBytesAllocated();
-    //   }
-
-    //   if (!IsAligned<gPageSize>(num_bytes_allocated)) {
-    //     LOG(WARNING) << "kunals: AFTER num_bytes_allocated not page aligned: " << num_bytes_allocated;
-    //   }
-
-    //   if (num_bytes_allocated != (bump_size + temp_size) * 2 + los_size) {
-    //     LOG(WARNING) << "kunals: AFTER Space sizes don't match! num_bytes_allocated = "
-    //                  << num_bytes_allocated << " bump_size = " << bump_size
-    //                  << " temp_size = " << temp_size << " los_size = " << los_size
-    //                  << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size
-    //                  << "; missing " << (ssize_t) num_bytes_allocated - ((ssize_t)((bump_size + temp_size) * 2 + los_size))
-    //                  << " bytes!";
-    //   } else {
-    //     // LOG(WARNING) << "kunals: AFTER Space sizes match! num_bytes_allocated = "
-    //     //              << num_bytes_allocated << " bump_size = " << bump_size
-    //     //              << " temp_size = " << temp_size << " los_size = " << los_size
-    //     //              << " non_moving_size = " << non_moving_size << " zygote_size = " << zygote_size;
-    //   }
-
-    //   for (const auto& space : GetHeap()->GetContinuousSpaces()) {
-    //     if (space->IsAllocSpace()) {
-    //       GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
-    //     }
-    //   }
-    //   for (const auto& space : GetHeap()->GetDiscontinuousSpaces()) {
-    //     if (space->IsAllocSpace()) {
-    //       GetHeap()->TraceSpaceSize(space->GetName(), space->AsAllocSpace()->GetBytesAllocated());
-    //     }
-    //   }
-    // }
   }
-  // FinishPhase();
 }
 
 void SemiSpace::InitializePhase() {
