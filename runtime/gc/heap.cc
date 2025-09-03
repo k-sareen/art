@@ -604,8 +604,7 @@ Heap::Heap(size_t initial_size,
       boot_images_size_(0u),
       pre_oome_gc_count_(0u),
       scan_object_count_(0),
-      trace_object_count_(0),
-      num_large_object_alloc_(0) {
+      trace_object_count_(0) {
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
@@ -1618,8 +1617,6 @@ void Heap::HarnessBegin() {
 
   power_stats_->StartAll();
 
-  uint64_t val = num_large_object_alloc_.exchange(0, std::memory_order_seq_cst);
-  std::cout << "num LOS obj before harness begin: " << val << "\n";
 }
 
 void Heap::HarnessEnd() {
@@ -1637,9 +1634,6 @@ void Heap::HarnessEnd() {
   power_stats_->StopAll();
 
   DumpGcPerformanceInfo(LOG_STREAM(INFO));
-
-  uint64_t val = num_large_object_alloc_.exchange(0, std::memory_order_seq_cst);
-  std::cout << "num LOS obj harness end: " << val << "\n";
 
   inside_harness_ = false;
   dumped_gc_performance_info_ = true;

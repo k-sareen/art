@@ -392,9 +392,6 @@ inline mirror::Object* Heap::TryToAllocate(Thread* self,
       // the other continuous spaces like the non-moving alloc space or
       // the zygote space.
       DCHECK(ret == nullptr || large_object_space_->Contains(ret));
-      if (ret != nullptr) {
-        num_large_object_alloc_.fetch_add(1, std::memory_order_seq_cst);
-      }
       break;
     }
     case kAllocatorTypeRegion: {
