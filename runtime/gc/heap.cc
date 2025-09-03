@@ -605,8 +605,7 @@ Heap::Heap(size_t initial_size,
       pre_oome_gc_count_(0u),
       scan_object_count_(0),
       trace_object_count_(0),
-      num_large_object_alloc_(0),
-      time_large_object_alloc_ns_(0) {
+      num_large_object_alloc_(0) {
   if (VLOG_IS_ON(heap) || VLOG_IS_ON(startup)) {
     LOG(INFO) << "Heap() entering";
   }
@@ -1526,8 +1525,6 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
   output_string << "\t";
   power_stats_->PrintColumnNames(&output_string);
 
-  output_string << "LOS.alloc\tLOS.alloc.time\t";
-
   output_string << "\n";
 
   output_string << total_gc_count
@@ -1543,9 +1540,6 @@ void Heap::DumpGcPerformanceInfo(std::ostream& os ATTRIBUTE_UNUSED) {
 
   output_string << "\t";
   power_stats_->PrintStats(&output_string);
-
-  output_string << num_large_object_alloc_.load(std::memory_order_relaxed) << "\t"
-                << (((double) time_large_object_alloc_ns_) / 1e6) << "\t";
 
   output_string << "\n";
   output_string << "-------------------------- End Tabulate Statistics --------------------------\n";
@@ -1577,9 +1571,6 @@ void Heap::ResetGcPerformanceInfo() {
 
   post_gc_last_process_cpu_time_ns_ = process_cpu_start_time_ns_;
   post_gc_weighted_allocated_bytes_ = 0u;
-
-  num_large_object_alloc_.exchange(0, std::memory_order_seq_cst);
-  time_large_object_alloc_ns_.exchange(0, std::memory_order_seq_cst);
 
   total_bytes_freed_ever_.store(0);
   total_objects_freed_ever_.store(0);
@@ -1626,6 +1617,9 @@ void Heap::HarnessBegin() {
   }
 
   power_stats_->StartAll();
+
+  uint64_t val = num_large_object_alloc_.exchange(0, std::memory_order_seq_cst);
+  std::cout << "num LOS obj before harness begin: " << val << "\n";
 }
 
 void Heap::HarnessEnd() {
@@ -1643,6 +1637,9 @@ void Heap::HarnessEnd() {
   power_stats_->StopAll();
 
   DumpGcPerformanceInfo(LOG_STREAM(INFO));
+
+  uint64_t val = num_large_object_alloc_.exchange(0, std::memory_order_seq_cst);
+  std::cout << "num LOS obj harness end: " << val << "\n";
 
   inside_harness_ = false;
   dumped_gc_performance_info_ = true;
