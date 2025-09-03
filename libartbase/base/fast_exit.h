@@ -29,6 +29,7 @@
 
 namespace art {
 
+// #define __ANDROID_CLANG_COVERAGE__
 #ifdef __ANDROID_CLANG_COVERAGE__
 static constexpr bool kAndroidClangCoverage = true;
 #else
