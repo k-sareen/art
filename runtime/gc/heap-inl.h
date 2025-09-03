@@ -17,7 +17,6 @@
 #ifndef ART_RUNTIME_GC_HEAP_INL_H_
 #define ART_RUNTIME_GC_HEAP_INL_H_
 
-#include "base/mutex.h"
 #include "heap.h"
 
 #include "gc/allocator_type.h"
@@ -85,7 +84,6 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
   size_t new_num_bytes_allocated = 0;
   bool need_gc = false;
   uint32_t starting_gc_num;  // o.w. GC number at which we observed need for GC.
-  uint64_t start_time = NanoTime();
   {
     // Bytes allocated that includes bulk thread-local buffer allocations in addition to direct
     // non-TLAB object allocations. Only set for non-thread-local allocation,
@@ -101,11 +99,6 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
       obj = AllocLargeObject<kInstrumented, PreFenceVisitor>(self, &klass, byte_count,
                                                              pre_fence_visitor);
       if (obj != nullptr) {
-        uint64_t elapsed_time = NanoTime() - start_time;
-        {
-          MutexLock mu(self, slowpath_timings_lock_);
-          slowpath_timings_.push_back(elapsed_time);
-        }
         return obj.Ptr();
       }
       // There should be an OOM exception, since we are retrying, clear it.
@@ -195,11 +188,6 @@ inline mirror::Object* Heap::AllocObjectWithAllocator(Thread* self,
         // points.) Because SetClass() has no write barrier, the GC may need a write barrier in the
         // case the object is non movable and points to a recently allocated movable class.
         WriteBarrier::ForFieldWrite(obj, mirror::Object::ClassOffset(), klass);
-      }
-      uint64_t elapsed_time = NanoTime() - start_time;
-      {
-        MutexLock mu(self, slowpath_timings_lock_);
-        slowpath_timings_.push_back(elapsed_time);
       }
       no_suspend_pre_fence_visitor(obj, usable_size);
       QuasiAtomic::ThreadFenceForConstructor();
