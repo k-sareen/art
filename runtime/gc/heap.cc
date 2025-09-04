@@ -4986,9 +4986,9 @@ mirror::Object* Heap::AllocWithNewTLAB(Thread* self,
       return nullptr;
     }
     // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
-    if (collector_type_ == kCollectorTypeSS
-        || collector_type_ == kCollectorTypeCC
-        || collector_type_ == kCollectorTypeCCBackground) {
+    if (collector_type_ == kCollectorTypeSS) {
+        // || collector_type_ == kCollectorTypeCC
+        // || collector_type_ == kCollectorTypeCCBackground) {
       *bytes_tl_bulk_allocated = 2 * expand_bytes;
       // *bytes_tl_bulk_allocated = expand_bytes;
     } else {

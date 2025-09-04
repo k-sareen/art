@@ -257,9 +257,9 @@ bool BumpPointerSpace::AllocNewTlab(Thread* self, size_t bytes, size_t* bytes_tl
   if (bytes_tl_bulk_allocated != nullptr) {
     // XXX(kunals): 2x bytes are added since we are counting the collection reserved pages
     auto collector_type = Runtime::Current()->GetHeap()->CurrentCollectorType();
-    if (collector_type == kCollectorTypeSS
-        || collector_type == kCollectorTypeCC
-        || collector_type == kCollectorTypeCCBackground) {
+    if (collector_type == kCollectorTypeSS) {
+        // || collector_type == kCollectorTypeCC
+        // || collector_type == kCollectorTypeCCBackground) {
       *bytes_tl_bulk_allocated = 2 * bytes;
       // *bytes_tl_bulk_allocated = bytes;
     } else {
