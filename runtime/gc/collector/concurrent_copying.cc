@@ -35,6 +35,7 @@
 #include "gc/reference_processor.h"
 #include "gc/space/image_space.h"
 #include "gc/space/space-inl.h"
+#include "gc/task_processor.h"
 #include "gc/verification.h"
 #include "intern_table.h"
 #include "mirror/class-inl.h"
@@ -228,6 +229,10 @@ void ConcurrentCopying::RunPhases() {
   is_active_ = true;
   Thread* self = Thread::Current();
   thread_running_gc_ = self;
+  CHECK(heap_->task_processor_->IsRunningThread(thread_running_gc_) ||
+        !heap_->task_processor_->IsRunning())
+      << "GC must be run by the GC thread. Current thread running GC: "
+      << thread_running_gc_;
   Locks::mutator_lock_->AssertNotHeld(self);
   {
     ReaderMutexLock mu(self, *Locks::mutator_lock_);

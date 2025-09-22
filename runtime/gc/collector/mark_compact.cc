@@ -783,6 +783,10 @@ class MarkCompact::FlipCallback : public Closure {
 void MarkCompact::RunPhases() {
   Thread* self = Thread::Current();
   thread_running_gc_ = self;
+  CHECK(heap_->task_processor_->IsRunningThread(thread_running_gc_) ||
+        !heap_->task_processor_->IsRunning())
+      << "GC must be run by the GC thread. Current thread running GC: "
+      << thread_running_gc_;
   Runtime* runtime = Runtime::Current();
   InitializePhase();
   GetHeap()->PreGcVerification(this);

@@ -3029,8 +3029,10 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
   }
   ScopedThreadStateChange tsc(self, ThreadState::kWaitingPerformingGc);
   Locks::mutator_lock_->AssertNotHeld(self);
-  SelfDeletingTask* clear;  // Unconditionally set below.
-  {
+  SelfDeletingTask* clear;  // Conditionally set below.
+  // We only run the GC if we are the task processor or the runtime does not have a task processor
+  // thread. All other threads request a GC and wait for it to complete.
+  if (task_processor_->IsRunningThread(self) || !task_processor_->IsRunning()) {
     // We should not ever become runnable and re-suspend while executing a GC.
     // This would likely cause a deadlock if we acted on a suspension request.
     // TODO: We really want to assert that we don't transition to kRunnable.
@@ -3154,6 +3156,21 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     }
     LogGC(gc_cause, collector);
     FinishGC(self, gc_type);
+  } else {
+    // CHECK(IsGcConcurrent());
+    // If we are not the heap task daemon thread, then we're running out of heap space. Request a
+    // full heap GC and then wait for it to finish.
+    RequestConcurrentGC(self, gc_cause, /*force_full=*/ true, GetCurrentGcNum());
+    {
+      gc_complete_lock_->AssertNotHeld(self);
+      ScopedThreadStateChange tsc2(self, ThreadState::kWaitingForGcToComplete);
+      MutexLock mu(self, *gc_complete_lock_);
+      gc_complete_cond_->CheckSafeToWait(self);
+      while (GCNumberLt(GetCurrentGcNum(), requested_gc_num)) {
+        gc_complete_cond_->Wait(self);
+      }
+      return last_gc_type_;
+    }
   }
   // Actually enqueue all cleared references. Do this after the GC has officially finished since
   // otherwise we can deadlock.
