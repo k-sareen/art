@@ -3158,6 +3158,7 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     FinishGC(self, gc_type);
   } else {
     // CHECK(IsGcConcurrent());
+    requested_gc_num = requested_gc_num == GC_NUM_ANY ? GetCurrentGcNum() + 1 : requested_gc_num;
     // If we are not the heap task daemon thread, then we're running out of heap space. Request a
     // full heap GC and then wait for it to finish.
     RequestConcurrentGC(self, gc_cause, /*force_full=*/ true, GetCurrentGcNum());
