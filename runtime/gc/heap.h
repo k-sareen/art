@@ -1846,6 +1846,8 @@ class Heap {
   bool dumped_gc_performance_info_;
   uint64_t harness_begin_start_time_ns_;
 
+  bool is_harness_begin_gc_;
+
   std::vector<PerfCounter*> perf_counters_;
   // Have the perf counters been created?
   std::atomic<bool> perf_counters_created_;

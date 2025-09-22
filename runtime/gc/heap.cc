@@ -39,6 +39,7 @@
 
 #include "allocation_listener.h"
 #include "android-base/stringprintf.h"
+#include "android-base/strings.h"
 #include "android-base/thread_annotations.h"
 #include "art_field-inl.h"
 #include "backtrace_helper.h"
@@ -315,6 +316,40 @@ static int CheckIfSingleThreaded() {
 #else
   return 1;
 #endif
+}
+
+static void SetAffinityForCurrentThread() {
+#if defined(__linux__)
+  std::ifstream thread_affinity_file("/data/local/mmtk_thread_affinity");
+  std::stringstream buffer;
+  if (thread_affinity_file.is_open()) {
+    buffer << thread_affinity_file.rdbuf();
+    thread_affinity_file.close();
+  } else {
+    // File doesn't exist, don't set affinity.
+    LOG(WARNING) << "Couldn't open /data/local/mmtk_thread_affinity, not setting affinity.";
+    return;
+  }
+  std::string buffer_str = android::base::Trim(buffer.str());
+  LOG(INFO) << "Read thread affinity string: '" << buffer_str << "'";
+  if (buffer_str != "big" && buffer_str != "mid") {
+    return;
+  }
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+  if (buffer_str == "big") {
+    CPU_SET(6, &cpu_set);
+    CPU_SET(7, &cpu_set);
+  } else {
+    CHECK(buffer_str == "mid");
+    CPU_SET(4, &cpu_set);
+    CPU_SET(5, &cpu_set);
+  }
+  int rc = sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
+  if (rc != 0) {
+    PLOG(WARNING) << "sched_setaffinity failed";
+  }
+#endif  // defined(__linux__)
 }
 
 PerfCounter::PerfCounter(std::string perf_event_name)
@@ -599,6 +634,7 @@ Heap::Heap(size_t initial_size,
       inside_harness_(false),
       dumped_gc_performance_info_(false),
       harness_begin_start_time_ns_(0u),
+      is_harness_begin_gc_(false),
       boot_image_spaces_(),
       boot_images_start_address_(0u),
       boot_images_size_(0u),
@@ -1592,7 +1628,9 @@ void Heap::HarnessBegin() {
   if (gc_plan_.back() != collector::kGcTypeNoGC) {
     LOG(INFO) << "Performing a GC with " << gc_plan_.back()
       << " before HarnessBegin\n";
+    is_harness_begin_gc_ = true;
     CollectGarbage(/* clear_soft_references = */ false, kGcCauseExplicit);
+    is_harness_begin_gc_ = false;
     LOG(INFO) << "Finished GC before HarnessBegin\n";
   } else {
     LOG(INFO) << "Ignoring GC request before HarnessBegin for NoGC\n";
@@ -3139,6 +3177,10 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     CHECK(collector != nullptr) << "Could not find garbage collector with collector_type="
                                 << static_cast<size_t>(collector_type_)
                                 << " and gc_type=" << gc_type;
+    if (is_harness_begin_gc_) {
+      // Read and set affinity for GC thread in benchmark harness.
+      SetAffinityForCurrentThread();
+    }
     std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
     if (IsTargetApp(package_name)) {
       LOG(INFO) << "Heap size before GC " << PrettySize(GetBytesAllocated());
