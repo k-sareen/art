@@ -3185,6 +3185,10 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     if (IsTargetApp(package_name)) {
       LOG(INFO) << "Heap size before GC " << PrettySize(GetBytesAllocated());
     }
+    // LOG(INFO) << "Starting " << gc_type << " GC for " << gc_cause
+    //           << " on thread " << *self
+    //           << " (requested_gc_num=" << requested_gc_num
+    //           << ", current_gc_num=" << GetCurrentGcNum() << ")";
     collector->Run(gc_cause, clear_soft_references || runtime->IsZygote());
     IncrementFreedEver();
     RequestTrim(self);
@@ -3200,7 +3204,11 @@ collector::GcType Heap::CollectGarbageInternal(collector::GcType gc_type,
     FinishGC(self, gc_type);
   } else {
     // CHECK(IsGcConcurrent());
-    requested_gc_num = requested_gc_num == GC_NUM_ANY ? GetCurrentGcNum() + 1 : requested_gc_num;
+    bool is_gc_num_any = requested_gc_num == GC_NUM_ANY;
+    requested_gc_num = is_gc_num_any ? GetCurrentGcNum() + 1 : requested_gc_num;
+    // LOG(INFO) << "Requesting GC " << requested_gc_num
+    //           << " (was previously GC_NUM_ANY: " << is_gc_num_any << ") for " << gc_cause
+    //           << " on thread " << *self << " (current=" << GetCurrentGcNum() << ")";
     // If we are not the heap task daemon thread, then we're running out of heap space. Request a
     // full heap GC and then wait for it to finish.
     RequestConcurrentGC(self, gc_cause, /*force_full=*/ true, GetCurrentGcNum());
@@ -4420,6 +4428,8 @@ void Heap::RequestConcurrentGCAndSaveObject(Thread* self,
                                             ObjPtr<mirror::Object>* obj) {
   StackHandleScope<1> hs(self);
   HandleWrapperObjPtr<mirror::Object> wrapper(hs.NewHandleWrapper(obj));
+  // LOG(INFO) << "Requesting GC " << observed_gc_num + 1 << " for Background on thread "
+  //           << *self << " (observed=" << observed_gc_num << ")";
   RequestConcurrentGC(self, kGcCauseBackground, force_full, observed_gc_num);
 }
 
