@@ -66,7 +66,7 @@ using android::base::StringPrintf;
 
 // If true, we attempt to load the application image if it exists.
 #if !ART_USE_MMTK
-static constexpr bool kEnableAppImage = true;
+static constexpr bool kEnableAppImage = false;
 #else
 // TODO(kunals): Fix this after we can boot the device using MMTk and also after
 // we can remove regions from the VM space inside MMTk
