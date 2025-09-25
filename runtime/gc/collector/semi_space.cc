@@ -217,18 +217,18 @@ void SemiSpace::MarkingPhase() {
   CHECK(Runtime::Current()->IsZygote() || to_space_->GetBytesAllocated() == static_cast<size_t>(to_bytes));
   // Note: Freed bytes can be negative if we copy form a compacted space to a free-list backed
   // space.
-  // if (!IsAligned<gPageSize>(from_bytes - to_bytes)) {
-  //   LOG(WARNING) << "kunals: bytes freed not page aligned: " << from_bytes - to_bytes << " from_bytes = " << from_bytes << " to_bytes = " << to_bytes;
-  // }
-  // XXX(kunals): 2x bytes are freed from total bytes allocated since we are counting the collection reserved pages
-  RecordFree(ObjectBytePair(from_objects - to_objects, 2 * (from_bytes - to_bytes)));
-  // RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
+  // XXX(kunals): 2x bytes are freed from total bytes allocated since we are counting the collection
+  // reserved pages only if we are not the zygote collector, that is to say, only if we are a
+  // SemiSpace collector for the entire time
+  if (!Runtime::Current()->IsZygote() || heap_->foreground_collector_type_ == kCollectorTypeSS) {
+    RecordFree(ObjectBytePair(from_objects - to_objects, 2 * (from_bytes - to_bytes)));
+  } else {
+    RecordFree(ObjectBytePair(from_objects - to_objects, from_bytes - to_bytes));
+  }
   // Clear and protect the from space.
-  // XXX(kunals): Uncomment the following line and comment out
-  // from_space->Clear() if running inside chroot. The SemiSpace collector is
-  // used for the Zygote so if the pages are not returned back to the operating
-  // system here, then the phone soft reboots (restarts inplace) before
-  // eventually dying completely from out of memory errors
+  // XXX(kunals): Don't return the from space if we are in the target app or
+  // if we are a commandline build. This can drastically improve performance for
+  // the mutator since we reduce the number of page faults
   if (heap_->IsTargetApp(Runtime::Current()->GetPackageName())
         || (!Runtime::Current()->IsZygote() && !heap_->HasZygoteSpace())) {
     from_space_->ClearAndDontRelease();
