@@ -701,7 +701,7 @@ Heap::Heap(size_t initial_size,
       VerifyBootImagesContiguity(boot_image_spaces_);
     }
 #if ART_USE_MMTK
-    tp_heap_->SetBootImageSpace(boot_images_start_address_, boot_images_size_);
+    tp_heap_->SetImageSpace(boot_images_start_address_, boot_images_size_);
 #endif  // ART_USE_MMTK
   } else {
     if (foreground_collector_type_ == kCollectorTypeCC) {
