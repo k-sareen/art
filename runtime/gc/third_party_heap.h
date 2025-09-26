@@ -102,7 +102,10 @@ class ThirdPartyHeap {
 
   // Inform the ThirdPartyHeap of the location of the boot image and its size so
   // that it can keep track of any objects it sees that may be in the boot image
-  void SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size);
+  void SetImageSpace(uint32_t image_start_address, uint32_t image_size);
+
+  // Remove an image space already registered with the ThirdPartyHeap
+  void RemoveImageSpace(uint32_t image_start_address, uint32_t image_size);
 
   // Set the size of a pointer used by the runtime. Note that it could be something other
   // than the machine pointer size if we are cross-compiling

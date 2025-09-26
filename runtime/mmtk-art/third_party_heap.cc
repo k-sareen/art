@@ -111,8 +111,12 @@ void ThirdPartyHeap::GrowHeapOnJankPerceptibleSwitch() {
   mmtk_grow_heap_on_jank_perceptible_switch();
 }
 
-void ThirdPartyHeap::SetBootImageSpace(uint32_t boot_image_start_address, uint32_t boot_image_size) {
-  mmtk_set_image_space(boot_image_start_address, boot_image_size);
+void ThirdPartyHeap::SetImageSpace(uint32_t image_start_address, uint32_t image_size) {
+  mmtk_set_image_space(image_start_address, image_size);
+}
+
+void ThirdPartyHeap::RemoveImageSpace(uint32_t image_start_address, uint32_t image_size) {
+  mmtk_remove_image_space(image_start_address, image_size);
 }
 
 void ThirdPartyHeap::SetPointerSize(size_t pointer_size) {
