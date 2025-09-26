@@ -154,9 +154,6 @@ class MarkCompact final : public GarbageCollector {
   // GcVisitedArenaPool, which mostly happens only once.
   void AddLinearAllocSpaceData(uint8_t* begin, size_t len);
 
-  // Print the current configuration of the mark-compact collector.
-  void PrintConfiguration();
-
   // In copy-mode of userfaultfd, we don't need to reach a 'processed' state as
   // it's given that processing thread also copies the page, thereby mapping it.
   // The order is important as we may treat them as integers.

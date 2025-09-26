@@ -780,22 +780,6 @@ class MarkCompact::FlipCallback : public Closure {
   MarkCompact* const collector_;
 };
 
-void MarkCompact::PrintConfiguration() {
-  LOG(INFO) << "MarkCompact configuration:\n"
-            << "  gUseUserfaultfd=" << gUseUserfaultfd << "\n"
-            << "  gUseReadBarrier=" << gUseReadBarrier << "\n"
-            << "  gHaveMremapDontunmap=" << gHaveMremapDontunmap << "\n"
-            << "  gUffdFeatures=0x" << std::hex << gUffdFeatures << std::dec << "\n"
-            << "  (sigbus=" << ((gUffdFeatures & kUffdFeaturesForSigbus) == kUffdFeaturesForSigbus) << ","
-            << " minor-fault="
-            << ((gUffdFeatures & kUffdFeaturesForMinorFault) == kUffdFeaturesForMinorFault) << ")\n"
-            << "  gKernelHasFaultRetry=" << gKernelHasFaultRetry << "\n"
-            << "  uffd_initialized_=" << uffd_initialized_ << "\n"
-            << "  uffd_=" << uffd_ << "\n"
-            << "  use_uffd_sigbus_=" << use_uffd_sigbus_ << "\n"
-            << "  uffd_minor_fault_supported_=" << uffd_minor_fault_supported_ << "\n";
-}
-
 void MarkCompact::RunPhases() {
   Thread* self = Thread::Current();
   thread_running_gc_ = self;
@@ -804,9 +788,6 @@ void MarkCompact::RunPhases() {
       << "GC must be run by the GC thread. Current thread running GC: "
       << thread_running_gc_;
   Runtime* runtime = Runtime::Current();
-  if (GetHeap()->is_harness_begin_gc_) {
-    PrintConfiguration();
-  }
   InitializePhase();
   GetHeap()->PreGcVerification(this);
   {
