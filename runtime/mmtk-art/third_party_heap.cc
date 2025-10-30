@@ -184,7 +184,6 @@ void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
 
   SuspendAll();
 
-
 #if ART_USE_MMTK_SANITY
   // We run SanityPostGC after the GC has completed the transitive closure so
   // that we still have all forwarding pointers etc.
