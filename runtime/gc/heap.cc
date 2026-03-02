@@ -1085,7 +1085,8 @@ Heap::Heap(size_t initial_size,
     // PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
     PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
     perf_counters_created_.store(true);
-    power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
+    power_stats_.reset(new IioEnergyMeterDataProvider({"s2mpg10-odpm", "s2mpg11-odpm",
+        "s2mpg12-odpm", "s2mpg13-odpm" }));
   }
 
   // If we are using NoGC then clear and don't release the entire bump pointer
@@ -1122,7 +1123,8 @@ void Heap::CreatePerfCounters() {
   // PerfCounterCreate("PERF_COUNT_HW_STALLED_CYCLES_BACKEND");
   PerfCounterCreate("PERF_COUNT_SW_PAGE_FAULTS");
   perf_counters_created_.store(true);
-  power_stats_.reset(new IioEnergyMeterDataProvider({ "s2mpg12-odpm", "s2mpg13-odpm" }));
+  power_stats_.reset(new IioEnergyMeterDataProvider({"s2mpg10-odpm", "s2mpg11-odpm",
+      "s2mpg12-odpm", "s2mpg13-odpm" }));
 }
 
 MemMap Heap::MapAnonymousPreferredAddress(const char* name,
