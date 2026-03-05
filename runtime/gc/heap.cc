@@ -4240,7 +4240,13 @@ void Heap::GrowForUtilization(collector::GarbageCollector* collector_ran,
 void Heap::ReadHeapSizesFile() {
   std::ifstream heap_sizes_file("/data/local/heap_sizes.json");
   if (heap_sizes_file.is_open()) {
-    heap_sizes_ = nlohmann::json::parse(heap_sizes_file);
+    // Don't throw exceptions since we want to be resilient to malformed files.
+    // If the file is malformed, we will just ignore it and use the default heap sizes.
+    heap_sizes_ = nlohmann::json::parse(heap_sizes_file, nullptr, false);
+    if (heap_sizes_.is_discarded()) {
+      LOG(WARNING) << "Failed to parse heap sizes file";
+      heap_sizes_ = nlohmann::json();
+    }
     heap_sizes_file.close();
   }
 }
@@ -4336,7 +4342,10 @@ void Heap::ClampGrowthLimit() {
   // Use heap bitmap lock to guard against races with BindLiveToMarkBitmap.
   ScopedObjectAccess soa(Thread::Current());
   WriterMutexLock mu(soa.Self(), *Locks::heap_bitmap_lock_);
-  ReadHeapSizesFile();
+  // Only read the heap sizes file if we're not the system server
+  if (!Runtime::Current()->IsSystemServer()) {
+    ReadHeapSizesFile();
+  }
   std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
   if (IsTargetApp(package_name)) {
     LOG(INFO) << "Found target app " << package_name << "!";
@@ -4405,7 +4414,10 @@ void Heap::ClampGrowthLimit() {
 }
 
 void Heap::ClearGrowthLimit() {
-  ReadHeapSizesFile();
+  // Only read the heap sizes file if we're not the system server
+  if (!Runtime::Current()->IsSystemServer()) {
+    ReadHeapSizesFile();
+  }
   std::string package_name = Runtime::Current()->GetAppInfo()->PackageName();
   if (IsTargetApp(package_name)) {
     LOG(INFO) << "Target app " << package_name << " uses large heap, clamping heap instead";
