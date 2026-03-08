@@ -1008,7 +1008,7 @@ void ThreadList::ResumeAllInternal(Thread* self) {
   }
   Thread::resume_cond_->Broadcast(self);
   // Hack to transition to NotInGC state
-  mmtk_array_copy_pre(nullptr, nullptr, nullptr, 0);
+  // mmtk_array_copy_pre(nullptr, nullptr, nullptr, 0);
 
   if (self != nullptr) {
     VLOG(threads) << *self << " ResumeAll complete";
