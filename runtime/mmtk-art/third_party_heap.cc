@@ -169,6 +169,8 @@ static void ResumeAll() {
   Runtime::Current()->GetThreadList()->ResumeAll();
 }
 
+#define ART_USE_MMTK_SANITY 0
+
 void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
   art::ScopedThreadStateChange tsc(self, ThreadState::kWaitingForGcToComplete);
 #if ART_USE_MMTK_SANITY
@@ -181,7 +183,6 @@ void ThirdPartyHeap::RunCompanionThreadRoutine(Thread* self) {
   }
 
   SuspendAll();
-
 
 #if ART_USE_MMTK_SANITY
   // We run SanityPostGC after the GC has completed the transitive closure so

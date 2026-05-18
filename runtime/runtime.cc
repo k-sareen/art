@@ -15,6 +15,7 @@
  */
 
 #include "runtime.h"
+#include "base/globals.h"
 #include "harness.h"
 
 #include <csignal>
@@ -1585,6 +1586,8 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
   // (b/30160149): protect subprocesses from modifications to LD_LIBRARY_PATH, etc.
   // Take a snapshot of the environment at the time the runtime was created, for use by Exec, etc.
   env_snapshot_.TakeSnapshot();
+
+  LOG(INFO) << "Runtime starting with kIsDebugBuild " << kIsDebugBuild << ", kEnableDChecks " << ::android::base::kEnableDChecks;
 
 #ifdef ART_PAGE_SIZE_AGNOSTIC
   gPageSize.AllowAccess();

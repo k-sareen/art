@@ -132,6 +132,9 @@ int GenerateBootImage(const Options& options) {
       GetLibCoreDexFileNames(options.android_root, options.core_only);
   std::vector<std::string> dex_locations = GetLibCoreDexLocations(options.core_only);
   args.push_back("--runtime-arg");
+  // args.push_back("-verbose:class,collector,compiler,gc,heap,jit,oat,threads,verifier,image,dex");
+  // args.push_back("-verbose:class");
+  // args.push_back("--runtime-arg");
   args.push_back("-Xbootclasspath:" + Join(dex_files, ":"));
   args.push_back("--runtime-arg");
   args.push_back("-Xbootclasspath-locations:" + Join(dex_locations, ":"));
